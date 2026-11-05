@@ -14,9 +14,10 @@ jobs:
           MC=$(find . ~/.gradle -path '*minecraft*' -name '*.jar' 2>/dev/null | grep -iE 'merged|client' | grep -v sources | grep -iv 'common' | xargs ls -S 2>/dev/null | head -1)
           echo "MC=$MC"
           CP="$MC:$(find ~/.gradle -name 'fabric-*.jar' | grep -v sources | tr '\n' ':')$(find ~/.gradle -name 'joml*.jar' | head -1)"
-          for c in net.minecraft.client.renderer.rendertype.RenderType net.minecraft.client.renderer.rendertype.RenderSetup 'net.minecraft.client.renderer.rendertype.RenderSetup$RenderSetupBuilder' net.minecraft.client.renderer.rendertype.RenderTypes net.minecraft.client.resources.model.AtlasManager net.minecraft.client.renderer.texture.TextureAtlas net.minecraft.data.AtlasIds net.minecraft.client.particle.ParticleResources com.mojang.blaze3d.pipeline.BlendFunction com.mojang.blaze3d.platform.DepthTestFunction net.minecraft.client.renderer.RenderPipelines net.minecraft.client.renderer.GameRenderer 'com.mojang.blaze3d.vertex.VertexFormat$Mode' net.minecraft.client.renderer.state.QuadParticleRenderState com.mojang.blaze3d.vertex.VertexConsumer; do
-            echo "=================== $c"; javap -cp "$CP" -p "$c" 2>&1 | grep -vE "lambda|method_[0-9]" | head -150
+          for c in net.minecraft.client.renderer.fog.FogRenderer com.mojang.blaze3d.pipeline.RenderPipeline 'net.minecraft.client.renderer.MultiBufferSource$BufferSource' net.minecraft.client.Minecraft net.minecraft.client.renderer.fog.environment.FogEnvironment net.minecraft.client.renderer.fog.FogData; do
+            echo "=================== $c"; javap -cp "$CP" -p "$c" 2>&1 | grep -vE "lambda|method_[0-9]" | grep -iE "class|fog|color|colour|builder|endBatch|Atlas|static .*\(|public .*\(" | head -80
           done
+          exit 0
           echo "=================== shader files"
           unzip -l "$MC" | grep -oE "assets/minecraft/(shaders|atlases)/[^ ]+" | head -200
           for f in assets/minecraft/shaders/core/position_tex_color.vsh assets/minecraft/shaders/core/position_tex_color.fsh assets/minecraft/shaders/core/sky.vsh assets/minecraft/shaders/core/sky.fsh assets/minecraft/shaders/include/dynamictransforms.glsl assets/minecraft/shaders/include/projection.glsl assets/minecraft/shaders/include/globals.glsl assets/minecraft/atlases/particles.json assets/minecraft/shaders/core/particle.vsh; do echo "----- $f"; unzip -p "$MC" "$f"; done
