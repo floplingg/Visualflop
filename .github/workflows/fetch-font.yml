@@ -1,0 +1,28 @@
+name: Fetch UI font
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  font:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Inter (SIL Open Font License)
+        run: |
+          set -e
+          curl -fsSL -o inter.zip https://github.com/rsms/inter/releases/download/v4.1/Inter-4.1.zip
+          unzip -l inter.zip | grep -E "\.ttf|LICENSE" | head -30
+          mkdir -p src/main/resources/assets/flopvisuals/font
+          for w in Medium SemiBold; do
+            f=$(unzip -l inter.zip | grep -oE "[^ ]*Inter-${w}\.ttf" | grep -v Display | head -1)
+            echo "using $f"
+            unzip -p inter.zip "$f" > "src/main/resources/assets/flopvisuals/font/inter-$(echo $w | tr A-Z a-z).ttf"
+          done
+          lic=$(unzip -l inter.zip | grep -oE "[^ ]*LICENSE[^ ]*" | head -1)
+          unzip -p inter.zip "$lic" > src/main/resources/assets/flopvisuals/font/INTER-LICENSE.txt
+          ls -la src/main/resources/assets/flopvisuals/font
+      - name: Commit
+        run: |
+          git config user.name floplingg && git config user.email floplingg@users.noreply.github.com
+          git add src/main/resources/assets/flopvisuals/font
+          git commit -m "Add Inter UI font (OFL)" && git push
