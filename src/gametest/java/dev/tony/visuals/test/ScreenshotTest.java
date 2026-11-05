@@ -20,6 +20,7 @@ public class ScreenshotTest implements FabricClientGameTest {
         context.runOnClient(mc -> {
             mc.options.renderDistance().set(3);
             mc.options.simulationDistance().set(5);
+            mc.options.framerateLimit().set(15);
         });
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
             world.getClientWorld().waitForChunksRender();

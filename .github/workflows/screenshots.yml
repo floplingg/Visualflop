@@ -3,6 +3,8 @@ on:
   push:
     paths: [".github/workflows/screenshots.yml", "src/**"]
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   screenshots:
     runs-on: ubuntu-latest
@@ -15,12 +17,25 @@ jobs:
       - name: Run client game test
         run: |
           chmod +x gradlew
+          export LP_NUM_THREADS=2
           xvfb-run -a -s "-screen 0 1280x720x24" timeout 900 ./gradlew runClientGameTest --stacktrace || true
       - name: Logs
         if: always()
         run: |
           find . -path ./.gradle -prune -o -name "latest.log" -print | head
           for f in $(find . -path ./.gradle -prune -o -name "latest.log" -print); do grep -iE "flopvisuals|flop-visuals|error|exception|shader|mixin" "$f" | head -150; done
+      - name: Publish screenshots to the ci-screenshots branch
+        if: always()
+        run: |
+          mkdir -p /tmp/shots
+          find build -name "*.png" -path "*screenshots*" -exec cp {} /tmp/shots/ \; || true
+          find build -name "latest.log" -path "*logs*" -exec cp {} /tmp/shots/latest.log \; || true
+          ls -la /tmp/shots
+          cd /tmp/shots
+          git init -q -b ci-screenshots
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm "screenshots ${{ github.sha }}" || exit 0
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-screenshots
       - uses: actions/upload-artifact@v4
         if: always()
         with:
