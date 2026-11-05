@@ -1,8 +1,5 @@
 name: In-game screenshots
-on:
-  push:
-    paths: [".github/workflows/screenshots.yml", "src/**"]
-  workflow_dispatch:
+on: workflow_dispatch
 permissions:
   contents: write
 jobs:
