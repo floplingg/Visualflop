@@ -1,0 +1,24 @@
+name: Probe API
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x gradlew && ./gradlew compileJava --stacktrace -q || true
+      - name: javap
+        run: |
+          MC=$(find . ~/.gradle -path '*minecraft*' -name '*.jar' 2>/dev/null | grep -iE 'merged|client' | grep -v sources | grep -iv 'common' | xargs ls -S 2>/dev/null | head -1)
+          echo "MC=$MC"
+          CP="$MC:$(find ~/.gradle -name 'fabric-*.jar' | grep -v sources | tr '\n' ':')$(find ~/.gradle -name 'joml*.jar' | head -1)"
+          for c in net.minecraft.client.particle.Particle net.minecraft.client.particle.SingleQuadParticle 'net.minecraft.client.particle.SingleQuadParticle$Layer' net.minecraft.client.particle.ParticleProvider net.minecraft.client.particle.SpriteSet net.minecraft.client.particle.ParticleRenderType net.minecraft.client.renderer.SkyRenderer net.minecraft.client.renderer.LevelRenderer net.minecraft.client.renderer.DimensionSpecialEffects net.minecraft.client.renderer.RenderPipelines com.mojang.blaze3d.pipeline.RenderPipeline 'com.mojang.blaze3d.pipeline.RenderPipeline$Builder' com.mojang.blaze3d.vertex.VertexFormat com.mojang.blaze3d.vertex.DefaultVertexFormat net.minecraft.client.renderer.RenderType net.minecraft.client.renderer.MultiBufferSource com.mojang.blaze3d.systems.RenderSystem net.minecraft.client.renderer.state.SkyRenderState net.minecraft.client.renderer.LevelTargetBundle net.minecraft.client.particle.CherryParticle net.minecraft.client.particle.FallingLeavesParticle net.minecraft.client.particle.ParticleEngine; do
+            echo "=================== $c"; javap -cp "$CP" -p "$c" 2>&1 | head -120
+          done
+          echo "=================== fabric classes"
+          for j in $(find ~/.gradle -name 'fabric-rendering-v1*.jar' -o -name 'fabric-particles-v1*.jar' | grep -v sources | sort -u); do echo "## $j"; unzip -l "$j" | grep -oE 'net/fabricmc/fabric/api/[^ ]+\.class' ; done
+          for c in net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry 'net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry$PendingParticleFactory' net.fabricmc.fabric.api.particle.v1.FabricParticleTypes net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext net.fabricmc.fabric.api.client.rendering.v1.DimensionRenderingRegistry net.fabricmc.fabric.api.client.rendering.v1.world.WorldTerrainRenderContext net.fabricmc.fabric.api.client.rendering.v1.world.AbstractWorldRenderContext; do
+            echo "=================== $c"; javap -cp "$CP" -p "$c" 2>&1 | head -80
+          done
