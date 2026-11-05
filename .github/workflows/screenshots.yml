@@ -1,5 +1,7 @@
 name: In-game screenshots
-on: workflow_dispatch
+on:
+  push:
+  workflow_dispatch:
 jobs:
   screenshots:
     runs-on: ubuntu-latest
