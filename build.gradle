@@ -22,3 +22,13 @@ java {
     toolchain.languageVersion = JavaLanguageVersion.of(21)
 }
 tasks.withType(JavaCompile).configureEach { it.options.release = 21 }
+
+// Automated in-game screenshot test (runs on GitHub with a virtual display).
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = "flop-visuals-test"
+        enableGameTests = false
+        eula = true
+    }
+}

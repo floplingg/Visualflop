@@ -1,0 +1,27 @@
+name: In-game screenshots
+on: workflow_dispatch
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: gradle/actions/setup-gradle@v4
+      - run: sudo apt-get update -q && sudo apt-get install -yq xvfb libgl1-mesa-dri mesa-utils
+      - name: Run client game test
+        run: |
+          chmod +x gradlew
+          xvfb-run -a -s "-screen 0 1920x1080x24" timeout 900 ./gradlew runClientGameTest --stacktrace || true
+      - name: Logs
+        if: always()
+        run: |
+          find . -path ./.gradle -prune -o -name "latest.log" -print | head
+          for f in $(find . -path ./.gradle -prune -o -name "latest.log" -print); do grep -iE "flopvisuals|flop-visuals|error|exception|shader|mixin" "$f" | head -150; done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: |
+            build/run/**/screenshots/**
+            build/run/**/logs/latest.log
