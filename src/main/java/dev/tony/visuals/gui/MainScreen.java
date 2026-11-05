@@ -3,213 +3,222 @@ package dev.tony.visuals.gui;
 import dev.tony.visuals.Config;
 import dev.tony.visuals.FlopVisuals;
 import dev.tony.visuals.Theme;
-import net.minecraft.client.gui.GuiGraphics;
+import dev.tony.visuals.spotify.Spotify;
+import dev.tony.visuals.wallpaper.Wallpapers;
+import net.minecraft.Util;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
-/** The Flop Visuals menu. Everything previews live and saves automatically. */
-public class MainScreen extends SettingsScreen {
-    private static final int ROW = 18, GAP = 3;
-    private static final String[] TABS = {"Theme", "HUD", "Keys", "Trails", "Petals", "Sky"};
-    private static int tab;
-
-    private final List<int[]> swatches = new ArrayList<>();
-    private final List<Supplier<Integer>> swatchColours = new ArrayList<>();
-    private String note = "";
+/** The Flop Visuals settings window. Everything previews live and saves automatically. */
+public class MainScreen extends SheetScreen {
+    private static int lastPage;
 
     public MainScreen(Screen parent) {
         super("Flop Visuals", parent);
+        addPage("Appearance", "appearance", 0x0A84FF, this::appearance);
+        addPage("HUD", "hud", 0x8E8E93, this::hud);
+        addPage("Keystrokes", "keyboard", 0xBF5AF2, this::keystrokes);
+        addPage("Trails", "trails", 0x30D158, this::trails);
+        addPage("Ambience", "petals", 0xFF6FAE, this::ambience);
+        addPage("Sky", "sky", 0x5E5CE6, this::sky);
+        addPage("Glass Ground", "glass", 0x32ADE6, this::glass);
+        addPage("Wallpaper", "wallpaper", 0xFF9F0A, this::wallpaper);
+        addPage("Spotify", "music", 0x1DB954, this::spotify);
+        page = lastPage;
     }
 
     @Override
-    protected String headerRight() {
-        return note.isEmpty() ? "§7key: Options › Controls" : note;
+    protected void showPage(int index) {
+        super.showPage(index);
+        lastPage = page;
     }
 
-    @Override
-    protected void build() {
-        swatches.clear();
-        swatchColours.clear();
-        panel(320, 330);
-        int l = px + 8, w = pw - 16, half = (w - 4) / 2;
-        int y = py + 27;
+    private static Config c() { return Config.get(); }
 
-        int tw = (w - (TABS.length - 1) * 3) / TABS.length;
-        for (int i = 0; i < TABS.length; i++) {
-            int idx = i;
-            int bx = l + i * (tw + 3), bw = i == TABS.length - 1 ? w - i * (tw + 3) : tw;
-            add(new Ui.Button(bx, y, bw, ROW, () -> (tab == idx ? "§l" : "§7") + TABS[idx], () -> {
-                tab = idx;
-                note = "";
-                rebuildWidgets();
-            }).highlight(() -> tab == idx));
+    // ------------------------------------------------------------ pages
+
+    private List<Sheet.Item> appearance() {
+        Theme t = c().theme;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Accent"));
+        l.add(new Sheet.Colour("Accent colour", () -> t.accentColor, v -> t.accentColor = v));
+        l.add(new Sheet.Toggle("Rainbow accent", () -> t.chroma, v -> t.chroma = v));
+        l.add(Sheet.Slider.ints("Rainbow speed", 1, 10, () -> t.chromaSpeed, v -> t.chromaSpeed = v, ""));
+        l.add(new Sheet.Chips(Arrays.asList(Theme.PRESETS), null, name -> {
+            c().theme = Theme.preset(name, c().theme);
+            rebuild();
+        }));
+        l.add(new Sheet.Footer("Presets set the accent, background and text colours together."));
+
+        l.add(new Sheet.Header("Menus"));
+        l.add(new Sheet.Toggle("Light appearance", () -> t.lightMenus, v -> t.lightMenus = v));
+        l.add(new Sheet.Toggle("Smooth font", () -> t.smoothFont, v -> t.smoothFont = v));
+        l.add(new Sheet.Toggle("Blur game behind menus", () -> t.blurMenus, v -> t.blurMenus = v));
+        l.add(new Sheet.Info("Open this menu", () -> FlopVisuals.menuKey.getTranslatedKeyMessage().getString()));
+        l.add(new Sheet.Footer("Change the key in Options › Controls › Key Binds."));
+
+        l.add(new Sheet.Header("HUD cards"));
+        l.add(new Sheet.Colour("Background", () -> t.background, v -> t.background = v));
+        l.add(Sheet.Slider.ints("Opacity", 0, 100, () -> t.widgetOpacity, v -> t.widgetOpacity = v, "%"));
+        l.add(Sheet.Slider.ints("Corner radius", 0, 10, () -> t.rounding, v -> t.rounding = v, ""));
+        l.add(Sheet.Slider.ints("Padding", 2, 10, () -> t.padding, v -> t.padding = v, ""));
+        l.add(new Sheet.Toggle("Outline", () -> t.outline, v -> t.outline = v));
+        l.add(new Sheet.Toggle("Accent outline", () -> t.outlineAccent, v -> t.outlineAccent = v));
+        l.add(Sheet.Slider.ints("Outline opacity", 0, 100, () -> t.outlineOpacity, v -> t.outlineOpacity = v, "%"));
+        l.add(new Sheet.Toggle("Accent strip", () -> t.accentStrip, v -> t.accentStrip = v));
+        l.add(new Sheet.Toggle("Text shadow", () -> t.textShadow, v -> t.textShadow = v));
+        l.add(new Sheet.Colour("Text", () -> t.text, v -> t.text = v));
+        l.add(new Sheet.Colour("Secondary text", () -> t.muted, v -> t.muted = v));
+        return l;
+    }
+
+    private List<Sheet.Item> hud() {
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Layout"));
+        l.add(new Sheet.Action("Edit HUD layout", () -> "", () -> minecraft.setScreen(new LayoutScreen(this))).accent().chevron());
+        l.add(new Sheet.Footer("Drag to move, scroll to resize, right-click to hide."));
+        l.add(new Sheet.Header("Widgets"));
+        for (String id : Config.WIDGETS) {
+            Config.Widget w = c().widget(id);
+            l.add(new Sheet.Toggle(Config.widgetName(id), () -> w.enabled, v -> w.enabled = v));
         }
-        y += ROW + 7;
+        return l;
+    }
 
-        Config c = Config.get();
-        Theme t = c.theme;
-        switch (tab) {
-            case 0 -> {
-                y = colour(l, y, w, "Accent colour", () -> t.accentColor, v -> t.accentColor = v);
-                add(Ui.Button.toggle(l, y, half, ROW, "Rainbow accent", () -> t.chroma, v -> { t.chroma = v; Config.save(); }));
-                slider(Slider.ints(l + half + 4, y, w - half - 4, ROW, "Speed", 1, 10, () -> t.chromaSpeed, v -> t.chromaSpeed = v, ""));
-                y += ROW + GAP;
-                y = colour(l, y, w, "Background", () -> t.background, v -> t.background = v);
-                y = sliderI(l, y, w, "HUD opacity", 0, 100, () -> t.widgetOpacity, v -> t.widgetOpacity = v, "%");
-                y = sliderI(l, y, w, "Rounding", 0, 10, () -> t.rounding, v -> t.rounding = v, "");
-                add(Ui.Button.toggle(l, y, half, ROW, "Outline", () -> t.outline, v -> { t.outline = v; Config.save(); }));
-                slider(Slider.ints(l + half + 4, y, w - half - 4, ROW, "Opacity", 0, 100, () -> t.outlineOpacity, v -> t.outlineOpacity = v, "%"));
-                y += ROW + GAP;
-                add(Ui.Button.toggle(l, y, half, ROW, "Accent strip", () -> t.accentStrip, v -> { t.accentStrip = v; Config.save(); }));
-                add(Ui.Button.toggle(l + half + 4, y, w - half - 4, ROW, "Text shadow", () -> t.textShadow, v -> { t.textShadow = v; Config.save(); }));
-                y += ROW + GAP;
-                colourBtn(l, y, half, "Text", () -> t.text, v -> t.text = v);
-                colourBtn(l + half + 4, y, w - half - 4, "Faded text", () -> t.muted, v -> t.muted = v);
-                y += ROW + GAP;
-                y = sliderI(l, y, w, "Padding", 2, 10, () -> t.padding, v -> t.padding = v, "px");
-                int col = (w - 3 * 6) / 7;
-                for (int i = 0; i < Theme.PRESETS.length; i++) {
-                    String name = Theme.PRESETS[i];
-                    int bx = l + i * (col + 3), bw = i == Theme.PRESETS.length - 1 ? w - i * (col + 3) : col;
-                    add(new Ui.Button(bx, y, bw, ROW, () -> name, () -> {
-                        c.theme = Theme.preset(name, c.theme);
-                        Config.save();
-                        note = "§aApplied " + name;
-                        rebuildWidgets();
-                    }));
-                }
-                y += ROW + GAP;
-            }
-            case 1 -> {
-                for (int i = 0; i < Config.WIDGETS.length; i++) {
-                    String id = Config.WIDGETS[i];
-                    Config.Widget wd = c.widget(id);
-                    int bx = i % 2 == 0 ? l : l + half + 4, bw = i % 2 == 0 ? half : w - half - 4;
-                    add(Ui.Button.toggle(bx, y, bw, ROW, Config.widgetName(id), () -> wd.enabled, v -> { wd.enabled = v; Config.save(); }));
-                    if (i % 2 == 1 || i == Config.WIDGETS.length - 1) y += ROW + GAP;
-                }
-                y += 4;
-                add(new Ui.Button(l, y, w, ROW + 2, () -> "§lEdit HUD layout", () -> minecraft.setScreen(new LayoutScreen(this)))
-                    .highlight(() -> true));
-                y += ROW + 2 + GAP;
-                add(new Ui.Button(l, y, w, ROW, () -> "Drag to move · scroll to resize · snaps to edges", () -> {}).display());
-                y += ROW + GAP;
-            }
-            case 2 -> {
-                Config.Keystrokes k = c.keystrokes;
-                add(Ui.Button.toggle(l, y, w, ROW, "Show keystrokes", () -> c.widget("keystrokes").enabled,
-                    v -> { c.widget("keystrokes").enabled = v; Config.save(); }));
-                y += ROW + GAP;
-                add(Ui.Button.toggle(l, y, half, ROW, "Mouse buttons", () -> k.mouse, v -> { k.mouse = v; Config.save(); }));
-                add(Ui.Button.toggle(l + half + 4, y, w - half - 4, ROW, "Show CPS", () -> k.cps, v -> { k.cps = v; Config.save(); }));
-                y += ROW + GAP;
-                add(Ui.Button.toggle(l, y, half, ROW, "Space bar", () -> k.space, v -> { k.space = v; Config.save(); }));
-                add(Ui.Button.toggle(l + half + 4, y, w - half - 4, ROW, "Key backgrounds", () -> k.background, v -> { k.background = v; Config.save(); }));
-                y += ROW + GAP;
-                y = sliderI(l, y, w, "Key size", 12, 40, () -> k.keySize, v -> k.keySize = v, "px");
-                y = sliderI(l, y, w, "Gap", 0, 6, () -> k.gap, v -> k.gap = v, "px");
-                y = sliderI(l, y, w, "Press fade speed", 1, 10, () -> k.fade, v -> k.fade = v, "");
-                add(new Ui.Button(l, y, w, ROW, () -> "Pressed keys light up in your accent colour", () -> {}).display());
-                y += ROW + GAP;
-            }
-            case 3 -> {
-                Config.Trails tr = c.trails;
-                add(Ui.Button.toggle(l, y, w, ROW, "Trails", () -> tr.enabled, v -> { tr.enabled = v; Config.save(); }));
-                y += ROW + GAP;
-                add(cycle(l, y, w, "Style", Config.TrailType.values(), () -> tr.type, v -> tr.type = v));
-                y += ROW + GAP;
-                y = sliderI(l, y, w, "Density", 1, 10, () -> tr.density, v -> tr.density = v, "");
-                y = sliderI(l, y, w, "Spread", 1, 10, () -> tr.spread, v -> tr.spread = v, "");
-                add(Ui.Button.toggle(l, y, half, ROW, "Only when moving", () -> tr.onlyWhenMoving, v -> { tr.onlyWhenMoving = v; Config.save(); }));
-                add(Ui.Button.toggle(l + half + 4, y, w - half - 4, ROW, "While flying", () -> tr.whileFlying, v -> { tr.whileFlying = v; Config.save(); }));
-                y += ROW + GAP;
-                add(new Ui.Button(l, y, w, ROW, () -> "Only you see trails. Accent Dust uses your accent colour.", () -> {}).display());
-                y += ROW + GAP;
-            }
-            case 5 -> {
-                Config.Sky sk = c.sky;
-                add(Ui.Button.toggle(l, y, w, ROW, "Topographic sky", () -> sk.enabled, v -> { sk.enabled = v; Config.save(); }));
-                y += ROW + GAP;
-                y = sliderI(l, y, w, "Sky cover", 0, 100, () -> sk.opacity, v -> sk.opacity = v, "%");
-                y = sliderI(l, y, w, "Contour lines", 3, 16, () -> sk.lines, v -> sk.lines = v, "");
-                y = sliderI(l, y, w, "Animation speed", 0, 10, () -> sk.speed, v -> sk.speed = v, "");
-                y = sliderI(l, y, w, "Brightness", 0, 99, () -> sk.brightness, v -> sk.brightness = v, "%");
-                add(Ui.Button.toggle(l, y, half, ROW, "Match fog", () -> sk.tintFog, v -> { sk.tintFog = v; Config.save(); }));
-                add(Ui.Button.toggle(l + half + 4, y, w - half - 4, ROW, "Nether & End too", () -> sk.allDimensions, v -> { sk.allDimensions = v; Config.save(); }));
-                y += ROW + GAP;
-                add(new Ui.Button(l, y, w, ROW, () -> "Colour follows your accent (Theme tab)", () -> {}).display());
-                y += ROW + GAP;
-            }
-            default -> {
-                Config.Petals pe = c.petals;
-                add(Ui.Button.toggle(l, y, w, ROW, "Ambience", () -> pe.enabled, v -> { pe.enabled = v; Config.save(); }));
-                y += ROW + GAP;
-                add(cycle(l, y, w, "Type", Config.PetalType.values(), () -> pe.type, v -> pe.type = v));
-                y += ROW + GAP;
-                y = sliderI(l, y, w, "Radius", 2, 16, () -> pe.radius, v -> pe.radius = v, " blocks");
-                y = sliderI(l, y, w, "Density", 1, 10, () -> pe.density, v -> pe.density = v, "");
-                add(Ui.Button.toggle(l, y, w, ROW, "Also indoors / underground", () -> pe.indoors, v -> { pe.indoors = v; Config.save(); }));
-                y += ROW + GAP;
-                add(new Ui.Button(l, y, w, ROW, () -> "Spawns only in a bubble around you, only you see it", () -> {}).display());
-                y += ROW + GAP;
-            }
+    private List<Sheet.Item> keystrokes() {
+        Config.Keystrokes k = c().keystrokes;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Overlay"));
+        l.add(new Sheet.Toggle("Show keystrokes", () -> c().widget("keystrokes").enabled, v -> c().widget("keystrokes").enabled = v));
+        l.add(new Sheet.Toggle("Mouse buttons", () -> k.mouse, v -> k.mouse = v));
+        l.add(new Sheet.Toggle("Clicks per second", () -> k.cps, v -> k.cps = v));
+        l.add(new Sheet.Toggle("Space bar", () -> k.space, v -> k.space = v));
+        l.add(new Sheet.Toggle("Key backgrounds", () -> k.background, v -> k.background = v));
+        l.add(new Sheet.Header("Size"));
+        l.add(Sheet.Slider.ints("Key size", 12, 40, () -> k.keySize, v -> k.keySize = v, " px"));
+        l.add(Sheet.Slider.ints("Gap", 0, 6, () -> k.gap, v -> k.gap = v, " px"));
+        l.add(Sheet.Slider.ints("Press fade speed", 1, 10, () -> k.fade, v -> k.fade = v, ""));
+        l.add(new Sheet.Footer("Pressed keys light up in your accent colour."));
+        return l;
+    }
+
+    private List<Sheet.Item> trails() {
+        Config.Trails tr = c().trails;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Trail"));
+        l.add(new Sheet.Toggle("Trails", () -> tr.enabled, v -> tr.enabled = v));
+        l.add(new Sheet.Choice<>("Style", Config.TrailType.values(), () -> tr.type, v -> tr.type = v));
+        l.add(Sheet.Slider.ints("Density", 1, 10, () -> tr.density, v -> tr.density = v, ""));
+        l.add(Sheet.Slider.ints("Spread", 1, 10, () -> tr.spread, v -> tr.spread = v, ""));
+        l.add(new Sheet.Toggle("Only when moving", () -> tr.onlyWhenMoving, v -> tr.onlyWhenMoving = v));
+        l.add(new Sheet.Toggle("While flying", () -> tr.whileFlying, v -> tr.whileFlying = v));
+        l.add(new Sheet.Footer("Only you see trails. Accent Dust uses your accent colour."));
+        return l;
+    }
+
+    private List<Sheet.Item> ambience() {
+        Config.Petals pe = c().petals;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Around you"));
+        l.add(new Sheet.Toggle("Ambience", () -> pe.enabled, v -> pe.enabled = v));
+        l.add(new Sheet.Choice<>("Type", Config.PetalType.values(), () -> pe.type, v -> pe.type = v));
+        l.add(Sheet.Slider.ints("Radius", 2, 16, () -> pe.radius, v -> pe.radius = v, " blocks"));
+        l.add(Sheet.Slider.ints("Density", 1, 10, () -> pe.density, v -> pe.density = v, ""));
+        l.add(new Sheet.Toggle("Also indoors and underground", () -> pe.indoors, v -> pe.indoors = v));
+        l.add(new Sheet.Footer("Spawns only in a bubble around you. Only you see it."));
+        return l;
+    }
+
+    private List<Sheet.Item> sky() {
+        Config.Sky sk = c().sky;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Topographic sky"));
+        l.add(new Sheet.Toggle("Topographic sky", () -> sk.enabled, v -> sk.enabled = v));
+        l.add(Sheet.Slider.ints("Sky cover", 0, 100, () -> sk.opacity, v -> sk.opacity = v, "%"));
+        l.add(Sheet.Slider.ints("Contour lines", 3, 16, () -> sk.lines, v -> sk.lines = v, ""));
+        l.add(Sheet.Slider.ints("Animation speed", 0, 10, () -> sk.speed, v -> sk.speed = v, ""));
+        l.add(Sheet.Slider.ints("Brightness", 0, 99, () -> sk.brightness, v -> sk.brightness = v, "%"));
+        l.add(new Sheet.Toggle("Match distance fog", () -> sk.tintFog, v -> sk.tintFog = v));
+        l.add(new Sheet.Toggle("Nether and End too", () -> sk.allDimensions, v -> sk.allDimensions = v));
+        l.add(new Sheet.Footer("The sky colour follows your accent colour."));
+        return l;
+    }
+
+    private List<Sheet.Item> glass() {
+        Config.Glass gl = c().glass;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Reflective ground"));
+        l.add(new Sheet.Toggle("Glass ground", () -> gl.enabled, v -> gl.enabled = v));
+        l.add(Sheet.Slider.ints("Reflection", 0, 100, () -> gl.reflection, v -> gl.reflection = v, "%"));
+        l.add(Sheet.Slider.ints("Radius", 8, 48, () -> gl.radius, v -> gl.radius = v, " blocks"));
+        l.add(new Sheet.Toggle("Reflective water", () -> gl.water, v -> gl.water = v));
+        l.add(new Sheet.Footer("The ground around you mirrors the animated sky, like polished glass."));
+        return l;
+    }
+
+    private List<Sheet.Item> wallpaper() {
+        Config.Wallpaper wp = c().wallpaper;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Menu background"));
+        l.add(new Sheet.Choice<>("Wallpaper", Config.WallpaperMode.values(), () -> wp.mode, v -> wp.mode = v));
+        l.add(Sheet.Slider.ints("Dim", 0, 80, () -> wp.dim, v -> wp.dim = v, "%"));
+        l.add(new Sheet.Footer("Shown on the title screen and every menu outside a world."));
+        l.add(new Sheet.Header("Your images"));
+        List<String> files = Wallpapers.list();
+        if (files.isEmpty()) {
+            l.add(new Sheet.Info("No images yet", () -> ""));
+        } else {
+            l.add(new Sheet.Chips(files, () -> wp.image, name -> {
+                wp.image = name;
+                wp.mode = Config.WallpaperMode.IMAGE;
+                Wallpapers.reload();
+            }));
         }
-
-        y += 5;
-        add(new Ui.Button(l, y, half, ROW + 2, () -> "Menu key", () -> {})
-            .right(() -> FlopVisuals.menuKey.getTranslatedKeyMessage().getString()).display());
-        add(new Ui.Button(l + half + 4, y, w - half - 4, ROW + 2, () -> "§lDone", this::onClose).highlight(() -> true));
-        ph = y + ROW + 2 + 8 - py;
+        l.add(new Sheet.Action("Open wallpapers folder", () -> "", () -> Util.getPlatform().openPath(Wallpapers.folder())).accent().chevron());
+        l.add(new Sheet.Action("Refresh list", () -> "", this::rebuild).accent());
+        l.add(new Sheet.Footer("Drop .png images into the folder, then refresh."));
+        return l;
     }
 
-    // ------------------------------------------------------------ helpers
+    private List<Sheet.Item> spotify() {
+        Config.Spotify sp = c().spotify;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Now playing"));
+        l.add(new Sheet.Toggle("Show on HUD", () -> c().widget("spotify").enabled, v -> c().widget("spotify").enabled = v));
+        l.add(new Sheet.Toggle("Album art", () -> sp.showArt, v -> sp.showArt = v));
+        l.add(new Sheet.Toggle("Progress bar", () -> sp.showProgress, v -> sp.showProgress = v));
+        l.add(new Sheet.Info("Status", Spotify::status));
 
-    private int sliderI(int l, int y, int w, String name, int min, int max, Supplier<Integer> get, Consumer<Integer> set, String suffix) {
-        slider(Slider.ints(l, y, w, ROW, name, min, max, get, set, suffix));
-        return y + ROW + GAP;
-    }
-
-    private int colour(int l, int y, int w, String name, Supplier<Integer> get, Consumer<Integer> set) {
-        Ui.Button b = colourBtn(l, y, w, name, get, set);
-        b.right(() -> String.format("#%06X", get.get() & 0xFFFFFF) + "     ");
-        return y + ROW + GAP;
-    }
-
-    private Ui.Button colourBtn(int x, int y, int w, String name, Supplier<Integer> get, Consumer<Integer> set) {
-        Ui.Button b = add(new Ui.Button(x, y, w, ROW, () -> name,
-            () -> minecraft.setScreen(new ColourScreen(this, name, get, set))).left());
-        swatches.add(new int[]{x + w - 20, y + 4});
-        swatchColours.add(get);
-        return b;
-    }
-
-    private <E extends Enum<E>> Ui.Button cycle(int x, int y, int w, String name, E[] values, Supplier<E> get, Consumer<E> set) {
-        Ui.Button b = new Ui.Button(x, y, w, ROW, () -> name, () -> {
-            set.accept(values[(get.get().ordinal() + 1) % values.length]);
-            Config.save();
-        });
-        return b.right(() -> "‹ " + pretty(get.get().name()) + " ›");
-    }
-
-    private static String pretty(String enumName) {
-        String n = enumName.toLowerCase(Locale.ROOT).replace('_', ' ');
-        return Character.toUpperCase(n.charAt(0)) + n.substring(1);
-    }
-
-    @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        super.render(g, mouseX, mouseY, partialTick);
-        for (int i = 0; i < swatches.size(); i++) {
-            int[] p = swatches.get(i);
-            float r = Math.min(3f, Ui.RADIUS);
-            Shapes.round(g, p[0] - 0.5f, p[1] - 0.5f, 13, 11, r + 0.5f, 0xFF000000);
-            Shapes.round(g, p[0], p[1], 12, 10, r, 0xFF000000 | swatchColours.get(i).get());
+        l.add(new Sheet.Header("Account"));
+        l.add(new Sheet.Action("Client ID", () -> sp.clientId.isEmpty() ? "Paste" : mask(sp.clientId), () -> {
+            String clip = minecraft.keyboardHandler.getClipboard().trim();
+            if (clip.matches("[0-9a-fA-F]{32}")) sp.clientId = clip.toLowerCase(java.util.Locale.ROOT);
+        }).chevron());
+        if (sp.refreshToken.isEmpty()) {
+            l.add(new Sheet.Action("Connect Spotify", () -> "", () -> {
+                Spotify.connect();
+                rebuild();
+            }).accent());
+        } else {
+            l.add(new Sheet.Action("Disconnect", () -> "", () -> {
+                Spotify.disconnect();
+                rebuild();
+            }).destructive());
         }
+        l.add(new Sheet.Header("One-time setup"));
+        l.add(new Sheet.Action("Open Spotify Developer Dashboard", () -> "", () ->
+            Util.getPlatform().openUri("https://developer.spotify.com/dashboard")).accent().chevron());
+        l.add(new Sheet.Footer("1. Create an app. Redirect URI:"));
+        l.add(new Sheet.Footer("   " + Spotify.REDIRECT));
+        l.add(new Sheet.Footer("2. Tick Web API, save, copy the Client ID."));
+        l.add(new Sheet.Footer("3. Click Client ID above to paste it, then Connect."));
+        return l;
+    }
+
+    private static String mask(String id) {
+        return id.length() <= 8 ? id : id.substring(0, 4) + "••••" + id.substring(id.length() - 4);
     }
 }

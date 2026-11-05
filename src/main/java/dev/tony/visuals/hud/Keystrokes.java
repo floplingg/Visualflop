@@ -2,6 +2,7 @@ package dev.tony.visuals.hud;
 
 import dev.tony.visuals.Config;
 import dev.tony.visuals.Theme;
+import dev.tony.visuals.gui.Kit;
 import dev.tony.visuals.gui.Shapes;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -77,18 +78,18 @@ public final class Keystrokes {
         float r = Math.min(t.rounding, Math.min(w, h) / 2);
         if (k.background) {
             if (t.outline && t.outlineOpacity > 0) {
-                Shapes.ring(g, x, y, w, h, r, 0.75f, Theme.argb(mix(t.accent(), t.background, 0.45f), t.outlineOpacity));
+                Shapes.ring(g, x, y, w, h, r, 0.5f, Theme.argb(t.outlineAccent ? t.accent() : 0xFFFFFF, t.outlineOpacity));
             }
             if (t.widgetOpacity > 0) Shapes.round(g, x, y, w, h, r, Theme.argb(t.background, t.widgetOpacity));
         }
         if (glow > 0.01f) Shapes.round(g, x, y, w, h, r, Theme.argb(t.accent(), Math.round(glow * 92)));
         if (text.isEmpty()) return;
         int c = mix(t.text, t.background, glow * 0.9f);
-        float scale = text.length() > 3 ? Math.min(1f, (w - 4) / Math.max(1f, font.width(text))) : 1f;
+        float scale = text.length() > 3 ? Math.min(1f, (w - 4) / Math.max(1f, Kit.width(text, true))) : 1f;
         g.pose().pushMatrix();
         g.pose().translate(x + w / 2f, y + h / 2f);
         g.pose().scale(scale, scale);
-        g.drawString(font, text, -font.width(text) / 2, -4, Theme.opaque(c), t.textShadow && glow < 0.5f);
+        Kit.text(g, text, -Kit.width(text, true) / 2f, -4, Theme.opaque(c), true, t.textShadow && glow < 0.5f);
         g.pose().popMatrix();
     }
 

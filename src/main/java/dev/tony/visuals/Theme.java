@@ -7,15 +7,23 @@ public final class Theme {
     public boolean chroma = false;
     public int chromaSpeed = 5;
 
-    public int background = 0x0B0B10;
-    public int widgetOpacity = 70;
-    public int rounding = 5;
+    public int background = 0x111114;
+    public int widgetOpacity = 62;
+    public int rounding = 7;
     public boolean outline = true;
-    public int outlineOpacity = 60;
+    public int outlineOpacity = 16;
+    /** Outline in the accent colour instead of a soft white hairline. */
+    public boolean outlineAccent = false;
+    /** Menus in light mode (Apple style light appearance). */
+    public boolean lightMenus = false;
+    /** Smooth high-resolution font (Inter) instead of Minecraft's pixel font. */
+    public boolean smoothFont = true;
+    /** Blur the game behind menus. */
+    public boolean blurMenus = true;
     /** Thin accent strip on the left of each widget. */
     public boolean accentStrip = false;
     public int text = 0xF2F2F7;
-    public int muted = 0x9B9BAA;
+    public int muted = 0x98989F;
     public boolean textShadow = false;
     public int padding = 4;
 
@@ -64,12 +72,15 @@ public final class Theme {
         Theme t = new Theme();
         t.chroma = old.chroma;
         t.chromaSpeed = old.chromaSpeed;
+        t.lightMenus = old.lightMenus;
+        t.smoothFont = old.smoothFont;
+        t.blurMenus = old.blurMenus;
         switch (name) {
             case "Amber" -> { t.accentColor = 0xFFB020; t.background = 0x120C05; t.muted = 0xB09A80; }
             case "Sakura" -> { t.accentColor = 0xF9A8D4; t.background = 0x160B12; t.muted = 0xB399A8; }
             case "Mint" -> { t.accentColor = 0x6EE7B7; t.background = 0x07110D; t.muted = 0x8FB3A4; }
             case "Violet" -> { t.accentColor = 0xA855F7; t.background = 0x0A090D; t.muted = 0x8B7F9E; }
-            case "Mono" -> { t.accentColor = 0xFFFFFF; t.background = 0x0A0A0A; t.muted = 0x9A9A9A; t.outlineOpacity = 35; }
+            case "Mono" -> { t.accentColor = 0xFFFFFF; t.background = 0x0A0A0A; t.muted = 0x9A9A9A; }
             case "Clear" -> { t.accentColor = old.accentColor; t.widgetOpacity = 0; t.outline = false; t.textShadow = true; }
             default -> {}
         }

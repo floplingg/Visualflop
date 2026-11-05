@@ -2,7 +2,9 @@ package dev.tony.visuals.hud;
 
 import dev.tony.visuals.Config;
 import dev.tony.visuals.Theme;
+import dev.tony.visuals.gui.Kit;
 import dev.tony.visuals.gui.LayoutScreen;
+import dev.tony.visuals.spotify.Spotify;
 import dev.tony.visuals.gui.Shapes;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -55,12 +57,13 @@ public final class Hud {
     public static int[] size(Font font, String id) {
         Theme t = Config.theme();
         if (id.equals("keystrokes")) return Keystrokes.size();
+        if (id.equals("spotify")) return SpotifyWidget.size();
         if (id.equals("armor")) {
             int n = armorItems().size();
             return new int[]{Math.max(1, n) * 18 + 2 * t.padding - 2 + strip(t), 16 + 2 * t.padding + (n > 0 ? 9 : 0)};
         }
         String[] parts = text(id);
-        int w = font.width(parts[0]) + (parts[0].isEmpty() ? 0 : 4) + font.width(parts[1]);
+        int w = Kit.width(parts[0], true) + (parts[0].isEmpty() ? 0 : 4) + Kit.width(parts[1]);
         return new int[]{w + 2 * t.padding + 2 + strip(t), 8 + 2 * t.padding + 1};
     }
 
@@ -84,6 +87,7 @@ public final class Hud {
         switch (id) {
             case "keystrokes" -> Keystrokes.draw(g, font);
             case "armor" -> drawArmor(g, font, p.rawW(), p.rawH());
+            case "spotify" -> SpotifyWidget.draw(g, p.rawW(), p.rawH());
             default -> drawText(g, font, id, p.rawW(), p.rawH());
         }
         g.pose().popMatrix();
@@ -96,7 +100,8 @@ public final class Hud {
         Theme t = Config.theme();
         float r = Math.min(t.rounding, Math.min(w, h) / 2);
         if (t.outline && t.outlineOpacity > 0) {
-            Shapes.ring(g, x, y, w, h, r, 0.75f, Theme.argb(mixAccent(t, 0.55f), t.outlineOpacity));
+            int edge = t.outlineAccent ? t.accent() : 0xFFFFFF;
+            Shapes.ring(g, x, y, w, h, r, 0.5f, Theme.argb(edge, t.outlineOpacity));
         }
         if (t.widgetOpacity > 0) Shapes.round(g, x, y, w, h, r, Theme.argb(t.background, t.widgetOpacity));
         if (t.accentStrip) Shapes.roundClip(g, x, y, w, h, r, x, y, x + 2.5f, y + h, Theme.opaque(t.accent()));
@@ -118,10 +123,10 @@ public final class Hud {
         String[] parts = text(id);
         int x = t.padding + 1 + strip(t), y = t.padding + 1;
         if (!parts[0].isEmpty()) {
-            g.drawString(font, parts[0], x, y, Theme.opaque(t.accent()), t.textShadow);
-            x += font.width(parts[0]) + 4;
+            Kit.text(g, parts[0], x, y, Theme.opaque(t.accent()), true, t.textShadow);
+            x += Kit.width(parts[0], true) + 4;
         }
-        g.drawString(font, parts[1], x, y, Theme.opaque(t.text), t.textShadow);
+        Kit.text(g, parts[1], x, y, Theme.opaque(t.text), false, t.textShadow);
     }
 
     private static final java.util.Map<String, String[]> textCache = new java.util.HashMap<>();
@@ -215,7 +220,7 @@ public final class Hud {
         List<ItemStack> items = armorItems();
         if (items.isEmpty()) {
             String s = "No armor";
-            g.drawString(font, s, (w - font.width(s)) / 2, (h - 8) / 2, Theme.opaque(t.muted), t.textShadow);
+            Kit.text(g, s, (w - Kit.width(s)) / 2f, (h - 8) / 2f, Theme.opaque(t.muted), false, t.textShadow);
             return;
         }
         int x = t.padding + strip(t), y = t.padding;
@@ -228,7 +233,7 @@ public final class Hud {
                 g.pose().pushMatrix();
                 g.pose().translate(x + 8, y + 17);
                 g.pose().scale(0.75f, 0.75f);
-                g.drawString(font, v, -font.width(v) / 2, 0, Theme.opaque(c), t.textShadow);
+                Kit.text(g, v, -Kit.width(v) / 2f, 0, Theme.opaque(c), false, t.textShadow);
                 g.pose().popMatrix();
             }
             x += 18;

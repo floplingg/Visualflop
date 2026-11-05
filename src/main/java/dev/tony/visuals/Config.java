@@ -19,6 +19,9 @@ public final class Config {
     public Trails trails = new Trails();
     public Petals petals = new Petals();
     public Sky sky = new Sky();
+    public Glass glass = new Glass();
+    public Wallpaper wallpaper = new Wallpaper();
+    public Spotify spotify = new Spotify();
 
     /** One HUD element: on/off, where it sits (0..1 of the free space) and its size. */
     public static final class Widget {
@@ -88,10 +91,37 @@ public final class Config {
         public boolean allDimensions = false;
     }
 
+    public static final class Glass {
+        public boolean enabled = true;
+        /** How much of the sky the ground reflects, 0-100. */
+        public int reflection = 80;
+        /** Radius around you in blocks, 8-48. */
+        public int radius = 24;
+        /** Also make water reflective. */
+        public boolean water = false;
+    }
+
+    public enum WallpaperMode { TOPOGRAPHIC, IMAGE, VANILLA }
+
+    public static final class Wallpaper {
+        public WallpaperMode mode = WallpaperMode.TOPOGRAPHIC;
+        /** File name in config/flop-visuals/wallpapers. */
+        public String image = "";
+        /** Darken the wallpaper behind menus, 0-80. */
+        public int dim = 15;
+    }
+
+    public static final class Spotify {
+        public String clientId = "";
+        public String refreshToken = "";
+        public boolean showArt = true;
+        public boolean showProgress = true;
+    }
+
     // ------------------------------------------------------------ widget list
 
     public static final String[] WIDGETS = {
-        "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day",
+        "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day", "spotify",
     };
 
     public static String widgetName(String id) {
@@ -107,6 +137,7 @@ public final class Config {
             case "biome" -> "Biome";
             case "armor" -> "Armor";
             case "day" -> "Day";
+            case "spotify" -> "Spotify";
             default -> id;
         };
     }
@@ -124,6 +155,7 @@ public final class Config {
         putDefault("biome", false, 0.005f, 0.21f);
         putDefault("armor", false, 0.995f, 0.97f);
         putDefault("day", false, 0.995f, 0.16f);
+        putDefault("spotify", false, 0.5f, 0.02f);
     }
 
     private void putDefault(String id, boolean on, float x, float y) {
@@ -142,7 +174,7 @@ public final class Config {
     // ------------------------------------------------------------ load / save
 
     static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path DIR = FabricLoader.getInstance().getConfigDir().resolve("flop-visuals");
+    public static final Path DIR = FabricLoader.getInstance().getConfigDir().resolve("flop-visuals");
     private static final Path FILE = DIR.resolve("config.json");
     private static Config instance = new Config();
 
@@ -180,6 +212,16 @@ public final class Config {
         if (trails == null) trails = new Trails();
         if (petals == null) petals = new Petals();
         if (sky == null) sky = new Sky();
+        if (glass == null) glass = new Glass();
+        if (wallpaper == null) wallpaper = new Wallpaper();
+        if (spotify == null) spotify = new Spotify();
+        if (wallpaper.mode == null) wallpaper.mode = WallpaperMode.TOPOGRAPHIC;
+        if (wallpaper.image == null) wallpaper.image = "";
+        if (spotify.clientId == null) spotify.clientId = "";
+        if (spotify.refreshToken == null) spotify.refreshToken = "";
+        glass.reflection = Theme.c(glass.reflection, 0, 100);
+        glass.radius = Theme.c(glass.radius, 8, 48);
+        wallpaper.dim = Theme.c(wallpaper.dim, 0, 80);
         if (trails.type == null) trails.type = TrailType.STARDUST;
         if (petals.type == null) petals.type = PetalType.CHERRY;
         theme.clamp();

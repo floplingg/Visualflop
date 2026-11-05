@@ -66,8 +66,7 @@ public final class TopoSky {
         int accent = Config.theme().accent();
         int r = (accent >> 16) & 255, g = (accent >> 8) & 255, b = accent & 255;
         int a = Math.round(s.opacity * 2.55f);
-        float time = (float) (((System.nanoTime() - START) / 1e9 * (s.speed / 5.0)) % 20000.0);
-        float packed = s.lines + Math.min(0.99f, s.brightness / 100f);
+        float time = time(), packed = packed();
         float radius = Math.max(64f, mc.gameRenderer.getDepthFar() * 0.5f);
 
         MultiBufferSource source = ctx.consumers();
@@ -87,6 +86,22 @@ public final class TopoSky {
             }
         }
         if (source instanceof MultiBufferSource.BufferSource bs) bs.endBatch(type());
+    }
+
+    private static double animClock;
+    private static long animLast;
+
+    /** Animation time in seconds; the speed slider changes how fast it runs without jumping. */
+    public static float time() {
+        long now = System.nanoTime();
+        if (animLast != 0) animClock += (now - animLast) / 1e9 * (Config.get().sky.speed / 5.0);
+        animLast = now;
+        return (float) (animClock % 20000.0);
+    }
+
+    public static float packed() {
+        Config.Sky s = Config.get().sky;
+        return s.lines + Math.min(0.99f, s.brightness / 100f);
     }
 
     /** Pull the distance fog towards the sky's horizon colour. */

@@ -7,6 +7,9 @@ import dev.tony.visuals.gui.MainScreen;
 import dev.tony.visuals.hud.Hud;
 import dev.tony.visuals.hud.Stats;
 import dev.tony.visuals.sky.TopoSky;
+import dev.tony.visuals.glass.GlassGround;
+import dev.tony.visuals.spotify.Spotify;
+import dev.tony.visuals.wallpaper.Wallpapers;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -28,7 +31,11 @@ public class FlopVisuals implements ClientModInitializer {
         menuKey = KeyBindingHelper.registerKeyBinding(
             new KeyMapping("key.flopvisuals.menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY));
         TopoSky.init();
+        GlassGround.init();
+        Wallpapers.init();
+        Spotify.start();
         WorldRenderEvents.AFTER_ENTITIES.register(TopoSky::render);
+        WorldRenderEvents.AFTER_ENTITIES.register(GlassGround::render);
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
         HudElementRegistry.addLast(Identifier.parse("flopvisuals:hud"), Hud::render);
     }

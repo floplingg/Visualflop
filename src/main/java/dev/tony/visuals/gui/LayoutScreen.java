@@ -18,7 +18,8 @@ public class LayoutScreen extends Screen {
     private static final int SNAP = 5;
 
     private final Screen parent;
-    private final Ui.Button reset, done;
+    private float resetX, doneX, btnY, resetW, doneW, resetHover, doneHover;
+    private long lastFrame;
     private String dragging, selected;
     private double grabX, grabY;
     private int guideX = -1, guideY = -1;
@@ -26,10 +27,7 @@ public class LayoutScreen extends Screen {
     public LayoutScreen(Screen parent) {
         super(Component.literal("HUD layout"));
         this.parent = parent;
-        reset = new Ui.Button(0, 0, 90, 18, () -> "Reset sizes", () -> {
-            for (Config.Widget w : Config.get().widgets.values()) w.scale = 1f;
-        });
-        done = new Ui.Button(0, 0, 90, 18, () -> "§lDone", this::onClose).highlight(() -> true);
+
     }
 
     private static boolean shift() {
@@ -51,19 +49,23 @@ public class LayoutScreen extends Screen {
 
     @Override
     public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        g.fill(0, 0, width, height, 0x48000000);
-        int grid = (Ui.PURPLE & 0xFFFFFF) | 0x12000000;
+        Kit.refresh();
+        g.fill(0, 0, width, height, 0x40000000);
+        int grid = (Kit.ACCENT & 0xFFFFFF) | 0x10000000;
         for (int x = 0; x < width; x += 20) g.fill(x, 0, x + 1, height, grid);
         for (int y = 0; y < height; y += 20) g.fill(0, y, width, y + 1, grid);
-        int guide = (Ui.PURPLE & 0xFFFFFF) | 0xB0000000;
+        int guide = (Kit.ACCENT & 0xFFFFFF) | 0xB0000000;
         if (guideX >= 0) g.fill(guideX, 0, guideX + 1, height, guide);
         if (guideY >= 0) g.fill(0, guideY, width, guideY + 1, guide);
     }
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        Ui.applyTheme();
+        Kit.refresh();
         Hud.newFrame();
+        long now = System.nanoTime();
+        float dt = lastFrame == 0 ? 0 : Math.min(0.1f, (now - lastFrame) / 1e9f);
+        lastFrame = now;
         super.render(g, mouseX, mouseY, partialTick);
         String hover = dragging != null ? dragging : widgetAt(mouseX, mouseY);
         for (String id : Config.WIDGETS) {
@@ -71,39 +73,52 @@ public class LayoutScreen extends Screen {
             if (!w.enabled) continue;
             Hud.Placement p = Hud.draw(g, font, id, w, width, height);
             boolean lit = id.equals(hover) || id.equals(selected);
-            int c = lit ? Ui.PURPLE : (Ui.PURPLE & 0xFFFFFF) | 0x50000000;
-            Shapes.ring(g, p.x() - 1.5f, p.y() - 1.5f, p.w() + 3, p.h() + 3, Ui.RADIUS + 1, lit ? 0.75f : 0.5f, c);
+            int c = lit ? Kit.ACCENT : (Kit.ACCENT & 0xFFFFFF) | 0x50000000;
+            Shapes.ring(g, p.x() - 1.5f, p.y() - 1.5f, p.w() + 3, p.h() + 3, Config.theme().rounding + 1.5f, lit ? 1f : 0.5f, c);
             if (lit) {
-                String label = Config.widgetName(id) + " · " + Math.round(w.scale * 100) + "%";
-                int ly = p.y() > 12 ? p.y() - 11 : p.y() + p.h() + 3;
-                int lw = font.width(label) + 8;
-                int lx = Math.max(2, Math.min(width - lw - 2, p.x()));
-                Ui.box(g, lx, ly, lw, 10, Ui.PANEL, Ui.PURPLE_DEEP);
-                g.drawString(font, label, lx + 4, ly + 1, Ui.TEXT, false);
+                String label = Config.widgetName(id) + "  " + Math.round(w.scale * 100) + "%";
+                float lw = Kit.width(label, true) + 14, lh = 15;
+                float ly = p.y() > 20 ? p.y() - lh - 4 : p.y() + p.h() + 4;
+                float lx = Math.max(2, Math.min(width - lw - 2, p.x()));
+                Kit.shadow(g, lx, ly, lw, lh, lh / 2, 0.8f);
+                Shapes.round(g, lx, ly, lw, lh, lh / 2, Kit.PANEL);
+                Kit.text(g, label, lx + 7, ly + 4, Kit.LABEL, true);
             }
         }
 
+        // Floating help card in the middle.
         String help = "Drag to move · Scroll to resize · Right-click to hide · Arrows nudge · Shift = no snap";
-        int hw = font.width(help) + 16, hx = (width - hw) / 2, hy = height / 2 - 24;
-        Ui.box(g, hx, hy, hw, 16, Ui.PANEL, Ui.PURPLE_DEEP);
-        g.drawString(font, help, hx + 8, hy + 4, Ui.MUTED, false);
-        reset.x = width / 2 - 94; reset.y = hy + 22;
-        done.x = width / 2 + 4; done.y = hy + 22;
-        reset.render(g, font, mouseX, mouseY);
-        done.render(g, font, mouseX, mouseY);
+        float hw = Kit.width(help) + 28, hh = 52, hx = (width - hw) / 2f, hy = height / 2f - hh / 2f;
+        Kit.shadow(g, hx, hy, hw, hh, 12, 1.2f);
+        Shapes.round(g, hx, hy, hw, hh, 12, Kit.PANEL);
+        Shapes.ring(g, hx, hy, hw, hh, 12, 0.5f, Kit.dark ? 0x26FFFFFF : 0x1A000000);
+        Kit.textCenter(g, help, width / 2f, hy + 10, Kit.SECONDARY, false);
+        resetW = Kit.width("Reset sizes", true) + 22;
+        doneW = Kit.width("Done", true) + 26;
+        btnY = hy + 26;
+        resetX = width / 2f - resetW - 4;
+        doneX = width / 2f + 4;
+        resetHover = Kit.approach(resetHover, inBtn(mouseX, mouseY, resetX, resetW) ? 1 : 0, 14, dt);
+        doneHover = Kit.approach(doneHover, inBtn(mouseX, mouseY, doneX, doneW) ? 1 : 0, 14, dt);
+        Kit.pill(g, resetX, btnY, resetW, 18, "Reset sizes", false, resetHover);
+        Kit.pill(g, doneX, btnY, doneW, 18, "Done", true, doneHover);
+    }
+
+    private boolean inBtn(double mx, double my, float x, float w) {
+        return mx >= x && mx < x + w && my >= btnY && my < btnY + 18;
     }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         double mx = event.x(), my = event.y();
-        if (event.button() == 0) {
-            for (Ui.Button b : new Ui.Button[]{reset, done}) {
-                if (b.inside(mx, my)) {
-                    b.onClick.run();
-                    Config.save();
-                    return true;
-                }
-            }
+        if (event.button() == 0 && inBtn(mx, my, resetX, resetW)) {
+            for (Config.Widget w : Config.get().widgets.values()) w.scale = 1f;
+            Config.save();
+            return true;
+        }
+        if (event.button() == 0 && inBtn(mx, my, doneX, doneW)) {
+            onClose();
+            return true;
         }
         String id = widgetAt(mx, my);
         if (id == null) {
