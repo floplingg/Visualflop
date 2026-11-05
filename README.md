@@ -12,13 +12,14 @@ Press **V** in game to open the menu. Change it in Options › Controls › Key 
 - **Trails**: Stardust, Accent Dust, Feathers, Sparks, Flames, Soul Flames, Hearts, Enchant, Notes, Snow, Cherry, Glow, Totem, Clouds. Density, spread, only when moving, while flying.
 - **Petals**: Cherry, Pale Oak, Spore Blossom, Fireflies, Snowflakes, Ash, Crimson, Warped, End Rods, in a bubble around you only. Radius, density, outdoors-only.
 
-Trails and petals are client-side particles: only you see them.
+Trails and petals use the mod's own hi-res, anti-aliased particle textures (no 8x8 pixel art) and are client-side: only you see them.
+- **Sky**: animated glowing topographic contour lines in your accent colour, drawn per pixel by a shader so the lines stay sharp at any resolution. Sky cover, line count, speed, brightness, matching fog, optional Nether/End.
 
 All rounded shapes are drawn at your screen's real resolution (e.g. 1080p) with smoothed edges.
 
 ## Coming next
 
-Animated topographic sky in the accent colour, glass reflective ground, custom menu wallpapers, Spotify overlay.
+Glass reflective ground, custom menu wallpapers, Spotify overlay.
 
 ## Building
 

@@ -2,25 +2,19 @@ package dev.tony.visuals.fx;
 
 import dev.tony.visuals.Config;
 import dev.tony.visuals.Theme;
+import dev.tony.visuals.fx.FlopParticle.Motion;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.core.particles.ItemParticleOption;
-import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
 
-/** Client-side particles behind you while you move. Only you see them. */
+/** Hi-res client-side particles behind you while you move. Only you see them. */
 public final class Trails {
     private Trails() {}
 
     private static final RandomSource RANDOM = RandomSource.create();
     private static Vec3 last;
-    private static ItemParticleOption feather;
 
     public static void tick(Minecraft mc) {
         Config.Trails cfg = Config.get().trails;
@@ -43,44 +37,63 @@ public final class Trails {
 
         double spread = cfg.spread * 0.06;
         double baseY = flying || p.isSwimming() ? p.getBbHeight() * 0.4 : 0.15;
-        // Fill the gap between last and this tick so fast movement still makes a solid line.
         for (int i = 0; i < cfg.density; i++) {
             double t = RANDOM.nextDouble();
             double x = pos.x - motion.x * (0.6 + t) + gauss(spread);
             double y = pos.y - motion.y * (0.6 + t) + baseY + gauss(spread * 0.6);
             double z = pos.z - motion.z * (0.6 + t) + gauss(spread);
-            spawn(level, cfg.type, x, y, z, spread);
+            FlopParticle fp = make(level, cfg.type, x, y, z);
+            if (fp != null) mc.particleEngine.add(fp);
         }
     }
 
-    private static void spawn(ClientLevel level, Config.TrailType type, double x, double y, double z, double spread) {
-        double vx = gauss(0.01), vy = 0.01 + RANDOM.nextDouble() * 0.02, vz = gauss(0.01);
-        ParticleOptions o;
-        switch (type) {
-            case STARDUST -> { o = ParticleTypes.END_ROD; vy = RANDOM.nextDouble() * 0.015; vx *= 0.5; vz *= 0.5; }
-            case ACCENT_DUST -> { o = new DustParticleOptions(Config.theme().accent(), 0.9f + RANDOM.nextFloat() * 0.5f); }
-            case FEATHERS -> {
-                if (feather == null) feather = new ItemParticleOption(ParticleTypes.ITEM, new ItemStack(Items.FEATHER));
-                o = feather;
-                vy = 0.03 + RANDOM.nextDouble() * 0.04;
-            }
-            case SPARKS -> { o = ParticleTypes.ELECTRIC_SPARK; vx = gauss(0.06); vy = RANDOM.nextDouble() * 0.06; vz = gauss(0.06); }
-            case FLAMES -> o = ParticleTypes.FLAME;
-            case SOUL_FLAMES -> o = ParticleTypes.SOUL_FIRE_FLAME;
-            case HEARTS -> { if (RANDOM.nextInt(3) != 0) return; o = ParticleTypes.HEART; }
-            case ENCHANT -> { o = ParticleTypes.ENCHANT; vx = gauss(0.4); vy = RANDOM.nextDouble() * 0.4; vz = gauss(0.4); }
-            case NOTES -> { if (RANDOM.nextInt(2) != 0) return; o = ParticleTypes.NOTE; vx = RANDOM.nextDouble(); vy = 0; vz = 0; }
-            case SNOW -> o = ParticleTypes.SNOWFLAKE;
-            case CHERRY -> o = ParticleTypes.CHERRY_LEAVES;
-            case GLOW -> o = ParticleTypes.GLOW;
-            case TOTEM -> { o = ParticleTypes.TOTEM_OF_UNDYING; vx = gauss(0.08); vy = RANDOM.nextDouble() * 0.12; vz = gauss(0.08); }
-            case CLOUDS -> { o = ParticleTypes.CLOUD; vx *= 0.3; vy = 0.005; vz *= 0.3; }
-            default -> o = ParticleTypes.END_ROD;
-        }
-        level.addParticle(o, x, y, z, vx, vy, vz);
+    private static FlopParticle make(ClientLevel level, Config.TrailType type, double x, double y, double z) {
+        float s = 0.7f + RANDOM.nextFloat() * 0.6f;
+        double vx = gauss(0.01), vy = RANDOM.nextDouble() * 0.01, vz = gauss(0.01);
+        return switch (type) {
+            case STARDUST -> new FlopParticle(level, x, y, z, vx * 0.5, vy, vz * 0.5, Sprites.get("sparkle"), Motion.DRIFT,
+                0.16f * s, 30 + RANDOM.nextInt(20), mixWhite(Config.theme().accent(), 0.7f), 1f, 0, true, true, true);
+            case ACCENT_DUST -> new FlopParticle(level, x, y, z, vx, vy, vz, Sprites.get("glow"), Motion.DRIFT,
+                0.13f * s, 25 + RANDOM.nextInt(15), Config.theme().accent(), 0.9f, 0, true, false, true);
+            case FEATHERS -> new FlopParticle(level, x, y + 0.3, z, vx * 2, 0.03, vz * 2, Sprites.get("feather"), Motion.FALL,
+                0.24f * s, 60 + RANDOM.nextInt(30), 0xFFFFFF, 1f, gaussF(0.05f), false, false, false);
+            case SPARKS -> new FlopParticle(level, x, y, z, gauss(0.07), 0.04 + RANDOM.nextDouble() * 0.06, gauss(0.07), Sprites.get("sparkle"),
+                Motion.BURST, 0.10f * s, 10 + RANDOM.nextInt(10), 0xFFD36B, 1f, 0, true, false, true);
+            case FLAMES -> new FlopParticle(level, x, y, z, vx, 0.01, vz, Sprites.get("flame"), Motion.RISE,
+                0.16f * s, 14 + RANDOM.nextInt(10), 0xFF8A2B, 0.95f, 0, true, false, true);
+            case SOUL_FLAMES -> new FlopParticle(level, x, y, z, vx, 0.01, vz, Sprites.get("flame"), Motion.RISE,
+                0.16f * s, 14 + RANDOM.nextInt(10), 0x5CE1FF, 0.95f, 0, true, false, true);
+            case HEARTS -> RANDOM.nextInt(3) != 0 ? null : new FlopParticle(level, x, y + 0.2, z, vx, 0.02, vz, Sprites.get("heart"),
+                Motion.RISE, 0.16f * s, 30 + RANDOM.nextInt(15), 0xFFFFFF, 1f, 0, false, false, false);
+            case ENCHANT -> new FlopParticle(level, x, y, z, gauss(0.02), 0.02, gauss(0.02), Sprites.get("sparkle"), Motion.RISE,
+                0.12f * s, 25 + RANDOM.nextInt(15), 0xB58CFF, 1f, 0, true, true, true);
+            case NOTES -> RANDOM.nextInt(2) != 0 ? null : new FlopParticle(level, x, y + 0.2, z, vx, 0.02, vz, Sprites.get("note"),
+                Motion.RISE, 0.16f * s, 30 + RANDOM.nextInt(10), Theme.hsv(RANDOM.nextFloat(), 0.6f, 1f), 1f, 0, true, false, false);
+            case SNOW -> new FlopParticle(level, x, y + 0.2, z, vx, 0, vz, Sprites.get("snowflake"), Motion.FALL,
+                0.12f * s, 50 + RANDOM.nextInt(30), 0xFFFFFF, 0.95f, gaussF(0.04f), false, false, false);
+            case CHERRY -> new FlopParticle(level, x, y + 0.2, z, vx * 2, 0.01, vz * 2, Sprites.get("cherry_petal"), Motion.FALL,
+                0.15f * s, 50 + RANDOM.nextInt(30), 0xFFFFFF, 1f, gaussF(0.08f), false, false, false);
+            case GLOW -> new FlopParticle(level, x, y, z, vx, vy, vz, Sprites.get("glow"), Motion.FLOAT,
+                0.14f * s, 35 + RANDOM.nextInt(20), 0x7BF5E0, 0.9f, 0, true, true, true);
+            case TOTEM -> new FlopParticle(level, x, y, z, gauss(0.06), 0.03 + RANDOM.nextDouble() * 0.05, gauss(0.06), Sprites.get("sparkle"),
+                Motion.BURST, 0.13f * s, 18 + RANDOM.nextInt(12), RANDOM.nextBoolean() ? 0xFFD94A : 0x8CF05A, 1f, 0, true, false, true);
+            case CLOUDS -> new FlopParticle(level, x, y, z, vx * 0.3, 0.004, vz * 0.3, Sprites.get("puff"), Motion.DRIFT,
+                0.30f * s, 30 + RANDOM.nextInt(20), 0xFFFFFF, 0.55f, gaussF(0.01f), false, false, false);
+        };
+    }
+
+    static int mixWhite(int rgb, float k) {
+        int r = Math.round(((rgb >> 16) & 255) * (1 - k) + 255 * k);
+        int g = Math.round(((rgb >> 8) & 255) * (1 - k) + 255 * k);
+        int b = Math.round((rgb & 255) * (1 - k) + 255 * k);
+        return r << 16 | g << 8 | b;
     }
 
     private static double gauss(double s) {
         return RANDOM.nextGaussian() * s;
+    }
+
+    private static float gaussF(float s) {
+        return (float) RANDOM.nextGaussian() * s;
     }
 }

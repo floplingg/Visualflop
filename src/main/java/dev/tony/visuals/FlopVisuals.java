@@ -6,6 +6,8 @@ import dev.tony.visuals.fx.Trails;
 import dev.tony.visuals.gui.MainScreen;
 import dev.tony.visuals.hud.Hud;
 import dev.tony.visuals.hud.Stats;
+import dev.tony.visuals.sky.TopoSky;
+import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -25,6 +27,8 @@ public class FlopVisuals implements ClientModInitializer {
         Config.load();
         menuKey = KeyBindingHelper.registerKeyBinding(
             new KeyMapping("key.flopvisuals.menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY));
+        TopoSky.init();
+        WorldRenderEvents.AFTER_ENTITIES.register(TopoSky::render);
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
         HudElementRegistry.addLast(Identifier.parse("flopvisuals:hud"), Hud::render);
     }

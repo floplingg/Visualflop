@@ -18,6 +18,7 @@ public final class Config {
     public Keystrokes keystrokes = new Keystrokes();
     public Trails trails = new Trails();
     public Petals petals = new Petals();
+    public Sky sky = new Sky();
 
     /** One HUD element: on/off, where it sits (0..1 of the free space) and its size. */
     public static final class Widget {
@@ -70,6 +71,21 @@ public final class Config {
         /** New petals per tick, 1 to 10. */
         public int density = 3;
         public boolean indoors = false;
+    }
+
+    public static final class Sky {
+        public boolean enabled = true;
+        /** How much of the vanilla sky is covered, 0-100. 100 = full accent sky. */
+        public int opacity = 100;
+        /** Number of contour lines across the sky, 3-16. */
+        public int lines = 7;
+        /** Animation speed, 0-10. */
+        public int speed = 5;
+        /** Background brightness, 0-99. */
+        public int brightness = 60;
+        /** Tint distant fog to match the sky. */
+        public boolean tintFog = true;
+        public boolean allDimensions = false;
     }
 
     // ------------------------------------------------------------ widget list
@@ -163,6 +179,7 @@ public final class Config {
         if (keystrokes == null) keystrokes = new Keystrokes();
         if (trails == null) trails = new Trails();
         if (petals == null) petals = new Petals();
+        if (sky == null) sky = new Sky();
         if (trails.type == null) trails.type = TrailType.STARDUST;
         if (petals.type == null) petals.type = PetalType.CHERRY;
         theme.clamp();
@@ -179,5 +196,9 @@ public final class Config {
         trails.spread = Theme.c(trails.spread, 1, 10);
         petals.radius = Theme.c(petals.radius, 2, 16);
         petals.density = Theme.c(petals.density, 1, 10);
+        sky.opacity = Theme.c(sky.opacity, 0, 100);
+        sky.lines = Theme.c(sky.lines, 3, 16);
+        sky.speed = Theme.c(sky.speed, 0, 10);
+        sky.brightness = Theme.c(sky.brightness, 0, 99);
     }
 }

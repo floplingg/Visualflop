@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 /** The Flop Visuals menu. Everything previews live and saves automatically. */
 public class MainScreen extends SettingsScreen {
     private static final int ROW = 18, GAP = 3;
-    private static final String[] TABS = {"Theme", "HUD", "Keystrokes", "Trails", "Petals"};
+    private static final String[] TABS = {"Theme", "HUD", "Keys", "Trails", "Petals", "Sky"};
     private static int tab;
 
     private final List<int[]> swatches = new ArrayList<>();
@@ -130,6 +130,20 @@ public class MainScreen extends SettingsScreen {
                 add(Ui.Button.toggle(l + half + 4, y, w - half - 4, ROW, "While flying", () -> tr.whileFlying, v -> { tr.whileFlying = v; Config.save(); }));
                 y += ROW + GAP;
                 add(new Ui.Button(l, y, w, ROW, () -> "Only you see trails. Accent Dust uses your accent colour.", () -> {}).display());
+                y += ROW + GAP;
+            }
+            case 5 -> {
+                Config.Sky sk = c.sky;
+                add(Ui.Button.toggle(l, y, w, ROW, "Topographic sky", () -> sk.enabled, v -> { sk.enabled = v; Config.save(); }));
+                y += ROW + GAP;
+                y = sliderI(l, y, w, "Sky cover", 0, 100, () -> sk.opacity, v -> sk.opacity = v, "%");
+                y = sliderI(l, y, w, "Contour lines", 3, 16, () -> sk.lines, v -> sk.lines = v, "");
+                y = sliderI(l, y, w, "Animation speed", 0, 10, () -> sk.speed, v -> sk.speed = v, "");
+                y = sliderI(l, y, w, "Brightness", 0, 99, () -> sk.brightness, v -> sk.brightness = v, "%");
+                add(Ui.Button.toggle(l, y, half, ROW, "Match fog", () -> sk.tintFog, v -> { sk.tintFog = v; Config.save(); }));
+                add(Ui.Button.toggle(l + half + 4, y, w - half - 4, ROW, "Nether & End too", () -> sk.allDimensions, v -> { sk.allDimensions = v; Config.save(); }));
+                y += ROW + GAP;
+                add(new Ui.Button(l, y, w, ROW, () -> "Colour follows your accent (Theme tab)", () -> {}).display());
                 y += ROW + GAP;
             }
             default -> {

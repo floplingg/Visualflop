@@ -3,14 +3,23 @@
   "id": "flop-visuals",
   "version": "${version}",
   "name": "Flop Visuals",
-  "description": "Smooth rounded HUD, keystrokes, cinematic trails and petal ambience. Press V to open.",
-  "authors": ["Tony"],
+  "description": "Smooth rounded HUD, keystrokes, hi-res trails and petals, and an animated topographic sky. Press V to open.",
+  "authors": [
+    "Tony"
+  ],
   "license": "GPL-3.0",
   "environment": "client",
-  "entrypoints": { "client": ["dev.tony.visuals.FlopVisuals"] },
+  "entrypoints": {
+    "client": [
+      "dev.tony.visuals.FlopVisuals"
+    ]
+  },
   "depends": {
     "fabricloader": ">=0.17.0",
     "minecraft": "1.21.11",
     "fabric-api": "*"
-  }
+  },
+  "mixins": [
+    "flopvisuals.mixins.json"
+  ]
 }
