@@ -14,9 +14,12 @@ jobs:
           MC=$(find . ~/.gradle -path '*minecraft*' -name '*.jar' 2>/dev/null | grep -iE 'merged|client' | grep -v sources | grep -iv 'common' | xargs ls -S 2>/dev/null | head -1)
           echo "MC=$MC"
           CP="$MC:$(find ~/.gradle -name 'fabric-*.jar' | grep -v sources | tr '\n' ':')$(find ~/.gradle -name 'joml*.jar' | head -1)"
-          for c in net.minecraft.client.renderer.fog.FogRenderer com.mojang.blaze3d.pipeline.RenderPipeline 'net.minecraft.client.renderer.MultiBufferSource$BufferSource' net.minecraft.client.Minecraft net.minecraft.client.renderer.fog.environment.FogEnvironment net.minecraft.client.renderer.fog.FogData; do
-            echo "=================== $c"; javap -cp "$CP" -p "$c" 2>&1 | grep -vE "lambda|method_[0-9]" | grep -iE "class|fog|color|colour|builder|endBatch|Atlas|static .*\(|public .*\(" | head -80
+          for c in net.minecraft.client.gui.screens.Screen net.minecraft.client.gui.screens.TitleScreen net.minecraft.client.gui.GuiGraphics net.minecraft.network.chat.Style net.minecraft.network.chat.FontDescription 'net.minecraft.network.chat.FontDescription$Resource' net.minecraft.client.renderer.PanoramaRenderer net.minecraft.world.level.levelgen.Heightmap 'net.minecraft.world.level.levelgen.Heightmap$Types' net.minecraft.client.gui.Font com.mojang.blaze3d.platform.NativeImage net.minecraft.client.renderer.texture.DynamicTexture; do
+            echo "=================== $c"; javap -cp "$CP" -p "$c" 2>&1 | grep -vE "lambda|method_[0-9]" | head -160
           done
+          unzip -p "$MC" assets/minecraft/shaders/core/position_tex_color.fsh > /dev/null
+          for f in assets/minecraft/font/default.json assets/minecraft/font/include/default.json assets/minecraft/shaders/core/panorama.fsh assets/minecraft/shaders/core/panorama.vsh assets/minecraft/shaders/core/gui.vsh assets/minecraft/shaders/core/gui.fsh; do echo "----- $f"; unzip -p "$MC" "$f" | head -60; done
+          unzip -l "$MC" | grep -E "shaders/core/" | head -80
           exit 0
           echo "=================== shader files"
           unzip -l "$MC" | grep -oE "assets/minecraft/(shaders|atlases)/[^ ]+" | head -200
