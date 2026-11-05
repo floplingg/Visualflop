@@ -13,6 +13,8 @@ public final class Stats {
     private static boolean leftWas, rightWas;
     private static Vec3 lastPos;
     private static double speed;
+    private static String biome = "";
+    private static int ticks;
 
     /** Called every frame: catches click presses (a press = key going from up to down). */
     public static void frame(Minecraft mc) {
@@ -51,7 +53,14 @@ public final class Stats {
             speed = now > 100 ? speed : speed * 0.6 + now * 0.4;   // ignore teleports
         }
         lastPos = pos;
+
+        // Biome only changes when you walk somewhere, so check twice a second.
+        if (++ticks % 10 == 0 && mc.level != null) {
+            biome = mc.level.getBiome(mc.player.blockPosition()).getRegisteredName();
+        }
     }
+
+    public static String biome() { return biome; }
 
     public static double speed() { return speed; }
 }

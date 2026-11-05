@@ -63,6 +63,7 @@ public class LayoutScreen extends Screen {
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         Ui.applyTheme();
+        Hud.newFrame();
         super.render(g, mouseX, mouseY, partialTick);
         String hover = dragging != null ? dragging : widgetAt(mouseX, mouseY);
         for (String id : Config.WIDGETS) {

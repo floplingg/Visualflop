@@ -79,10 +79,9 @@ public final class Ui {
         float r = RADIUS + 2;
         Shapes.ring(g, x, y, w, h, r, 1, PURPLE_DEEP);
         Shapes.round(g, x, y, w, h, r, PANEL);
-        for (int i = 0; i < 20; i++) {
-            int c = 0xFF000000 | mix(HEADER_TOP & 0xFFFFFF, HEADER_BOTTOM & 0xFFFFFF, i / 19f);
-            Shapes.roundClip(g, x, y, w, h, r, x, y + i, x + w, y + i + 1, c);
-        }
+        int top = (int) Math.ceil(r);
+        Shapes.roundClip(g, x, y, w, h, r, x, y, x + w, y + top, HEADER_TOP);
+        g.fillGradient(x, y + top, x + w, y + 20, HEADER_TOP, HEADER_BOTTOM);
         Shapes.roundClip(g, x, y, w, h, r, x, y + 20, x + w, y + 21, PURPLE);
         g.drawString(font, "§l" + title, x + 8, y + 6, PURPLE_SOFT, false);
         if (right != null && !right.isEmpty()) {

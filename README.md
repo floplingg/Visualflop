@@ -2,7 +2,7 @@
 
 Fabric 1.21.11 client mod: smooth rounded HUD, keystrokes, cinematic trails and petal ambience, all in your accent colour.
 
-Press **Right Ctrl** in game to open the menu (rebindable).
+Press **V** in game to open the menu. Change it in Options › Controls › Key Binds › Flop Visuals.
 
 ## What's in it
 

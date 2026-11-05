@@ -92,9 +92,20 @@ public final class Keystrokes {
         g.pose().popMatrix();
     }
 
+    private static final java.util.Map<KeyMapping, String> labels = new java.util.HashMap<>();
+    private static long labelsAt;
+
+    /** Key names are looked up once a second instead of every frame. */
     private static String label(KeyMapping key) {
-        String s = key.getTranslatedKeyMessage().getString();
-        return s.length() > 3 ? s.substring(0, 3) : s;
+        long now = System.currentTimeMillis();
+        if (now - labelsAt > 1000) {
+            labels.clear();
+            labelsAt = now;
+        }
+        return labels.computeIfAbsent(key, k -> {
+            String s = k.getTranslatedKeyMessage().getString();
+            return s.length() > 3 ? s.substring(0, 3) : s;
+        });
     }
 
     /** Blend a toward b by k (0..1). */

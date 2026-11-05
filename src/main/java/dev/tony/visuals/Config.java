@@ -3,7 +3,6 @@ package dev.tony.visuals;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import org.lwjgl.glfw.GLFW;
 
 import java.io.Reader;
 import java.io.Writer;
@@ -14,7 +13,6 @@ import java.util.Map;
 
 /** Everything saved to config/flop-visuals/config.json. */
 public final class Config {
-    public int menuKey = GLFW.GLFW_KEY_RIGHT_CONTROL;
     public Theme theme = new Theme();
     public Map<String, Widget> widgets = new LinkedHashMap<>();
     public Keystrokes keystrokes = new Keystrokes();

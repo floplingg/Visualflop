@@ -22,7 +22,10 @@ public final class Petals {
         if (!cfg.enabled || p == null || level == null || mc.isPaused()) return;
 
         boolean rising = cfg.type == Config.PetalType.END_RODS || cfg.type == Config.PetalType.FIREFLIES;
-        for (int i = 0; i < cfg.density; i++) {
+        // Density 1-10 = 0.5 to 5 petals per tick on average.
+        float want = cfg.density * 0.5f;
+        int count = (int) want + (RANDOM.nextFloat() < want - (int) want ? 1 : 0);
+        for (int i = 0; i < count; i++) {
             // Even spread across a disc around you.
             double a = RANDOM.nextDouble() * Math.PI * 2;
             double d = Math.sqrt(RANDOM.nextDouble()) * cfg.radius;

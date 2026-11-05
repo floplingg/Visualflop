@@ -3,7 +3,7 @@
   "id": "flop-visuals",
   "version": "${version}",
   "name": "Flop Visuals",
-  "description": "Smooth rounded HUD, keystrokes, cinematic trails and petal ambience. Press Right Ctrl to open.",
+  "description": "Smooth rounded HUD, keystrokes, cinematic trails and petal ambience. Press V to open.",
   "authors": ["Tony"],
   "license": "GPL-3.0",
   "environment": "client",

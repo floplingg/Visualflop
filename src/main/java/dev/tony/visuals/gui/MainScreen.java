@@ -1,12 +1,10 @@
 package dev.tony.visuals.gui;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import dev.tony.visuals.Config;
+import dev.tony.visuals.FlopVisuals;
 import dev.tony.visuals.Theme;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +21,6 @@ public class MainScreen extends SettingsScreen {
 
     private final List<int[]> swatches = new ArrayList<>();
     private final List<Supplier<Integer>> swatchColours = new ArrayList<>();
-    private boolean waitingForKey;
     private String note = "";
 
     public MainScreen(Screen parent) {
@@ -32,7 +29,7 @@ public class MainScreen extends SettingsScreen {
 
     @Override
     protected String headerRight() {
-        return note.isEmpty() ? "§7saves automatically" : note;
+        return note.isEmpty() ? "§7key: Options › Controls" : note;
     }
 
     @Override
@@ -151,10 +148,8 @@ public class MainScreen extends SettingsScreen {
         }
 
         y += 5;
-        add(new Ui.Button(l, y, half, ROW + 2, () -> "Menu key", () -> {
-            waitingForKey = true;
-            note = "§ePress a key...";
-        }).right(() -> waitingForKey ? "§e..." : keyName(c.menuKey)));
+        add(new Ui.Button(l, y, half, ROW + 2, () -> "Menu key", () -> {})
+            .right(() -> FlopVisuals.menuKey.getTranslatedKeyMessage().getString()).display());
         add(new Ui.Button(l + half + 4, y, w - half - 4, ROW + 2, () -> "§lDone", this::onClose).highlight(() -> true));
         ph = y + ROW + 2 + 8 - py;
     }
@@ -191,26 +186,6 @@ public class MainScreen extends SettingsScreen {
     private static String pretty(String enumName) {
         String n = enumName.toLowerCase(Locale.ROOT).replace('_', ' ');
         return Character.toUpperCase(n.charAt(0)) + n.substring(1);
-    }
-
-    private static String keyName(int key) {
-        if (key <= GLFW.GLFW_KEY_UNKNOWN) return "none";
-        return InputConstants.Type.KEYSYM.getOrCreate(key).getDisplayName().getString();
-    }
-
-    @Override
-    public boolean keyPressed(KeyEvent event) {
-        if (!waitingForKey) return super.keyPressed(event);
-        int key = event.key();
-        if (key != GLFW.GLFW_KEY_ESCAPE) {
-            Config.get().menuKey = key;
-            Config.save();
-            note = "§aMenu key: " + keyName(key);
-        } else {
-            note = "";
-        }
-        waitingForKey = false;
-        return true;
     }
 
     @Override

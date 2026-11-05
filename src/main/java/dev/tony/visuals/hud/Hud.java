@@ -40,6 +40,7 @@ public final class Hud {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options.hideGui) return;
         Stats.frame(mc);
+        newFrame();
         if (mc.screen instanceof LayoutScreen) return;   // the layout editor draws its own copy
         Font font = mc.font;
         for (String id : Config.WIDGETS) {
@@ -123,8 +124,21 @@ public final class Hud {
         g.drawString(font, parts[1], x, y, Theme.opaque(t.text), t.textShadow);
     }
 
-    /** {label, value} for each text widget. Works without a world for the layout editor. */
+    private static final java.util.Map<String, String[]> textCache = new java.util.HashMap<>();
+    private static List<ItemStack> armorCache;
+
+    /** Forget this frame's computed text (called once per frame). */
+    public static void newFrame() {
+        textCache.clear();
+        armorCache = null;
+    }
+
+    /** {label, value} for each text widget, worked out once per frame. */
     public static String[] text(String id) {
+        return textCache.computeIfAbsent(id, Hud::computeText);
+    }
+
+    private static String[] computeText(String id) {
         Minecraft mc = Minecraft.getInstance();
         Player p = mc.player;
         return switch (id) {
@@ -153,9 +167,8 @@ public final class Hud {
             case "cps" -> new String[]{"CPS", Stats.cps(true) + " | " + Stats.cps(false)};
             case "clock" -> new String[]{"", LocalTime.now().format(CLOCK)};
             case "biome" -> {
-                if (p == null || mc.level == null) yield new String[]{"Biome", "Plains"};
-                String name = mc.level.getBiome(p.blockPosition()).getRegisteredName();
-                yield new String[]{"Biome", pretty(name)};
+                String name = Stats.biome();
+                yield new String[]{"Biome", name.isEmpty() ? "Plains" : pretty(name)};
             }
             case "day" -> new String[]{"Day", mc.level == null ? "1" : String.valueOf(mc.level.getDayTime() / 24000L + 1)};
             default -> new String[]{"", id};
@@ -182,7 +195,9 @@ public final class Hud {
     // ------------------------------------------------------------ armor widget
 
     private static List<ItemStack> armorItems() {
+        if (armorCache != null) return armorCache;
         List<ItemStack> out = new ArrayList<>();
+        armorCache = out;
         Player p = Minecraft.getInstance().player;
         if (p == null) return out;
         for (EquipmentSlot slot : ARMOR) {
