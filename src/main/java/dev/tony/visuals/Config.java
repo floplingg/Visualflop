@@ -1,0 +1,185 @@
+package dev.tony.visuals;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import net.fabricmc.loader.api.FabricLoader;
+import org.lwjgl.glfw.GLFW;
+
+import java.io.Reader;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+/** Everything saved to config/flop-visuals/config.json. */
+public final class Config {
+    public int menuKey = GLFW.GLFW_KEY_RIGHT_CONTROL;
+    public Theme theme = new Theme();
+    public Map<String, Widget> widgets = new LinkedHashMap<>();
+    public Keystrokes keystrokes = new Keystrokes();
+    public Trails trails = new Trails();
+    public Petals petals = new Petals();
+
+    /** One HUD element: on/off, where it sits (0..1 of the free space) and its size. */
+    public static final class Widget {
+        public boolean enabled;
+        public float x, y;
+        public float scale = 1f;
+
+        public Widget() {}
+
+        Widget(boolean enabled, float x, float y) {
+            this.enabled = enabled;
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    public static final class Keystrokes {
+        public boolean mouse = true;
+        public boolean space = true;
+        public boolean cps = true;
+        public int keySize = 20;
+        public int gap = 2;
+        /** Fade speed of the pressed highlight, 1 (slow) to 10 (instant). */
+        public int fade = 7;
+        public boolean background = true;
+    }
+
+    public enum TrailType {
+        STARDUST, ACCENT_DUST, FEATHERS, SPARKS, FLAMES, SOUL_FLAMES, HEARTS, ENCHANT, NOTES, SNOW, CHERRY, GLOW, TOTEM, CLOUDS
+    }
+
+    public static final class Trails {
+        public boolean enabled = true;
+        public TrailType type = TrailType.STARDUST;
+        /** Particles per tick while moving, 1 to 10. */
+        public int density = 3;
+        public boolean onlyWhenMoving = true;
+        public boolean whileFlying = true;
+        /** How far particles drift, 1 to 10. */
+        public int spread = 4;
+    }
+
+    public enum PetalType { CHERRY, PALE_OAK, SPORE_BLOSSOM, FIREFLIES, SNOWFLAKES, ASH, CRIMSON, WARPED, END_RODS }
+
+    public static final class Petals {
+        public boolean enabled = true;
+        public PetalType type = PetalType.CHERRY;
+        /** Radius around you in blocks, 2 to 16. */
+        public int radius = 7;
+        /** New petals per tick, 1 to 10. */
+        public int density = 3;
+        public boolean indoors = false;
+    }
+
+    // ------------------------------------------------------------ widget list
+
+    public static final String[] WIDGETS = {
+        "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day",
+    };
+
+    public static String widgetName(String id) {
+        return switch (id) {
+            case "keystrokes" -> "Keystrokes";
+            case "fps" -> "FPS";
+            case "coords" -> "Coordinates";
+            case "direction" -> "Direction";
+            case "speed" -> "Speed";
+            case "ping" -> "Ping";
+            case "cps" -> "CPS";
+            case "clock" -> "Clock";
+            case "biome" -> "Biome";
+            case "armor" -> "Armor";
+            case "day" -> "Day";
+            default -> id;
+        };
+    }
+
+    private void defaults() {
+        if (widgets == null) widgets = new LinkedHashMap<>();
+        putDefault("keystrokes", true, 0.01f, 0.97f);
+        putDefault("fps", true, 0.005f, 0.01f);
+        putDefault("coords", true, 0.005f, 0.06f);
+        putDefault("direction", true, 0.005f, 0.11f);
+        putDefault("speed", false, 0.005f, 0.16f);
+        putDefault("ping", true, 0.995f, 0.01f);
+        putDefault("cps", false, 0.995f, 0.06f);
+        putDefault("clock", false, 0.995f, 0.11f);
+        putDefault("biome", false, 0.005f, 0.21f);
+        putDefault("armor", false, 0.995f, 0.97f);
+        putDefault("day", false, 0.995f, 0.16f);
+    }
+
+    private void putDefault(String id, boolean on, float x, float y) {
+        widgets.putIfAbsent(id, new Widget(on, x, y));
+    }
+
+    public Widget widget(String id) {
+        Widget w = widgets.get(id);
+        if (w == null) {
+            defaults();
+            w = widgets.get(id);
+        }
+        return w;
+    }
+
+    // ------------------------------------------------------------ load / save
+
+    static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final Path DIR = FabricLoader.getInstance().getConfigDir().resolve("flop-visuals");
+    private static final Path FILE = DIR.resolve("config.json");
+    private static Config instance = new Config();
+
+    public static Config get() { return instance; }
+
+    public static Theme theme() { return instance.theme; }
+
+    public static void load() {
+        try {
+            if (Files.exists(FILE)) {
+                try (Reader r = Files.newBufferedReader(FILE)) {
+                    Config c = GSON.fromJson(r, Config.class);
+                    if (c != null) instance = c;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        instance.clamp();
+    }
+
+    public static void save() {
+        instance.clamp();
+        try {
+            Files.createDirectories(DIR);
+            try (Writer w = Files.newBufferedWriter(FILE)) {
+                GSON.toJson(instance, w);
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void clamp() {
+        if (theme == null) theme = new Theme();
+        if (keystrokes == null) keystrokes = new Keystrokes();
+        if (trails == null) trails = new Trails();
+        if (petals == null) petals = new Petals();
+        if (trails.type == null) trails.type = TrailType.STARDUST;
+        if (petals.type == null) petals.type = PetalType.CHERRY;
+        theme.clamp();
+        defaults();
+        for (Widget w : widgets.values()) {
+            w.x = Math.max(0, Math.min(1, w.x));
+            w.y = Math.max(0, Math.min(1, w.y));
+            w.scale = Math.max(0.5f, Math.min(3f, Float.isNaN(w.scale) ? 1 : w.scale));
+        }
+        keystrokes.keySize = Theme.c(keystrokes.keySize, 12, 40);
+        keystrokes.gap = Theme.c(keystrokes.gap, 0, 6);
+        keystrokes.fade = Theme.c(keystrokes.fade, 1, 10);
+        trails.density = Theme.c(trails.density, 1, 10);
+        trails.spread = Theme.c(trails.spread, 1, 10);
+        petals.radius = Theme.c(petals.radius, 2, 16);
+        petals.density = Theme.c(petals.density, 1, 10);
+    }
+}
