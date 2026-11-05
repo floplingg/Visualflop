@@ -1,6 +1,7 @@
 name: In-game screenshots
 on:
   push:
+    paths: [".github/workflows/screenshots.yml", "src/**"]
   workflow_dispatch:
 jobs:
   screenshots:
@@ -14,7 +15,7 @@ jobs:
       - name: Run client game test
         run: |
           chmod +x gradlew
-          xvfb-run -a -s "-screen 0 1920x1080x24" timeout 900 ./gradlew runClientGameTest --stacktrace || true
+          xvfb-run -a -s "-screen 0 1280x720x24" timeout 900 ./gradlew runClientGameTest --stacktrace || true
       - name: Logs
         if: always()
         run: |
