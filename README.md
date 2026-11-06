@@ -17,9 +17,10 @@ Trails and petals use the mod's own hi-res, anti-aliased particle textures (no 8
 
 All rounded shapes are drawn at your screen's real resolution (e.g. 1080p) with smoothed edges.
 
-## Coming next
-
-Glass reflective ground, custom menu wallpapers, Spotify overlay.
+- **Glass ground**: the ground around you mirrors the animated sky like polished glass (reflection %, radius, optional water).
+- **Wallpaper**: animated topographic background (or your own PNGs from `config/flop-visuals/wallpapers`) on the title screen and every menu outside a world.
+- **Spotify**: now-playing card with album art and progress. One-time setup: create an app at developer.spotify.com with redirect URI `http://127.0.0.1:43821/callback`, paste the Client ID in the menu, click Connect.
+- **Menus**: Apple-style settings window with sidebar, grouped cards, iOS switches and sliders, dark/light appearance, background blur, smooth Inter font (SIL Open Font License).
 
 ## Building
 
