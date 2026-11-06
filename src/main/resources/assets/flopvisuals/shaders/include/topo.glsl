@@ -69,6 +69,13 @@ vec3 topo_ceiling(vec3 origin, vec3 dir, float ceilingY, float t, float levels) 
     return vec3(l, horizon * far);
 }
 
+// Contour lines for a sky direction (the sky itself: infinitely far, so it doesn't move as you walk).
+vec3 topo_dir(vec3 d, float t, float levels) {
+    float h = topo_height(d * 1.5, t);
+    vec2 l = topo_lines(h, levels, t);
+    return vec3(l, smoothstep(-0.06, 0.16, d.y));
+}
+
 // Sky gradient behind the lines (dark accent overhead, brighter at the horizon).
 vec3 topo_base(vec3 d, float brightness, vec3 accent) {
     vec3 zenith = accent * 0.16 + vec3(0.02);

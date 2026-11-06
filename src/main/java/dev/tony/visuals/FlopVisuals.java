@@ -36,6 +36,7 @@ public class FlopVisuals implements ClientModInitializer {
         Spotify.start();
         WorldRenderEvents.AFTER_ENTITIES.register(TopoSky::render);
         WorldRenderEvents.AFTER_ENTITIES.register(GlassGround::render);
+        WorldRenderEvents.END_MAIN.register(GlassGround::renderWater);
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
         HudElementRegistry.addLast(Identifier.parse("flopvisuals:hud"), Hud::render);
     }

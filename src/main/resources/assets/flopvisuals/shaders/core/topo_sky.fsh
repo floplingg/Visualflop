@@ -2,7 +2,7 @@
 
 #moj_import <flopvisuals:topo.glsl>
 
-// Flop Visuals animated topographic sky. Lines live on a world-anchored ceiling high above you.
+// Flop Visuals animated topographic sky.
 in vec3 skyDir;
 in vec2 params;
 in vec4 tint;
@@ -16,7 +16,7 @@ void main() {
     float levels = floor(params.y);
     float brightness = fract(params.y) * 1.25;
     vec3 base = topo_base(d, brightness, tint.rgb);
-    vec3 l = topo_ceiling(camPos, d, topo_ceiling_y(camPos.y), t, levels);
+    vec3 l = topo_dir(d, t, levels);
     float amount = clamp((l.x + l.y) * l.z, 0.0, 1.0);
     vec3 lineColour = topo_glow_colour(tint.rgb, brightness, l.x);
     float cover = tint.a;

@@ -67,6 +67,15 @@ public final class GlassGround {
     }
 
     public static void render(WorldRenderContext ctx) {
+        draw(ctx, false);
+    }
+
+    /** Water surfaces are drawn after Minecraft's translucent water, otherwise the water covers them. */
+    public static void renderWater(WorldRenderContext ctx) {
+        if (Config.get().glass.water) draw(ctx, true);
+    }
+
+    private static void draw(WorldRenderContext ctx, boolean waterPass) {
         Minecraft mc = Minecraft.getInstance();
         Config.Glass gc = Config.get().glass;
         ClientLevel level = mc.level;
@@ -75,8 +84,8 @@ public final class GlassGround {
 
         BlockPos me = mc.player.blockPosition();
         long now = System.currentTimeMillis();
-        if (me.getX() != builtX || me.getZ() != builtZ || me.getY() != builtY || gc.radius != builtRadius
-            || gc.water != builtWater || now - builtAt > 500) {
+        if (!waterPass && (me.getX() != builtX || me.getZ() != builtZ || me.getY() != builtY || gc.radius != builtRadius
+            || gc.water != builtWater || now - builtAt > 500)) {
             rebuild(level, me, gc.radius, gc.water);
         }
         if (count == 0) return;
@@ -98,10 +107,11 @@ public final class GlassGround {
         for (int i = 0; i < count; i++) {
             int o = i * F;
             int kind = (int) faces[o];
+            if ((kind == 5) != waterPass) continue;
             float x = faces[o + 1], z = faces[o + 2], yt = faces[o + 3], yb = faces[o + 4];
             float s0 = faces[o + 5], s1 = faces[o + 6], s2 = faces[o + 7], s3 = faces[o + 8];
             switch (kind) {
-                case 0 -> {   // corners: (x,z) (x,z+1) (x+1,z+1) (x+1,z)
+                case 0, 5 -> {   // corners: (x,z) (x,z+1) (x+1,z+1) (x+1,z)
                     em.v(x, yt + e, z, s0, 0, 1, 0);
                     em.v(x, yt + e, z + 1, s1, 0, 1, 0);
                     em.v(x + 1, yt + e, z + 1, s2, 0, 1, 0);
@@ -138,7 +148,7 @@ public final class GlassGround {
             }
         }
         if (source instanceof MultiBufferSource.BufferSource bs) bs.endBatch(type());
-        if (!logged) {
+        if (!logged && !waterPass) {
             logged = true;
             org.slf4j.LoggerFactory.getLogger("flopvisuals").info("Glass ground drawing {} faces", count);
         }
@@ -174,6 +184,8 @@ public final class GlassGround {
         double[] top = new double[side * side];     // reflective top height, NaN if none
         double[] ground = new double[side * side];  // raw ground height for side faces
         float[] light = new float[side * side];     // 0..1 shade for each column
+        float[] cover = new float[side * side];     // 0..1 how much this column is roofed over
+        boolean[] isWater = new boolean[side * side];
         boolean[] full = new boolean[side * side];  // top block is a full cube (can have reflective sides)
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (int i = 0; i < side; i++) {
@@ -204,10 +216,19 @@ public final class GlassGround {
                 int sky = level.getBrightness(LightLayer.SKY, pos), block = level.getBrightness(LightLayer.BLOCK, pos);
                 float l = Math.max(sky, block * 0.85f) / 15f;
                 light[idx] = 0.10f + 0.90f * (float) Math.pow(l, 2.2);
+                // Our own shadow test, so shading works even on servers that send full-bright light
+                // (DonutSMP and many big servers): is there a solid block anywhere above this ground?
+                if (y >= floor && h - 1 > y) {
+                    float gap = (h - 1) - y;
+                    cover[idx] = gap < 48 ? 1f - gap / 96f : 0.5f;
+                }
                 if (y < floor || state == null || state.is(BlockTags.LEAVES)) continue;
                 pos.set(x, y, z);
                 if (!state.getFluidState().isEmpty()) {
-                    if (water) top[idx] = y + state.getFluidState().getHeight(level, pos);
+                    if (water) {
+                        top[idx] = y + state.getFluidState().getHeight(level, pos);
+                        isWater[idx] = true;
+                    }
                     continue;
                 }
                 VoxelShape shape = state.getCollisionShape(level, pos);
@@ -217,6 +238,26 @@ public final class GlassGround {
                 if (box.minX > 0.01 || box.maxX < 0.99 || box.minZ > 0.01 || box.maxZ < 0.99) continue;
                 top[idx] = y + box.maxY;
                 full[idx] = box.maxY > 0.99 && box.minY < 0.01 && state.isCollisionShapeFullBlock(level, pos);
+            }
+        }
+
+        // Blur the roof mask (5 x 5) so shadows have soft edges, then fold it into the light.
+        float[] soft = new float[side * side];
+        for (int i = 0; i < side; i++) {
+            for (int j = 0; j < side; j++) {
+                float sum = 0, wsum = 0;
+                for (int a = -2; a <= 2; a++) {
+                    for (int b = -2; b <= 2; b++) {
+                        int ii = i + a, jj = j + b;
+                        if (ii < 0 || jj < 0 || ii >= side || jj >= side) continue;
+                        float w = 3 - (Math.abs(a) + Math.abs(b)) * 0.5f;
+                        sum += cover[ii * side + jj] * w;
+                        wsum += w;
+                    }
+                }
+                float c = sum / wsum;
+                float own = 1f - 0.72f * c;
+                light[i * side + j] = Math.min(light[i * side + j], own);
             }
         }
 
@@ -233,6 +274,10 @@ public final class GlassGround {
                 // Smooth lighting: each corner averages the four columns that meet there.
                 float c00 = corner(light, side, i, j), c01 = corner(light, side, i, j + 1);
                 float c11 = corner(light, side, i + 1, j + 1), c10 = corner(light, side, i + 1, j);
+                if (isWater[idx]) {
+                    add(5, x, z, t, t, c00, c01, c11, c10);
+                    continue;
+                }
                 add(0, x, z, t, t, c00, c01, c11, c10);
                 if (!full[idx]) continue;
                 for (int k = 0; k < 4; k++) {
