@@ -58,11 +58,11 @@ float topo_ceiling_y(float camY) {
 
 // Contour lines where a ray from origin in direction dir meets the sky ceiling.
 // Returns (core, glow, fade). Anchored to the world, so the pattern doesn't slide when you move.
-vec3 topo_ceiling(vec3 origin, vec3 dir, float ceilingY, float t, float levels) {
+vec3 topo_ceiling(vec3 origin, vec3 dir, float ceilingY, float t, float levels, float scale) {
     if (dir.y <= 0.0005) return vec3(0.0);
     float k = (ceilingY - origin.y) / dir.y;
     vec2 q = origin.xz + dir.xz * k;
-    float h = topo_height(vec3(q.x, 0.0, q.y) / 230.0, t);
+    float h = topo_height(vec3(q.x, 0.0, q.y) / scale, t);
     vec2 l = topo_lines(h, levels, t);
     float horizon = smoothstep(0.015, 0.22, dir.y);
     float far = exp(-k / 9000.0);

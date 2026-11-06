@@ -67,15 +67,23 @@ public final class GlassGround {
     }
 
     public static void render(WorldRenderContext ctx) {
-        draw(ctx, false);
+        if (dev.tony.visuals.compat.Shaders.active()) return;   // drawn after the shader pack instead
+        draw(ctx.consumers(), false);
     }
 
     /** Water surfaces are drawn after Minecraft's translucent water, otherwise the water covers them. */
     public static void renderWater(WorldRenderContext ctx) {
-        if (Config.get().glass.water) draw(ctx, true);
+        if (dev.tony.visuals.compat.Shaders.active()) return;
+        if (Config.get().glass.water) draw(ctx.consumers(), true);
     }
 
-    private static void draw(WorldRenderContext ctx, boolean waterPass) {
+    /** With a shader pack: everything at once, on top of the pack's finished image. */
+    public static void renderAfterShaders(MultiBufferSource source) {
+        draw(source, false);
+        if (Config.get().glass.water) draw(source, true);
+    }
+
+    private static void draw(MultiBufferSource source, boolean waterPass) {
         Minecraft mc = Minecraft.getInstance();
         Config.Glass gc = Config.get().glass;
         ClientLevel level = mc.level;
@@ -101,7 +109,6 @@ public final class GlassGround {
         float time = TopoSky.time(), packed = TopoSky.packed();
         final float e = 0.003f;
 
-        MultiBufferSource source = ctx.consumers();
         VertexConsumer vc = source.getBuffer(type());
         Emitter em = new Emitter(vc, cam, ar, ag, ab, strength, radius, time, packed);
         for (int i = 0; i < count; i++) {
@@ -112,10 +119,11 @@ public final class GlassGround {
             float s0 = faces[o + 5], s1 = faces[o + 6], s2 = faces[o + 7], s3 = faces[o + 8];
             switch (kind) {
                 case 0, 5 -> {   // corners: (x,z) (x,z+1) (x+1,z+1) (x+1,z)
-                    em.v(x, yt + e, z, s0, 0, 1, 0);
-                    em.v(x, yt + e, z + 1, s1, 0, 1, 0);
-                    em.v(x + 1, yt + e, z + 1, s2, 0, 1, 0);
-                    em.v(x + 1, yt + e, z, s3, 0, 1, 0);
+                    int mat = kind == 5 ? 1 : 0;
+                    em.v(x, yt + e, z, s0, 0, 1, 0, mat);
+                    em.v(x, yt + e, z + 1, s1, 0, 1, 0, mat);
+                    em.v(x + 1, yt + e, z + 1, s2, 0, 1, 0, mat);
+                    em.v(x + 1, yt + e, z, s3, 0, 1, 0, mat);
                 }
                 case 1 -> {   // east: top edge shades s0 (z) s1 (z+1), bottom darker
                     float px = x + 1 + e;
@@ -158,6 +166,10 @@ public final class GlassGround {
     private record Emitter(VertexConsumer vc, Vec3 cam, float r, float g, float b, float strength, float radius,
                            float time, float packed) {
         void v(float x, float y, float z, float shade, float nx, float ny, float nz) {
+            v(x, y, z, shade, nx, ny, nz, 0);
+        }
+
+        void v(float x, float y, float z, float shade, float nx, float ny, float nz, int material) {
             double dx = x - centreX, dz = z - centreZ;
             float d = (float) Math.sqrt(dx * dx + dz * dz) / radius;
             float fade = 1f - smooth(0.55f, 1f, d);
@@ -167,7 +179,7 @@ public final class GlassGround {
                 .setColor(Math.round(r * k * 255), Math.round(g * k * 255), Math.round(b * k * 255), Math.max(0, a))
                 .setUv(time, packed)
                 .setUv1(Math.floorMod(Math.round(x), 16384), Math.floorMod(Math.round(z), 16384))
-                .setUv2((int) Math.max(-32000, Math.min(32000, Math.round(y * 8))), 0)
+                .setUv2((int) Math.max(-32000, Math.min(32000, Math.round(y * 8))), material)
                 .setNormal(nx, ny, nz);
         }
     }
@@ -202,13 +214,14 @@ public final class GlassGround {
                     // We start inside the column (under a roof or beside a hill): only keep going if that spot is open.
                     pos.set(x, y, z);
                     BlockState start = level.getBlockState(pos);
-                    buried = !start.isAir() && !start.getCollisionShape(level, pos).isEmpty();
+                    buried = !start.isAir() && !seeThrough(start) && !start.getCollisionShape(level, pos).isEmpty();
                 }
                 if (buried) y = floor - 1;
                 for (; y >= floor; y--) {
                     pos.set(x, y, z);
                     state = level.getBlockState(pos);
-                    if (!state.isAir() && (!state.getCollisionShape(level, pos).isEmpty() || !state.getFluidState().isEmpty())) break;
+                    if (state.isAir() || seeThrough(state)) continue;   // look through tree canopies and trunks
+                    if (!state.getCollisionShape(level, pos).isEmpty() || !state.getFluidState().isEmpty()) break;
                 }
                 ground[idx] = y + 1;
                 top[idx] = Double.NaN;
@@ -222,7 +235,7 @@ public final class GlassGround {
                     float gap = (h - 1) - y;
                     cover[idx] = gap < 48 ? 1f - gap / 96f : 0.5f;
                 }
-                if (y < floor || state == null || state.is(BlockTags.LEAVES)) continue;
+                if (y < floor || state == null || seeThrough(state)) continue;
                 pos.set(x, y, z);
                 if (!state.getFluidState().isEmpty()) {
                     if (water) {
@@ -294,6 +307,10 @@ public final class GlassGround {
                 }
             }
         }
+    }
+
+    private static boolean seeThrough(BlockState s) {
+        return s.is(BlockTags.LEAVES) || s.is(BlockTags.LOGS);
     }
 
     /** Average light of the (up to) four columns around corner (i, j). */

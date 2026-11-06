@@ -59,6 +59,11 @@ public final class TopoSky {
     }
 
     public static void render(WorldRenderContext ctx) {
+        if (dev.tony.visuals.compat.Shaders.active()) return;   // drawn after the shader pack instead
+        draw(ctx.consumers());
+    }
+
+    public static void draw(MultiBufferSource source) {
         Minecraft mc = Minecraft.getInstance();
         if (!activeIn(mc.level)) return;
         Config.Sky s = Config.get().sky;
@@ -77,7 +82,6 @@ public final class TopoSky {
         int cy = (int) Math.max(-32000, Math.min(32000, Math.round(cam.y * 8)));
         int frac = (fx << 7) | fz;
 
-        MultiBufferSource source = ctx.consumers();
         VertexConsumer vc = source.getBuffer(type());
         for (int i = 0; i < LAT; i++) {
             double t0 = Math.PI * i / LAT - Math.PI / 2, t1 = Math.PI * (i + 1) / LAT - Math.PI / 2;

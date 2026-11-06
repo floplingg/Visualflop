@@ -15,6 +15,7 @@ out vec3 worldPos;
 out vec2 params;
 out vec4 tint;
 out vec3 normal;
+out float material;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
@@ -24,4 +25,5 @@ void main() {
     params = UV0;
     tint = Color;
     normal = Normal;
+    material = float(UV2.y);
 }
