@@ -31,6 +31,8 @@ public class ScreenshotTest implements FabricClientGameTest {
         context.waitTicks(12);
         context.takeScreenshot("12-colour-picker");
         context.setScreen(() -> null);
+        // The animated wallpaper is very slow on CI's software renderer and also shows behind the loading screen.
+        Config.get().wallpaper.mode = Config.WallpaperMode.VANILLA;
 
         Config.get().trails.onlyWhenMoving = false;
         Config.get().trails.density = 6;
@@ -48,10 +50,10 @@ public class ScreenshotTest implements FabricClientGameTest {
                 .create()) {
             world.getClientWorld().waitForChunksRender();
             context.runOnClient(mc -> mc.player.setXRot(-25f));
-            context.waitTicks(60);
+            context.waitTicks(20);
             context.takeScreenshot("20-sky");
             context.runOnClient(mc -> mc.player.setXRot(50f));
-            context.waitTicks(20);
+            context.waitTicks(10);
             context.takeScreenshot("21-glass-ground");
         }
     }

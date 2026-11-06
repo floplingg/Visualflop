@@ -86,7 +86,13 @@ public final class TopoSky {
             }
         }
         if (source instanceof MultiBufferSource.BufferSource bs) bs.endBatch(type());
+        if (!logged) {
+            logged = true;
+            org.slf4j.LoggerFactory.getLogger("flopvisuals").info("Sky drawing (buffer source: {})", source.getClass().getName());
+        }
     }
+
+    private static boolean logged;
 
     private static double animClock;
     private static long animLast;
