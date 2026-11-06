@@ -5,7 +5,7 @@ import dev.tony.visuals.FlopVisuals;
 import dev.tony.visuals.Theme;
 import dev.tony.visuals.spotify.Spotify;
 import dev.tony.visuals.wallpaper.Wallpapers;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.util.ArrayList;

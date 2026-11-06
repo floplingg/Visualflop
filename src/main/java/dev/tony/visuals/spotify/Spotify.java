@@ -7,7 +7,7 @@ import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.sun.net.httpserver.HttpServer;
 import dev.tony.visuals.Config;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
