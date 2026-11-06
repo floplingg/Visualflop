@@ -51,8 +51,8 @@ vec2 topo_lines(float h, float levels, float t) {
 
 // Sky colour in direction d (normalized). accent = theme colour, brightness 0..1.25. Returns rgb and line amount.
 vec4 topo_sky(vec3 d, float t, float levels, float brightness, vec3 accent) {
-    vec3 zenith = accent * 0.07 + vec3(0.008);
-    vec3 horizon = accent * 0.30 + vec3(0.02);
+    vec3 zenith = accent * 0.16 + vec3(0.02);
+    vec3 horizon = accent * 0.42 + vec3(0.04);
     vec3 base = mix(horizon, zenith, smoothstep(0.0, 0.75, d.y));
     base = d.y < 0.0 ? horizon * mix(1.0, 0.55, smoothstep(0.0, -0.4, d.y)) : base;
     base *= brightness;
