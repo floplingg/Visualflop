@@ -41,7 +41,7 @@ public final class GlassGround {
             .withLocation(Identifier.fromNamespaceAndPath("flopvisuals", "pipeline/topo_glass"))
             .withVertexShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_glass"))
             .withFragmentShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_glass"))
-            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL, VertexFormat.Mode.QUADS)
+            .withVertexFormat(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS)
             .withBlend(BlendFunction.TRANSLUCENT)
             .withDepthWrite(false)
             .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
@@ -154,8 +154,10 @@ public final class GlassGround {
             int a = Math.round(255 * strength * fade);
             float k = shade;
             vc.addVertex((float) (x - cam.x), (float) (y - cam.y), (float) (z - cam.z))
-                .setUv(time, packed)
                 .setColor(Math.round(r * k * 255), Math.round(g * k * 255), Math.round(b * k * 255), Math.max(0, a))
+                .setUv(time, packed)
+                .setUv1(Math.floorMod(Math.round(x), 16384), Math.floorMod(Math.round(z), 16384))
+                .setUv2((int) Math.max(-32000, Math.min(32000, Math.round(y * 8))), 0)
                 .setNormal(nx, ny, nz);
         }
     }

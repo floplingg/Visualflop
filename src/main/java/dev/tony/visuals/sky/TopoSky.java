@@ -36,7 +36,7 @@ public final class TopoSky {
             .withLocation(Identifier.fromNamespaceAndPath("flopvisuals", "pipeline/topo_sky"))
             .withVertexShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_sky"))
             .withFragmentShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_sky"))
-            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
+            .withVertexFormat(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS)
             .withBlend(BlendFunction.TRANSLUCENT)
             .withDepthWrite(false)
             .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
@@ -69,6 +69,14 @@ public final class TopoSky {
         float time = time(), packed = packed();
         float radius = Math.max(64f, mc.gameRenderer.getDepthFar() * 0.5f);
 
+        // Camera position for the world-anchored ceiling: whole blocks (wrapped) + 7-bit fractions + y in 1/8 blocks.
+        net.minecraft.world.phys.Vec3 cam = mc.gameRenderer.getMainCamera().position();
+        int cx = Math.floorMod((int) Math.floor(cam.x), 16384), cz = Math.floorMod((int) Math.floor(cam.z), 16384);
+        int fx = Math.min(127, (int) Math.round((cam.x - Math.floor(cam.x)) * 127));
+        int fz = Math.min(127, (int) Math.round((cam.z - Math.floor(cam.z)) * 127));
+        int cy = (int) Math.max(-32000, Math.min(32000, Math.round(cam.y * 8)));
+        int frac = (fx << 7) | fz;
+
         MultiBufferSource source = ctx.consumers();
         VertexConsumer vc = source.getBuffer(type());
         for (int i = 0; i < LAT; i++) {
@@ -79,10 +87,10 @@ public final class TopoSky {
                 double p0 = Math.PI * 2 * j / LON, p1 = Math.PI * 2 * (j + 1) / LON;
                 float cos0 = (float) Math.cos(p0), sin0 = (float) Math.sin(p0);
                 float cos1 = (float) Math.cos(p1), sin1 = (float) Math.sin(p1);
-                vc.addVertex(c0 * cos0, y0, c0 * sin0).setUv(time, packed).setColor(r, g, b, a);
-                vc.addVertex(c0 * cos1, y0, c0 * sin1).setUv(time, packed).setColor(r, g, b, a);
-                vc.addVertex(c1 * cos1, y1, c1 * sin1).setUv(time, packed).setColor(r, g, b, a);
-                vc.addVertex(c1 * cos0, y1, c1 * sin0).setUv(time, packed).setColor(r, g, b, a);
+                vc.addVertex(c0 * cos0, y0, c0 * sin0).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(0, 1, 0);
+                vc.addVertex(c0 * cos1, y0, c0 * sin1).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(0, 1, 0);
+                vc.addVertex(c1 * cos1, y1, c1 * sin1).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(0, 1, 0);
+                vc.addVertex(c1 * cos0, y1, c1 * sin0).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(0, 1, 0);
             }
         }
         if (source instanceof MultiBufferSource.BufferSource bs) bs.endBatch(type());

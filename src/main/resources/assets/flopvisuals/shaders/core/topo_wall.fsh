@@ -24,7 +24,7 @@ void main() {
 
     float vignette = smoothstep(1.05, 0.15, length(uv * vec2(aspect * 0.8, 1.0)));
     vec3 base = mix(accent * 0.035 + vec3(0.006), accent * 0.20 + vec3(0.015), vignette);
-    vec3 lineColour = mix(accent, vec3(1.0), 0.22);
-    vec3 colour = base + lineColour * clamp(l.x * 0.85 + l.y * 0.45, 0.0, 1.0) * mix(0.45, 0.9, vignette);
+    vec3 lineColour = mix(accent, vec3(1.0), 0.4 * l.x);
+    vec3 colour = base + lineColour * clamp(l.x * 0.85 + l.y * 0.6, 0.0, 1.0) * mix(0.5, 0.95, vignette);
     fragColor = vec4(colour, 1.0);
 }

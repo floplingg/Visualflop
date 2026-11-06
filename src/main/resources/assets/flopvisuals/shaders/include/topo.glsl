@@ -38,33 +38,54 @@ float topo_height(vec3 p, float t) {
     return topo_fbm(p * 0.75 + warp * 0.8);
 }
 
-// x = crisp line (about 1.5 screen pixels wide), y = soft glow. Every fourth line is brighter.
+// x = crisp line core, y = glow halo (a tight bloom plus a wide soft one). Every fourth line is brighter.
 vec2 topo_lines(float h, float levels, float t) {
     float v = h * levels - t * 0.035;
     float f = fract(v);
     float dist = min(f, 1.0 - f);
     float px = max(fwidth(v), 1e-5);
     float pixels = dist / px;
-    float line = 1.0 - smoothstep(0.5, 1.6, pixels);
-    float glow = exp(-pixels / 5.0) * 0.45;
-    float index = mod(floor(v + 0.5), 4.0) < 0.5 ? 1.0 : 0.6;
-    return vec2(line * index, glow * index);
+    float core = 1.0 - smoothstep(0.45, 1.5, pixels);
+    float glow = exp(-pixels / 3.0) * 0.55 + exp(-pixels / 12.0) * 0.32;
+    float index = mod(floor(v + 0.5), 4.0) < 0.5 ? 1.0 : 0.62;
+    return vec2(core * index, glow * index);
 }
 
-// Sky colour in direction d (normalized). accent = theme colour, brightness 0..1.25. Returns rgb and line amount.
-vec4 topo_sky(vec3 d, float t, float levels, float brightness, vec3 accent) {
+// Height of the world-anchored sky ceiling the contour lines live on.
+float topo_ceiling_y(float camY) {
+    return max(420.0, camY + 140.0);
+}
+
+// Contour lines where a ray from origin in direction dir meets the sky ceiling.
+// Returns (core, glow, fade). Anchored to the world, so the pattern doesn't slide when you move.
+vec3 topo_ceiling(vec3 origin, vec3 dir, float ceilingY, float t, float levels) {
+    if (dir.y <= 0.0005) return vec3(0.0);
+    float k = (ceilingY - origin.y) / dir.y;
+    vec2 q = origin.xz + dir.xz * k;
+    float h = topo_height(vec3(q.x, 0.0, q.y) / 230.0, t);
+    vec2 l = topo_lines(h, levels, t);
+    float horizon = smoothstep(0.015, 0.22, dir.y);
+    float far = exp(-k / 9000.0);
+    return vec3(l, horizon * far);
+}
+
+// Sky gradient behind the lines (dark accent overhead, brighter at the horizon).
+vec3 topo_base(vec3 d, float brightness, vec3 accent) {
     vec3 zenith = accent * 0.16 + vec3(0.02);
     vec3 horizon = accent * 0.42 + vec3(0.04);
     vec3 base = mix(horizon, zenith, smoothstep(0.0, 0.75, d.y));
     base = d.y < 0.0 ? horizon * mix(1.0, 0.55, smoothstep(0.0, -0.4, d.y)) : base;
-    base *= brightness;
-    float h = topo_height(d * 1.5, t);
-    vec2 l = topo_lines(h, levels, t);
-    float fade = smoothstep(-0.06, 0.16, d.y);
-    float amount = clamp((l.x + l.y) * fade, 0.0, 1.0);
-    return vec4(base, amount);
+    return base * brightness;
 }
 
-vec3 topo_line_colour(vec3 accent, float brightness) {
-    return mix(accent, vec3(1.0), 0.2) * (0.85 + 0.6 * brightness);
+// Line colour: accent, running white-hot in the core.
+vec3 topo_glow_colour(vec3 accent, float brightness, float core) {
+    return mix(accent, vec3(1.0), 0.45 * core) * (0.9 + 0.6 * brightness);
+}
+
+// Decode the camera position packed into the integer vertex attributes.
+vec3 topo_decode_camera(ivec2 uv1, ivec2 uv2) {
+    float fx = float((uv2.y >> 7) & 127) / 127.0;
+    float fz = float(uv2.y & 127) / 127.0;
+    return vec3(float(uv1.x) + fx, float(uv2.x) / 8.0, float(uv1.y) + fz);
 }
