@@ -31,8 +31,9 @@ public final class Sheet {
 
     public static final class Footer extends Item {
         final String text;
+        java.util.List<String> lines = java.util.List.of();
         public Footer(String text) { this.text = text; }
-        float height() { return 16; }
+        float height() { return 6 + Math.max(1, lines.size()) * 10; }
         boolean grouped() { return false; }
     }
 

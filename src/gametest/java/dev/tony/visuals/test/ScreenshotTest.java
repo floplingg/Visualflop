@@ -6,6 +6,7 @@ import dev.tony.visuals.gui.MainScreen;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
+import net.minecraft.world.level.levelgen.presets.WorldPresets;
 
 /** Screenshots of the wallpaper, every menu page and (if the world loads in time) the sky and glass ground. */
 public class ScreenshotTest implements FabricClientGameTest {
@@ -40,7 +41,11 @@ public class ScreenshotTest implements FabricClientGameTest {
             mc.options.simulationDistance().set(5);
             mc.options.framerateLimit().set(10);
         });
-        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+        try (TestSingleplayerContext world = context.worldBuilder()
+                .adjustSettings(s -> s.getNormalPresetList().stream()
+                    .filter(e -> e.preset() != null && e.preset().is(WorldPresets.FLAT))
+                    .findFirst().ifPresent(s::setWorldType))
+                .create()) {
             world.getClientWorld().waitForChunksRender();
             context.runOnClient(mc -> mc.player.setXRot(-25f));
             context.waitTicks(60);

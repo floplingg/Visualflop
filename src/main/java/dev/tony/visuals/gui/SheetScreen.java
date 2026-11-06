@@ -76,6 +76,7 @@ public class SheetScreen extends Screen {
         Sheet.Item prev = null;
         for (Sheet.Item it : items) {
             if (it instanceof Sheet.Chips chips) measureChips(chips);
+            if (it instanceof Sheet.Footer f) f.lines = wrap(f.text, (int) cw - 24);
             if (it.grouped() && (prev == null || !prev.grouped()) && prev != null && !(prev instanceof Sheet.Header)) y += 10;
             if (!it.grouped() && it instanceof Sheet.Header && prev != null) y += 4;
             it.y = y;
@@ -84,6 +85,27 @@ public class SheetScreen extends Screen {
             prev = it;
         }
         contentH = y + 8;
+    }
+
+    private static java.util.List<String> wrap(String text, int max) {
+        java.util.List<String> out = new ArrayList<>();
+        String lead = text.startsWith("   ") ? "   " : "";
+        StringBuilder line = new StringBuilder();
+        for (String word : text.trim().split(" ")) {
+            String next = line.isEmpty() ? lead + word : line + " " + word;
+            if (Kit.width(next) > max && !line.isEmpty()) {
+                out.add(line.toString());
+                line = new StringBuilder(word);
+            } else {
+                line = new StringBuilder(next);
+            }
+        }
+        if (!line.isEmpty()) out.add(line.toString());
+        return out;
+    }
+
+    private float sideRow() {
+        return Math.max(16, Math.min(22, (ph - 40) / Math.max(1, pages.size()) - 2));
     }
 
     private void measureChips(Sheet.Chips chips) {
@@ -173,16 +195,17 @@ public class SheetScreen extends Screen {
         float y = py + 14;
         Kit.text(g, "Flop Visuals", px + 14, y, Kit.SECONDARY, true);
         y += 16;
+        float rh = sideRow(), icon = Math.min(16, rh - 5);
         for (int i = 0; i < pages.size(); i++) {
             Page p = pages.get(i);
-            float rx = px + 7, rw = sideW - 14, rh = 22;
+            float rx = px + 7, rw = sideW - 14;
             boolean sel = i == page;
             sideHover[i] = Kit.approach(sideHover[i], inside(mx, my, rx, y, rw, rh) ? 1 : 0, 14, dt);
             if (sel) Shapes.round(g, rx, y, rw, rh, 7, Kit.ACCENT);
             else if (sideHover[i] > 0.01f) Shapes.round(g, rx, y, rw, rh, 7, ((int) (sideHover[i] * (Kit.dark ? 26 : 20)) << 24) | (Kit.dark ? 0xFFFFFF : 0));
-            Kit.icon(g, p.icon(), rx + 4, y + 3, 16, p.colour());
+            Kit.icon(g, p.icon(), rx + 4, y + (rh - icon) / 2, icon, p.colour());
             int tc = sel ? (Kit.luminance(Kit.ACCENT) > 0.6f ? 0xFF000000 : 0xFFFFFFFF) : Kit.LABEL;
-            Kit.text(g, p.name(), rx + 26, y + 7, tc, sel);
+            Kit.text(g, p.name(), rx + 10 + icon, y + (rh - 8) / 2, tc, sel);
             y += rh + 2;
         }
     }
@@ -227,7 +250,7 @@ public class SheetScreen extends Screen {
         if (it instanceof Sheet.Header h) {
             Kit.text(g, h.text.toUpperCase(java.util.Locale.ROOT), x + 12, y + it.h - 11, Kit.SECONDARY, false);
         } else if (it instanceof Sheet.Footer f) {
-            Kit.text(g, f.text, x + 12, y + 4, Kit.SECONDARY, false);
+            for (int k = 0; k < f.lines.size(); k++) Kit.text(g, f.lines.get(k), x + 12, y + 4 + k * 10, Kit.SECONDARY, false);
         } else if (it instanceof Sheet.Toggle t) {
             boolean on = t.get.get();
             if (t.anim < 0) t.anim = on ? 1 : 0;
@@ -309,14 +332,14 @@ public class SheetScreen extends Screen {
             return true;
         }
         if (sideW > 0 && button == 0) {
-            float y = py + 30;
+            float y = py + 30, rh = sideRow();
             for (int i = 0; i < pages.size(); i++) {
-                if (inside(mx, my, px + 7, y, sideW - 14, 22)) {
+                if (inside(mx, my, px + 7, y, sideW - 14, rh)) {
                     if (i != page) click();
                     showPage(i);
                     return true;
                 }
-                y += 24;
+                y += rh + 2;
             }
         }
         if (my < cy || my > cy + ch || mx < cx || mx > cx + cw) return super.mouseClicked(event, doubleClick);
