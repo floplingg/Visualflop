@@ -3,6 +3,7 @@ package dev.tony.visuals.gui;
 import dev.tony.visuals.Config;
 import dev.tony.visuals.FlopVisuals;
 import dev.tony.visuals.Theme;
+import dev.tony.visuals.glass.GrassHider;
 import dev.tony.visuals.spotify.Spotify;
 import dev.tony.visuals.wallpaper.Wallpapers;
 import net.minecraft.util.Util;
@@ -156,11 +157,18 @@ public class MainScreen extends SheetScreen {
         Config.Glass gl = c().glass;
         List<Sheet.Item> l = new ArrayList<>();
         l.add(new Sheet.Header("Reflective ground"));
-        l.add(new Sheet.Toggle("Glass ground", () -> gl.enabled, v -> gl.enabled = v));
+        l.add(new Sheet.Toggle("Glass ground", () -> gl.enabled, v -> {
+            gl.enabled = v;
+            if (gl.hideGrass) GrassHider.refresh();
+        }));
         l.add(Sheet.Slider.ints("Reflection", 0, 100, () -> gl.reflection, v -> gl.reflection = v, "%"));
         l.add(Sheet.Slider.ints("Radius", 8, 48, () -> gl.radius, v -> gl.radius = v, " blocks"));
         l.add(new Sheet.Toggle("Reflective water", () -> gl.water, v -> gl.water = v));
-        l.add(new Sheet.Footer("The ground around you mirrors the animated sky, like polished glass."));
+        l.add(new Sheet.Toggle("Hide short and tall grass", () -> gl.hideGrass, v -> {
+            gl.hideGrass = v;
+            GrassHider.refresh();
+        }));
+        l.add(new Sheet.Footer("The ground around you mirrors the animated sky like polished glass. Shade from overhangs and walls darkens the reflection smoothly."));
         return l;
     }
 

@@ -3,6 +3,6 @@
   "minVersion": "0.8",
   "package": "dev.tony.visuals.mixin",
   "compatibilityLevel": "JAVA_21",
-  "client": ["FogRendererMixin", "MinecraftAccessor", "ScreenMixin"],
+  "client": ["FogRendererMixin", "MinecraftAccessor", "ScreenMixin", "BlockStateMixin"],
   "injectors": { "defaultRequire": 0 }
 }

@@ -99,6 +99,8 @@ public final class Config {
         public int radius = 24;
         /** Also make water reflective. */
         public boolean water = false;
+        /** Hide short and tall grass while the glass ground is on. */
+        public boolean hideGrass = true;
     }
 
     public enum WallpaperMode { TOPOGRAPHIC, IMAGE, VANILLA }
