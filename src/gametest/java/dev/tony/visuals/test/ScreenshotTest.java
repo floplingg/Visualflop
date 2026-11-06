@@ -1,53 +1,53 @@
 package dev.tony.visuals.test;
 
 import dev.tony.visuals.Config;
+import dev.tony.visuals.gui.ColourSheet;
 import dev.tony.visuals.gui.MainScreen;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 
-/** Opens a world and takes screenshots of the sky, HUD, particles and menu. */
+/** Screenshots of the wallpaper, every menu page and (if the world loads in time) the sky and glass ground. */
 public class ScreenshotTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
+        context.waitTicks(40);
+        context.takeScreenshot("01-title-wallpaper");
+
+        String[] names = {"appearance", "hud", "keystrokes", "trails", "ambience", "sky", "glass", "wallpaper", "spotify"};
+        for (int i = 0; i < names.length; i++) {
+            int page = i;
+            context.setScreen(() -> new MainScreen(null, page));
+            context.waitTicks(12);
+            context.takeScreenshot(String.format("%02d-menu-%s", i + 2, names[i]));
+        }
+        Config.get().theme.lightMenus = true;
+        context.setScreen(() -> new MainScreen(null, 0));
+        context.waitTicks(12);
+        context.takeScreenshot("11-menu-light");
+        Config.get().theme.lightMenus = false;
+        context.setScreen(() -> new ColourSheet(null, "Accent colour", () -> Config.get().theme.accentColor, v -> Config.get().theme.accentColor = v));
+        context.waitTicks(12);
+        context.takeScreenshot("12-colour-picker");
+        context.setScreen(() -> null);
+
         Config.get().trails.onlyWhenMoving = false;
         Config.get().trails.density = 6;
         Config.get().petals.density = 10;
         Config.get().petals.indoors = true;
-        Config.get().widget("speed").enabled = true;
-        Config.get().widget("clock").enabled = true;
-
         context.runOnClient(mc -> {
-            mc.options.renderDistance().set(3);
+            mc.options.renderDistance().set(2);
             mc.options.simulationDistance().set(5);
-            mc.options.framerateLimit().set(15);
+            mc.options.framerateLimit().set(10);
         });
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
             world.getClientWorld().waitForChunksRender();
-            context.runOnClient(mc -> {
-                mc.player.setXRot(-25f);
-                mc.player.setYRot(30f);
-            });
-            context.waitTicks(80);
-            context.takeScreenshot("1-sky");
-
-            context.runOnClient(mc -> mc.player.setXRot(55f));
-            context.waitTicks(20);
-            context.takeScreenshot("2-ground-particles");
-
-            context.runOnClient(mc -> mc.player.setXRot(-80f));
-            context.waitTicks(20);
-            context.takeScreenshot("3-sky-up");
-
-            Config.get().petals.type = Config.PetalType.FIREFLIES;
-            Config.get().trails.type = Config.TrailType.FEATHERS;
-            context.runOnClient(mc -> mc.player.setXRot(20f));
+            context.runOnClient(mc -> mc.player.setXRot(-25f));
             context.waitTicks(60);
-            context.takeScreenshot("4-fireflies-feathers");
-
-            context.setScreen(() -> new MainScreen(null));
-            context.waitTicks(5);
-            context.takeScreenshot("5-menu");
+            context.takeScreenshot("20-sky");
+            context.runOnClient(mc -> mc.player.setXRot(50f));
+            context.waitTicks(20);
+            context.takeScreenshot("21-glass-ground");
         }
     }
 }

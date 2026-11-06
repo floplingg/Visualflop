@@ -15,7 +15,7 @@ jobs:
         run: |
           chmod +x gradlew
           export LP_NUM_THREADS=2
-          xvfb-run -a -s "-screen 0 1280x720x24" timeout 900 ./gradlew runClientGameTest --stacktrace || true
+          xvfb-run -a -s "-screen 0 1280x720x24" timeout 600 ./gradlew runClientGameTest --stacktrace || true
       - name: Logs
         if: always()
         run: |

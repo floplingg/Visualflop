@@ -30,6 +30,11 @@ public class MainScreen extends SheetScreen {
         page = lastPage;
     }
 
+    public MainScreen(Screen parent, int startPage) {
+        this(parent);
+        page = Math.max(0, Math.min(pages.size() - 1, startPage));
+    }
+
     @Override
     protected void showPage(int index) {
         super.showPage(index);
