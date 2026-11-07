@@ -22,7 +22,7 @@ void main() {
 
     if (style != 0) {
         // Look slightly upwards at the sky dome through the screen.
-        vec3 d = normalize(vec3(uv.x * aspect * 1.15, 0.18 - uv.y * 1.05, 1.0));
+        vec3 d = normalize(vec3(uv.x * aspect * 1.15, 0.32 - uv.y * 1.05, 1.0));
         vec3 colour = fv_sky(style, d, t, accent, 0.62);
         float vignette = smoothstep(1.15, 0.2, length(uv * vec2(aspect * 0.75, 1.0)));
         fragColor = vec4(colour * mix(0.75, 1.0, vignette) + fv_dither(gl_FragCoord.xy), 1.0);

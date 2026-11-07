@@ -214,7 +214,8 @@ vec3 fv_galaxy(vec3 d, float t, vec3 c, float b) {
     col = mix(col, pl.rgb, pl.a);
 
     // Below the horizon: dark haze.
-    col = up < 0.0 ? mix(horizon * 0.8, zenith * 0.6, smoothstep(0.0, -0.4, up)) : col;
+    vec3 below = mix(horizon * 0.8, zenith * 0.6, smoothstep(0.0, -0.4, up));
+    col = mix(below, col, smoothstep(-0.12, 0.04, up));   // soft horizon, no hard edge
     return col * (0.55 + 0.9 * b);
 }
 
@@ -282,7 +283,7 @@ vec3 fv_amethyst_at(vec3 p, float t, vec3 c) {
     // Fine veins along contours of the warped field, only in some places.
     float v = fract(f * 6.0) - 0.5;
     vec2 vein = fv_line(v, 1.2);
-    float mask = smoothstep(0.55, 0.68, fv_fbm(p * 1.6 + 3.0, 3));
+    float mask = smoothstep(0.58, 0.7, fv_fbm(p * 1.6 + 3.0, 3)) * smoothstep(0.02, 0.0, fwidth(f) * 6.0 - 0.02);
     col += mix(c, vec3(1.0), 0.6) * (vein.x * 0.7 + vein.y * 0.35) * mask;
     return col;
 }
