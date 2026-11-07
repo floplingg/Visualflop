@@ -1,0 +1,31 @@
+name: Windows media reader check
+on:
+  push:
+    branches: [shots]
+    paths: ['src/main/resources/assets/flopvisuals/spotify/**', '.github/workflows/winmedia.yml']
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the helper the same way the mod does
+        shell: pwsh
+        run: |
+          $script = Get-Content -Raw src/main/resources/assets/flopvisuals/spotify/media.ps1
+          $cmd = "& {`n$script`n} -ParentId $PID"
+          $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
+          "length: $($enc.Length)" | Out-File out.txt
+          $p = Start-Process powershell.exe -ArgumentList '-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-EncodedCommand',$enc -RedirectStandardOutput o.txt -RedirectStandardError e.txt -PassThru
+          Start-Sleep -Seconds 12
+          if (!$p.HasExited) { Stop-Process -Id $p.Id -Force; "still running after 12s (good)" | Out-File -Append out.txt } else { "exited: $($p.ExitCode)" | Out-File -Append out.txt }
+          Get-Content o.txt | Out-File -Append out.txt
+          "--- stderr" | Out-File -Append out.txt
+          Get-Content e.txt | Out-File -Append out.txt
+      - name: Publish
+        shell: bash
+        run: |
+          mkdir -p /tmp/o && cp out.txt /tmp/o/ && cd /tmp/o
+          git init -q -b ci-winmedia && git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm out && git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-winmedia

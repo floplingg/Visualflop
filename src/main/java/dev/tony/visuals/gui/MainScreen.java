@@ -246,6 +246,16 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Toggle("Progress bar", () -> sp.showProgress, v -> sp.showProgress = v));
         l.add(new Sheet.Info("Status", Spotify::status));
 
+        l.add(new Sheet.Header("Source"));
+        l.add(new Sheet.Choice<>("Read from", Config.SpotifySource.values(), () -> sp.source, v -> {
+            sp.source = v;
+            Spotify.note("");
+        }));
+        if (sp.source == Config.SpotifySource.WINDOWS) {
+            l.add(new Sheet.Footer("Free, no setup: reads the song, progress and cover from Windows. Works with the Spotify app and the web player at open.spotify.com in Chrome, Edge or other browsers."));
+            return l;
+        }
+        l.add(new Sheet.Footer("Needs Spotify Premium (since February 2026 Spotify only gives the Web API to Premium accounts)."));
         l.add(new Sheet.Header("Account"));
         l.add(new Sheet.Action("Client ID", () -> sp.clientId.isEmpty() ? "Paste" : mask(sp.clientId), () -> {
             String clip = minecraft.keyboardHandler.getClipboard().replaceAll("\\s", "");

@@ -51,7 +51,7 @@ public final class SpotifyWidget {
         Kit.text(g, Kit.fit(title, (int) maxW, true), tx, p + 2, Theme.opaque(t.text), true, t.textShadow);
         Kit.text(g, Kit.fit(artist, (int) maxW, false), tx, p + 14, Theme.opaque(t.muted), false, t.textShadow);
 
-        if (s.showProgress) {
+        if (s.showProgress && (tr == null || tr.durationMs() > 0)) {
             float by = h - p - 3;
             float bx = p, bw = w - 2 * p;
             float frac = tr == null || tr.durationMs() <= 0 ? 0 : tr.progressNow() / (float) tr.durationMs();

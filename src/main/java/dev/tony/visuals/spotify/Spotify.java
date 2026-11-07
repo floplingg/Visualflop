@@ -78,7 +78,32 @@ public final class Spotify {
     }
     public static Identifier art() { return art; }
 
+    static void setTrack(Track t) {
+        track = t;
+        if (t == null) {
+            art = null;
+            artFor = "";
+        }
+    }
+
+    /** Cover image bytes (PNG or JPEG) from any source. */
+    static void setArt(byte[] bytes) {
+        NET.execute(() -> {
+            try {
+                java.awt.image.BufferedImage src = javax.imageio.ImageIO.read(new ByteArrayInputStream(bytes));
+                if (src != null) uploadArt(src);
+            } catch (Throwable ignored) {
+                // keep the placeholder
+            }
+        });
+    }
+
+    public static boolean windowsMode() {
+        return Config.get().spotify.source == Config.SpotifySource.WINDOWS;
+    }
+
     public static String status() {
+        if (windowsMode()) return status.isEmpty() || status.startsWith("Not connected") || status.startsWith("Waiting") ? "Starting…" : status;
         if (Config.get().spotify.refreshToken.isEmpty() && !status.startsWith("Waiting") && !status.startsWith("Error") && !status.startsWith("Client")) return "Not connected";
         return status;
     }
@@ -246,8 +271,16 @@ public final class Spotify {
     private static void poll() {
         try {
             Config c = Config.get();
+            if (!c.widget("spotify").enabled) {
+                WindowsMedia.stop();
+                return;
+            }
+            if (windowsMode()) {
+                WindowsMedia.ensure();
+                return;
+            }
+            WindowsMedia.stop();
             if (c.spotify.refreshToken.isEmpty() || c.spotify.clientId.isEmpty()) return;
-            if (!c.widget("spotify").enabled) return;
             if (System.currentTimeMillis() < backoffUntil) return;
             if (accessToken == null || System.currentTimeMillis() > accessExpires) refresh();
 
@@ -327,6 +360,15 @@ public final class Spotify {
                 HttpResponse.BodyHandlers.ofByteArray());
             java.awt.image.BufferedImage src = javax.imageio.ImageIO.read(new ByteArrayInputStream(res.body()));
             if (src == null) return;
+            uploadArt(src);
+        } catch (Throwable t) {
+            art = null;   // no ImageIO, network hiccup: just show the placeholder
+        }
+    }
+
+    /** Rounds the cover's corners and uploads it as a smooth texture. */
+    private static void uploadArt(java.awt.image.BufferedImage src) {
+        {
             int size = 128;
             java.awt.image.BufferedImage sm = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_RGB);
             java.awt.Graphics2D gr = sm.createGraphics();
@@ -358,8 +400,6 @@ public final class Spotify {
                 Minecraft.getInstance().getTextureManager().register(id, tex);
                 art = id;
             });
-        } catch (Throwable t) {
-            art = null;   // no ImageIO, network hiccup: just show the placeholder
         }
     }
 

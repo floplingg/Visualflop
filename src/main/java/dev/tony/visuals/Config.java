@@ -141,7 +141,11 @@ public final class Config {
         public int dim = 15;
     }
 
+    /** Where now-playing comes from: Windows' media controls (free, no setup) or Spotify's Web API (needs Premium). */
+    public enum SpotifySource { WINDOWS, WEB_API }
+
     public static final class Spotify {
+        public SpotifySource source = SpotifySource.WINDOWS;
         public String clientId = "";
         public String refreshToken = "";
         public boolean showArt = true;
@@ -245,6 +249,7 @@ public final class Config {
         if (glass == null) glass = new Glass();
         if (wallpaper == null) wallpaper = new Wallpaper();
         if (spotify == null) spotify = new Spotify();
+        if (spotify.source == null) spotify.source = SpotifySource.WINDOWS;
         if (aura == null) aura = new Aura();
         if (aura.haloStyle == null) aura.haloStyle = HaloStyle.RING;
         if (aura.colour == null) aura.colour = Palette.ACCENT;
