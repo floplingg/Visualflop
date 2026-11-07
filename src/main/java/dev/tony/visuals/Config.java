@@ -76,8 +76,15 @@ public final class Config {
         public boolean indoors = false;
     }
 
+    public enum SkyStyle { TOPOGRAPHIC, GALAXY, AETHER, NOCTURNE, AMETHYST }
+
+    /** Colour a sky look is drawn in. Signature = that look's own colour; Accent = your accent colour. */
+    public enum Palette { SIGNATURE, ACCENT, VIOLET, AMBER, ICE, ROSE, EMERALD, SILVER, CRIMSON, OCEAN, SUNSET, GOLD }
+
     public static final class Sky {
         public boolean enabled = true;
+        public SkyStyle style = SkyStyle.TOPOGRAPHIC;
+        public Palette colour = Palette.SIGNATURE;
         /** How much of the vanilla sky is covered, 0-100. 100 = full accent sky. */
         public int opacity = 100;
         /** Number of contour lines across the sky, 3-16. */
@@ -101,12 +108,15 @@ public final class Config {
         public boolean water = false;
         /** Hide short and tall grass while the glass ground is on. */
         public boolean hideGrass = true;
+        /** Mirror real blocks, players and mobs (screen-space reflections). */
+        public boolean realReflections = true;
     }
 
-    public enum WallpaperMode { TOPOGRAPHIC, IMAGE, VANILLA }
+    public enum WallpaperMode { TOPOGRAPHIC, GALAXY, AETHER, NOCTURNE, AMETHYST, IMAGE, VANILLA }
 
     public static final class Wallpaper {
         public WallpaperMode mode = WallpaperMode.TOPOGRAPHIC;
+        public Palette colour = Palette.SIGNATURE;
         /** File name in config/flop-visuals/wallpapers. */
         public String image = "";
         /** Darken the wallpaper behind menus, 0-80. */
@@ -219,6 +229,9 @@ public final class Config {
         if (spotify == null) spotify = new Spotify();
         if (wallpaper.mode == null) wallpaper.mode = WallpaperMode.TOPOGRAPHIC;
         if (wallpaper.image == null) wallpaper.image = "";
+        if (wallpaper.colour == null) wallpaper.colour = Palette.SIGNATURE;
+        if (sky.style == null) sky.style = SkyStyle.TOPOGRAPHIC;
+        if (sky.colour == null) sky.colour = Palette.SIGNATURE;
         if (spotify.clientId == null) spotify.clientId = "";
         if (spotify.refreshToken == null) spotify.refreshToken = "";
         glass.reflection = Theme.c(glass.reflection, 0, 100);

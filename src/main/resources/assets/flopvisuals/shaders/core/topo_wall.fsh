@@ -1,8 +1,9 @@
 #version 330
 
 #moj_import <flopvisuals:topo.glsl>
+#moj_import <flopvisuals:styles.glsl>
 
-// Animated topographic menu wallpaper. Accent colour comes from a 1x1 texture,
+// Animated menu wallpaper in any sky look. Colour and look come from a 2x1 texture,
 // time from the vertex colour (24-bit counter in 1/20 s steps).
 uniform sampler2D Sampler0;
 
@@ -12,12 +13,22 @@ in vec4 vertexColor;
 out vec4 fragColor;
 
 void main() {
-    vec3 accent = texture(Sampler0, vec2(0.5)).rgb;
+    vec3 accent = texelFetch(Sampler0, ivec2(0, 0), 0).rgb;
+    int style = int(floor(texelFetch(Sampler0, ivec2(1, 0), 0).r * 255.0 / 40.0 + 0.5));
     vec3 c = floor(vertexColor.rgb * 255.0 + 0.5);
     float t = (c.r * 65536.0 + c.g * 256.0 + c.b) / 20.0;
     float aspect = abs(dFdy(texCoord0.y)) / max(abs(dFdx(texCoord0.x)), 1e-6);
-
     vec2 uv = texCoord0 - 0.5;
+
+    if (style != 0) {
+        // Look slightly upwards at the sky dome through the screen.
+        vec3 d = normalize(vec3(uv.x * aspect * 1.15, 0.18 - uv.y * 1.05, 1.0));
+        vec3 colour = fv_sky(style, d, t, accent, 0.62);
+        float vignette = smoothstep(1.15, 0.2, length(uv * vec2(aspect * 0.75, 1.0)));
+        fragColor = vec4(colour * mix(0.75, 1.0, vignette), 1.0);
+        return;
+    }
+
     vec3 p = vec3(uv.x * aspect, uv.y, 0.0) * 1.25 + vec3(0.0, 0.0, 4.0);
     float h = topo_height(p, t);
     vec2 l = topo_lines(h, 6.0, t);

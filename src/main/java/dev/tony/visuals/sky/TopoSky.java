@@ -68,9 +68,10 @@ public final class TopoSky {
         if (!activeIn(mc.level)) return;
         Config.Sky s = Config.get().sky;
 
-        int accent = Config.theme().accent();
+        int accent = SkyStyles.skyColour();
         int r = (accent >> 16) & 255, g = (accent >> 8) & 255, b = accent & 255;
         int a = Math.round(s.opacity * 2.55f);
+        float style = SkyStyles.skyStyle() * 0.1f;
         float time = time(), packed = packed();
         float radius = Math.max(64f, mc.gameRenderer.getDepthFar() * 0.5f);
 
@@ -91,10 +92,10 @@ public final class TopoSky {
                 double p0 = Math.PI * 2 * j / LON, p1 = Math.PI * 2 * (j + 1) / LON;
                 float cos0 = (float) Math.cos(p0), sin0 = (float) Math.sin(p0);
                 float cos1 = (float) Math.cos(p1), sin1 = (float) Math.sin(p1);
-                vc.addVertex(c0 * cos0, y0, c0 * sin0).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(0, 1, 0);
-                vc.addVertex(c0 * cos1, y0, c0 * sin1).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(0, 1, 0);
-                vc.addVertex(c1 * cos1, y1, c1 * sin1).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(0, 1, 0);
-                vc.addVertex(c1 * cos0, y1, c1 * sin0).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(0, 1, 0);
+                vc.addVertex(c0 * cos0, y0, c0 * sin0).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
+                vc.addVertex(c0 * cos1, y0, c0 * sin1).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
+                vc.addVertex(c1 * cos1, y1, c1 * sin1).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
+                vc.addVertex(c1 * cos0, y1, c1 * sin0).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
             }
         }
         if (source instanceof MultiBufferSource.BufferSource bs) bs.endBatch(type());
@@ -127,7 +128,7 @@ public final class TopoSky {
         Config.Sky s = Config.get().sky;
         if (!s.tintFog || !activeIn(level) || fog == null) return;
         if (camera.getFluidInCamera() != FogType.NONE) return;
-        int accent = Config.theme().accent();
+        int accent = SkyStyles.skyColour();
         float k = Math.min(0.99f, s.brightness / 100f) * 1.25f;
         float hr = (((accent >> 16) & 255) / 255f * 0.30f + 0.02f) * k;
         float hg = (((accent >> 8) & 255) / 255f * 0.30f + 0.02f) * k;

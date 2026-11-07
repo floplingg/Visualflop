@@ -41,6 +41,8 @@ public final class GlassGround {
             .withLocation(Identifier.fromNamespaceAndPath("flopvisuals", "pipeline/topo_glass"))
             .withVertexShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_glass"))
             .withFragmentShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_glass"))
+            .withSampler("SceneColor")
+            .withSampler("SceneDepth")
             .withVertexFormat(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS)
             .withBlend(BlendFunction.TRANSLUCENT)
             .withDepthWrite(false)
@@ -62,12 +64,19 @@ public final class GlassGround {
     public static void init() {}
 
     private static RenderType type() {
-        if (type == null) type = RenderType.create("flopvisuals_topo_glass", RenderSetup.builder(PIPELINE).createRenderSetup());
+        if (type == null) {
+            SceneCopy.ensureRegistered();
+            type = RenderType.create("flopvisuals_topo_glass", RenderSetup.builder(PIPELINE)
+                .withTexture("SceneColor", SceneCopy.COLOUR, SceneCopy::linear)
+                .withTexture("SceneDepth", SceneCopy.DEPTH, SceneCopy::nearest)
+                .createRenderSetup());
+        }
         return type;
     }
 
     public static void render(WorldRenderContext ctx) {
         if (dev.tony.visuals.compat.Shaders.active()) return;   // drawn after the shader pack instead
+        if (active()) SceneCopy.capture();
         draw(ctx.consumers(), false);
     }
 
@@ -79,8 +88,16 @@ public final class GlassGround {
 
     /** With a shader pack: everything at once, on top of the pack's finished image. */
     public static void renderAfterShaders(MultiBufferSource source) {
+        if (active()) SceneCopy.capture();
         draw(source, false);
         if (Config.get().glass.water) draw(source, true);
+    }
+
+    private static boolean active() {
+        Minecraft mc = Minecraft.getInstance();
+        Config.Glass gc = Config.get().glass;
+        return gc.enabled && gc.reflection > 0 && mc.level != null && mc.player != null
+            && (Config.get().sky.allDimensions || mc.level.dimension() == net.minecraft.world.level.Level.OVERWORLD);
     }
 
     private static void draw(MultiBufferSource source, boolean waterPass) {
@@ -102,7 +119,8 @@ public final class GlassGround {
         Vec3 pp = mc.player.position();
         centreX = pp.x;
         centreZ = pp.z;
-        int accent = Config.theme().accent();
+        int accent = dev.tony.visuals.sky.SkyStyles.skyColour();
+        int flags = (dev.tony.visuals.sky.SkyStyles.skyStyle() << 1) | (SceneCopy.ready() && gc.realReflections ? 16 : 0);
         float ar = ((accent >> 16) & 255) / 255f, ag = ((accent >> 8) & 255) / 255f, ab = (accent & 255) / 255f;
         float strength = gc.reflection / 100f;
         float radius = gc.radius;
@@ -110,7 +128,7 @@ public final class GlassGround {
         final float e = 0.003f;
 
         VertexConsumer vc = source.getBuffer(type());
-        Emitter em = new Emitter(vc, cam, ar, ag, ab, strength, radius, time, packed);
+        Emitter em = new Emitter(vc, cam, ar, ag, ab, strength, radius, time, packed, flags);
         for (int i = 0; i < count; i++) {
             int o = i * F;
             int kind = (int) faces[o];
@@ -162,9 +180,12 @@ public final class GlassGround {
         }
     }
 
-    /** Writes one vertex: light shade darkens the colour, distance from you fades it out smoothly. */
+    /**
+     * Writes one vertex. The sky colour goes in the vertex colour, the light shade in the length of the normal,
+     * the style / water / reflection flags in the second light coordinate. Distance from you fades it out smoothly.
+     */
     private record Emitter(VertexConsumer vc, Vec3 cam, float r, float g, float b, float strength, float radius,
-                           float time, float packed) {
+                           float time, float packed, int flags) {
         void v(float x, float y, float z, float shade, float nx, float ny, float nz) {
             v(x, y, z, shade, nx, ny, nz, 0);
         }
@@ -174,13 +195,13 @@ public final class GlassGround {
             float d = (float) Math.sqrt(dx * dx + dz * dz) / radius;
             float fade = 1f - smooth(0.55f, 1f, d);
             int a = Math.round(255 * strength * fade);
-            float k = shade;
+            float k = Math.max(0.1f, Math.min(1f, shade));
             vc.addVertex((float) (x - cam.x), (float) (y - cam.y), (float) (z - cam.z))
-                .setColor(Math.round(r * k * 255), Math.round(g * k * 255), Math.round(b * k * 255), Math.max(0, a))
+                .setColor(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), Math.max(0, a))
                 .setUv(time, packed)
                 .setUv1(Math.floorMod(Math.round(x), 16384), Math.floorMod(Math.round(z), 16384))
-                .setUv2((int) Math.max(-32000, Math.min(32000, Math.round(y * 8))), material)
-                .setNormal(nx, ny, nz);
+                .setUv2((int) Math.max(-32000, Math.min(32000, Math.round(y * 8))), material | flags)
+                .setNormal(nx * k, ny * k, nz * k);
         }
     }
 
@@ -196,7 +217,6 @@ public final class GlassGround {
         double[] top = new double[side * side];     // reflective top height, NaN if none
         double[] ground = new double[side * side];  // raw ground height for side faces
         float[] light = new float[side * side];     // 0..1 shade for each column
-        float[] cover = new float[side * side];     // 0..1 how much this column is roofed over
         boolean[] isWater = new boolean[side * side];
         boolean[] full = new boolean[side * side];  // top block is a full cube (can have reflective sides)
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
@@ -216,7 +236,19 @@ public final class GlassGround {
                     BlockState start = level.getBlockState(pos);
                     buried = !start.isAir() && !seeThrough(start) && !start.getCollisionShape(level, pos).isEmpty();
                 }
-                if (buried) y = floor - 1;
+                if (buried) {
+                    // Inside something solid: a floating block or a roof has air under it within a few blocks,
+                    // a hillside doesn't. Skip down through the solid part to keep the ground beneath.
+                    int k = 0;
+                    while (k < 8 && y > floor) {
+                        pos.set(x, y, z);
+                        BlockState st = level.getBlockState(pos);
+                        if (st.isAir() || seeThrough(st) || st.getCollisionShape(level, pos).isEmpty()) break;
+                        y--;
+                        k++;
+                    }
+                    if (k >= 8) y = floor - 1;
+                }
                 for (; y >= floor; y--) {
                     pos.set(x, y, z);
                     state = level.getBlockState(pos);
@@ -229,12 +261,6 @@ public final class GlassGround {
                 int sky = level.getBrightness(LightLayer.SKY, pos), block = level.getBrightness(LightLayer.BLOCK, pos);
                 float l = Math.max(sky, block * 0.85f) / 15f;
                 light[idx] = 0.10f + 0.90f * (float) Math.pow(l, 2.2);
-                // Our own shadow test, so shading works even on servers that send full-bright light
-                // (DonutSMP and many big servers): is there a solid block anywhere above this ground?
-                if (y >= floor && h - 1 > y) {
-                    float gap = (h - 1) - y;
-                    cover[idx] = gap < 48 ? 1f - gap / 96f : 0.5f;
-                }
                 if (y < floor || state == null || seeThrough(state)) continue;
                 pos.set(x, y, z);
                 if (!state.getFluidState().isEmpty()) {
@@ -251,26 +277,6 @@ public final class GlassGround {
                 if (box.minX > 0.01 || box.maxX < 0.99 || box.minZ > 0.01 || box.maxZ < 0.99) continue;
                 top[idx] = y + box.maxY;
                 full[idx] = box.maxY > 0.99 && box.minY < 0.01 && state.isCollisionShapeFullBlock(level, pos);
-            }
-        }
-
-        // Blur the roof mask (5 x 5) so shadows have soft edges, then fold it into the light.
-        float[] soft = new float[side * side];
-        for (int i = 0; i < side; i++) {
-            for (int j = 0; j < side; j++) {
-                float sum = 0, wsum = 0;
-                for (int a = -2; a <= 2; a++) {
-                    for (int b = -2; b <= 2; b++) {
-                        int ii = i + a, jj = j + b;
-                        if (ii < 0 || jj < 0 || ii >= side || jj >= side) continue;
-                        float w = 3 - (Math.abs(a) + Math.abs(b)) * 0.5f;
-                        sum += cover[ii * side + jj] * w;
-                        wsum += w;
-                    }
-                }
-                float c = sum / wsum;
-                float own = 1f - 0.72f * c;
-                light[i * side + j] = Math.min(light[i * side + j], own);
             }
         }
 

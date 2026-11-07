@@ -79,10 +79,14 @@ public final class Sheet {
             int n = values.length;
             set.accept(values[((get.get().ordinal() + dir) % n + n) % n]);
         }
-        String valueName() {
-            String s = get.get().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+        int count() { return values.length; }
+        int index() { return get.get().ordinal(); }
+        void pick(int i) { set.accept(values[Math.max(0, Math.min(values.length - 1, i))]); }
+        String name(int i) {
+            String s = values[i].name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
             return Character.toUpperCase(s.charAt(0)) + s.substring(1);
         }
+        String valueName() { return name(index()); }
     }
 
     public static final class Colour extends Item {

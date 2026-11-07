@@ -1,5 +1,8 @@
 name: In-game screenshots
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    branches: [shots]
 permissions:
   contents: write
 jobs:

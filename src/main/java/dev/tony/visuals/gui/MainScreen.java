@@ -141,15 +141,17 @@ public class MainScreen extends SheetScreen {
     private List<Sheet.Item> sky() {
         Config.Sky sk = c().sky;
         List<Sheet.Item> l = new ArrayList<>();
-        l.add(new Sheet.Header("Topographic sky"));
-        l.add(new Sheet.Toggle("Topographic sky", () -> sk.enabled, v -> sk.enabled = v));
+        l.add(new Sheet.Header("Sky"));
+        l.add(new Sheet.Toggle("Custom sky", () -> sk.enabled, v -> sk.enabled = v));
+        l.add(new Sheet.Choice<>("Look", Config.SkyStyle.values(), () -> sk.style, v -> sk.style = v));
+        l.add(new Sheet.Choice<>("Colour", Config.Palette.values(), () -> sk.colour, v -> sk.colour = v));
         l.add(Sheet.Slider.ints("Sky cover", 0, 100, () -> sk.opacity, v -> sk.opacity = v, "%"));
-        l.add(Sheet.Slider.ints("Contour lines", 3, 16, () -> sk.lines, v -> sk.lines = v, ""));
+        l.add(Sheet.Slider.ints("Lines (topographic)", 3, 16, () -> sk.lines, v -> sk.lines = v, ""));
         l.add(Sheet.Slider.ints("Animation speed", 0, 10, () -> sk.speed, v -> sk.speed = v, ""));
         l.add(Sheet.Slider.ints("Brightness", 0, 99, () -> sk.brightness, v -> sk.brightness = v, "%"));
         l.add(new Sheet.Toggle("Match distance fog", () -> sk.tintFog, v -> sk.tintFog = v));
         l.add(new Sheet.Toggle("Nether and End too", () -> sk.allDimensions, v -> sk.allDimensions = v));
-        l.add(new Sheet.Footer("The sky colour follows your accent colour."));
+        l.add(new Sheet.Footer("Signature uses each look's own colour; Accent follows your accent colour."));
         return l;
     }
 
@@ -163,12 +165,13 @@ public class MainScreen extends SheetScreen {
         }));
         l.add(Sheet.Slider.ints("Reflection", 0, 100, () -> gl.reflection, v -> gl.reflection = v, "%"));
         l.add(Sheet.Slider.ints("Radius", 8, 48, () -> gl.radius, v -> gl.radius = v, " blocks"));
+        l.add(new Sheet.Toggle("Reflect blocks and players", () -> gl.realReflections, v -> gl.realReflections = v));
         l.add(new Sheet.Toggle("Reflective water", () -> gl.water, v -> gl.water = v));
         l.add(new Sheet.Toggle("Hide short and tall grass", () -> gl.hideGrass, v -> {
             gl.hideGrass = v;
             GrassHider.refresh();
         }));
-        l.add(new Sheet.Footer("The ground around you mirrors the animated sky like polished glass. Shade from overhangs and walls darkens the reflection smoothly."));
+        l.add(new Sheet.Footer("The ground around you is polished glass: it mirrors blocks, players and mobs, with your sky's pattern set into the floor."));
         return l;
     }
 
@@ -177,6 +180,7 @@ public class MainScreen extends SheetScreen {
         List<Sheet.Item> l = new ArrayList<>();
         l.add(new Sheet.Header("Menu background"));
         l.add(new Sheet.Choice<>("Wallpaper", Config.WallpaperMode.values(), () -> wp.mode, v -> wp.mode = v));
+        l.add(new Sheet.Choice<>("Colour", Config.Palette.values(), () -> wp.colour, v -> wp.colour = v));
         l.add(Sheet.Slider.ints("Dim", 0, 80, () -> wp.dim, v -> wp.dim = v, "%"));
         l.add(new Sheet.Footer("Shown on the title screen and every menu outside a world."));
         l.add(new Sheet.Header("Your images"));
@@ -188,11 +192,16 @@ public class MainScreen extends SheetScreen {
                 wp.image = name;
                 wp.mode = Config.WallpaperMode.IMAGE;
                 Wallpapers.reload();
+                Wallpapers.load(name);
             }));
         }
         l.add(new Sheet.Action("Open wallpapers folder", () -> "", () -> Util.getPlatform().openPath(Wallpapers.folder())).accent().chevron());
-        l.add(new Sheet.Action("Refresh list", () -> "", this::rebuild).accent());
-        l.add(new Sheet.Footer("Drop .png images into the folder, then refresh."));
+        l.add(new Sheet.Action("Refresh list", () -> "", () -> {
+            Wallpapers.reload();
+            rebuild();
+        }).accent());
+        if (!files.isEmpty()) l.add(new Sheet.Info("Status", () -> Wallpapers.status().isEmpty() ? "Pick an image above" : Wallpapers.status()));
+        l.add(new Sheet.Footer("Drop PNG or JPG images into the folder, refresh, then pick one."));
         return l;
     }
 

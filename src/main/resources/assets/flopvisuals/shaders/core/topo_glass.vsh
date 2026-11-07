@@ -15,15 +15,15 @@ out vec3 worldPos;
 out vec2 params;
 out vec4 tint;
 out vec3 normal;
-out float material;
+flat out int flags;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
     viewPos = Position;
-    // World position of this vertex (x and z wrapped every 16384 blocks), for a world-anchored reflection.
+    // World position of this vertex (x and z wrapped every 16384 blocks), so the floor pattern stays put.
     worldPos = vec3(float(UV1.x), float(UV2.x) / 8.0, float(UV1.y));
     params = UV0;
     tint = Color;
     normal = Normal;
-    material = float(UV2.y);
+    flags = UV2.y;
 }

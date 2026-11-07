@@ -15,6 +15,7 @@ out vec3 skyDir;
 out vec2 params;
 out vec4 tint;
 out vec3 camPos;
+flat out int style;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
@@ -22,4 +23,5 @@ void main() {
     params = UV0;
     tint = Color;
     camPos = topo_decode_camera(UV1, UV2);
+    style = int(floor(Normal.x * 10.0 + 0.5));
 }
