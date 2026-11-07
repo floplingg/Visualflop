@@ -1,0 +1,27 @@
+name: Minecraft sources
+on:
+  push:
+    branches: [probe-src]
+permissions:
+  contents: write
+jobs:
+  src:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - uses: gradle/actions/setup-gradle@v4
+      - run: chmod +x gradlew && ./gradlew genSourcesWithVineflower --stacktrace -q
+      - name: Publish selected sources
+        run: |
+          SRC=$(find . ~/.gradle -name '*minecraft-merged*sources.jar' 2>/dev/null | head -1)
+          echo "SRC=$SRC"
+          mkdir -p /tmp/out && cd /tmp/out
+          unzip -q "$SRC" 'net/minecraft/client/renderer/*' 'com/mojang/blaze3d/*' 'net/minecraft/client/gui/*' 'net/minecraft/client/Minecraft.java' 'net/minecraft/client/Camera.java' 'net/minecraft/client/renderer/entity/*' -x 'net/minecraft/client/renderer/block/model/*' || true
+          FAB=$(find ~/.gradle ../ -name 'fabric-rendering-v1*sources*.jar' 2>/dev/null | head -1); echo "FAB=$FAB"
+          [ -n "$FAB" ] && unzip -q -o "$FAB" '*.java' -d fabric || true
+          MC=$(find $GITHUB_WORKSPACE ~/.gradle -path '*minecraft*' -name '*.jar' 2>/dev/null | grep -iE 'merged' | grep -v sources | head -1)
+          mkdir -p shaders && cd shaders && unzip -q "$MC" 'assets/minecraft/shaders/*' || true; cd ..
+          git init -q -b mc-src && git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm src && git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" mc-src
