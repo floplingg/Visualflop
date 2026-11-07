@@ -6,13 +6,13 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.CameraType;
-import net.minecraft.world.level.levelgen.presets.WorldPresets;
 
 /** Screenshots of the wallpapers, the menu (with a dropdown open) and, in a world, every sky and the glass ground. */
 public class ScreenshotTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
         context.waitTicks(40);
+        if (Boolean.getBoolean("flop.worldOnly")) { world(context, new String[]{"topographic", "galaxy", "aether", "nocturne", "amethyst"}); return; }
         String[] walls = {"topographic", "galaxy", "aether", "nocturne", "amethyst"};
         for (int i = 0; i < walls.length; i++) {
             int k = i;
@@ -39,6 +39,11 @@ public class ScreenshotTest implements FabricClientGameTest {
         // The animated wallpaper is slow on CI's software renderer and also shows behind the loading screen.
         Config.get().wallpaper.mode = Config.WallpaperMode.VANILLA;
 
+        world(context, walls);
+    }
+
+    private void world(ClientGameTestContext context, String[] walls) {
+        Config.get().wallpaper.mode = Config.WallpaperMode.VANILLA;
         Config.get().trails.enabled = false;
         Config.get().petals.enabled = false;
         context.runOnClient(mc -> {
@@ -46,12 +51,14 @@ public class ScreenshotTest implements FabricClientGameTest {
             mc.options.simulationDistance().set(5);
             mc.options.framerateLimit().set(10);
         });
+        boolean sky = Config.get().sky.enabled, glass = Config.get().glass.enabled;
+        Config.get().sky.enabled = false;
+        Config.get().glass.enabled = false;
         try (TestSingleplayerContext world = context.worldBuilder()
-                .adjustSettings(s -> s.getNormalPresetList().stream()
-                    .filter(e -> e.preset() != null && e.preset().is(WorldPresets.FLAT))
-                    .findFirst().ifPresent(s::setWorldType))
                 .create()) {
             world.getClientWorld().waitForChunksRender();
+            Config.get().sky.enabled = sky;
+            Config.get().glass.enabled = glass;
             world.getServer().runCommand("time set noon");
             world.getServer().runCommand("gamerule doDaylightCycle false");
             world.getServer().runCommand("execute as @p at @s run fill ~-2 ~ ~4 ~2 ~4 ~4 minecraft:quartz_block");
