@@ -37,16 +37,22 @@ public final class WindowsMedia {
         if (System.currentTimeMillis() < restartAt) return;
         restartAt = System.currentTimeMillis() + 10_000;
         try {
-            String script;
+            // The helper is saved as a plain, readable script next to the mod's settings and run as a file
+            // (no encoded commands), so you can open it and see exactly what it does.
+            java.nio.file.Path dir = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("flop-visuals");
+            java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Path file = dir.resolve("spotify-now-playing.ps1");
+            byte[] script;
             try (InputStream in = WindowsMedia.class.getResourceAsStream("/assets/flopvisuals/spotify/media.ps1")) {
                 if (in == null) throw new IllegalStateException("helper script missing");
-                script = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                script = in.readAllBytes();
+            }
+            if (!java.nio.file.Files.exists(file) || !java.util.Arrays.equals(java.nio.file.Files.readAllBytes(file), script)) {
+                java.nio.file.Files.write(file, script);
             }
             long me = ProcessHandle.current().pid();
-            String command = "& {\n" + script + "\n} -ParentId " + me;
-            String encoded = Base64.getEncoder().encodeToString(command.getBytes(StandardCharsets.UTF_16LE));
-            ProcessBuilder pb = new ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
-                "-WindowStyle", "Hidden", "-EncodedCommand", encoded);
+            ProcessBuilder pb = new ProcessBuilder("powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden",
+                "-ExecutionPolicy", "Bypass", "-File", file.toAbsolutePath().toString(), "-ParentId", Long.toString(me));
             pb.redirectErrorStream(true);
             proc = pb.start();
             Process p = proc;

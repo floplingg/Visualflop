@@ -13,11 +13,9 @@ jobs:
       - name: Run the helper the same way the mod does
         shell: pwsh
         run: |
-          $script = Get-Content -Raw src/main/resources/assets/flopvisuals/spotify/media.ps1
-          $cmd = "& {`n$script`n} -ParentId $PID"
-          $enc = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
-          "length: $($enc.Length)" | Out-File out.txt
-          $p = Start-Process powershell.exe -ArgumentList '-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-EncodedCommand',$enc -RedirectStandardOutput o.txt -RedirectStandardError e.txt -PassThru
+          $file = (Resolve-Path src/main/resources/assets/flopvisuals/spotify/media.ps1).Path
+          "file mode" | Out-File out.txt
+          $p = Start-Process powershell.exe -ArgumentList '-NoLogo','-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',$file,'-ParentId',$PID -RedirectStandardOutput o.txt -RedirectStandardError e.txt -PassThru
           Start-Sleep -Seconds 12
           if (!$p.HasExited) { Stop-Process -Id $p.Id -Force; "still running after 12s (good)" | Out-File -Append out.txt } else { "exited: $($p.ExitCode)" | Out-File -Append out.txt }
           Get-Content o.txt | Out-File -Append out.txt
