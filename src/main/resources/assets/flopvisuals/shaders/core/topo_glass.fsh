@@ -98,6 +98,26 @@ void main() {
     }
     vec3 r = reflect(v, n);
 
+    if (water) {
+        // Water keeps its original look: a rippling mirror of the glowing sky lines overhead.
+        vec3 camera = worldPos - viewPos;
+        float brightness = bright * 1.25;
+        vec3 tintC = colour * shade;
+        float lv = max(3.0, floor(levels * 0.75));
+        vec3 base = topo_base(r, brightness, tintC);
+        vec3 l = topo_ceiling(worldPos, r, topo_ceiling_y(camera.y), t, lv, 420.0);
+        float lineAmount = clamp((l.x + l.y) * l.z, 0.0, 1.0);
+        vec3 lineColour = topo_glow_colour(tintC, brightness, l.x);
+        float cosT = clamp(abs(dot(v, n)), 0.0, 1.0);
+        float fresnelW = 0.08 + 0.92 * pow(1.0 - cosT, 5.0);
+        float tintA = strength * (0.30 + 0.55 * fresnelW);
+        float lineA = strength * lineAmount * (0.55 + 0.45 * fresnelW);
+        base = mix(base, base * vec3(0.75, 0.95, 1.05), 0.5);
+        float aw = clamp(tintA + lineA * (1.0 - tintA), 0.0, 1.0);
+        fragColor = vec4((base * 1.6 * tintA + lineColour * 1.15 * lineA) / max(aw, 1e-4), aw);
+        return;
+    }
+
     // What the floor mirrors: real geometry when the ray finds it on screen, otherwise the sky's glow.
     vec3 sky = fv_sky_base(style, r, colour, bright) * 1.15;
     vec3 mirrored = sky;

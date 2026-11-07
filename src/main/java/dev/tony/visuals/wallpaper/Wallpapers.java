@@ -111,77 +111,75 @@ public final class Wallpapers {
     }
 
     /** Loads the image if it isn't already. Returns true when it's ready to draw. */
+    private static volatile NativeImage pending;
+    private static volatile String pendingName;
+    private static final java.util.concurrent.ExecutorService WORKER = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "flopvisuals-wallpaper");
+        t.setDaemon(true);
+        t.setPriority(Thread.MIN_PRIORITY);
+        return t;
+    });
+
+    /**
+     * Loads the image if it isn't already. The picture is converted to a 4K (3840 × 2160) master in the background
+     * (saved as wallpapers/4k/&lt;name&gt;.png, reused next time), then shown at your window's resolution.
+     * Returns true when it's ready to draw.
+     */
     public static boolean load(String name) {
         if (name == null || name.isEmpty()) return false;
         if (!name.equals(loaded)) {
             loaded = name;
             imgW = imgH = 0;
+            status = "Converting " + name + " to 4K…";
+            var win = Minecraft.getInstance().getWindow();
+            int sw = Math.max(640, win.getWidth()), sh = Math.max(360, win.getHeight());
             Path f = folder().resolve(name);
-            try {
-                NativeImage img = readImage(f);
-                imgW = img.getWidth();
-                imgH = img.getHeight();
+            WORKER.execute(() -> {
+                try {
+                    NativeImage img = prepare(f, sw, sh);
+                    pendingName = name;
+                    pending = img;
+                } catch (Throwable e) {
+                    if (name.equals(loaded)) {
+                        status = "Couldn't open " + name + ": " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+                    }
+                    org.slf4j.LoggerFactory.getLogger("flopvisuals").warn("Wallpaper {} failed to load", name, e);
+                }
+            });
+        }
+        NativeImage ready = pending;
+        if (ready != null) {
+            pending = null;
+            if (name.equals(pendingName)) {
+                imgW = ready.getWidth();
+                imgH = ready.getHeight();
                 // Smooth filtering (Minecraft's default is blocky nearest-pixel sampling).
-                DynamicTexture tex = new DynamicTexture(() -> "flopvisuals wallpaper " + name, img) {
+                DynamicTexture tex = new DynamicTexture(() -> "flopvisuals wallpaper " + name, ready) {
                     {
                         this.sampler = com.mojang.blaze3d.systems.RenderSystem.getSamplerCache()
                             .getClampToEdge(com.mojang.blaze3d.textures.FilterMode.LINEAR);
                     }
                 };
                 Minecraft.getInstance().getTextureManager().register(IMAGE_TEX, tex);
-                status = "Showing " + name + " (" + imgW + " × " + imgH + ")";
-            } catch (Throwable e) {
-                imgW = imgH = 0;
-                status = "Couldn't open " + name + ": " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
-                org.slf4j.LoggerFactory.getLogger("flopvisuals").warn("Wallpaper {} failed to load", name, e);
-                return false;
+                status = "Showing " + name + " in 4K";
+            } else {
+                ready.close();
             }
         }
         return imgW > 0;
     }
 
-    /** PNGs load directly; JPG, BMP and GIF are converted to PNG first. Huge photos are scaled down to 4K. */
-    private static NativeImage readImage(Path f) throws Exception {
-        byte[] bytes = Files.readAllBytes(f);
-        boolean png = bytes.length > 8 && (bytes[0] & 255) == 0x89 && bytes[1] == 'P' && bytes[2] == 'N' && bytes[3] == 'G';
-        try {
-            return convert(bytes);
-        } catch (Throwable e) {
-            if (!png) throw e;
-            return NativeImage.read(bytes);   // no Java imaging available: load the PNG as it is
+    /** 4K master (cached on disk), then a copy at the window's size for drawing. */
+    private static NativeImage prepare(Path f, int sw, int sh) throws Exception {
+        java.awt.image.BufferedImage master = Upscale4K.master(f, folder().resolve("4k"));
+        java.awt.image.BufferedImage shown = master;
+        if (sw < master.getWidth()) {
+            int nh = Math.round(master.getHeight() * (sw / (float) master.getWidth()));
+            shown = Upscale4K.resize(master, sw, Math.max(sh, nh));
         }
-    }
-
-    private static NativeImage convert(byte[] bytes) throws Exception {
-        java.awt.image.BufferedImage src = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(bytes));
-        if (src == null) throw new IllegalArgumentException("not a supported image (use PNG or JPG)");
-        // Scale to cover the window (never up), halving in steps for a clean, sharp result.
-        var win = Minecraft.getInstance().getWindow();
-        int sw = Math.max(640, win.getWidth()), sh = Math.max(360, win.getHeight());
-        int w = src.getWidth(), h = src.getHeight();
-        float k = Math.min(1f, Math.max(sw / (float) w, sh / (float) h));
-        int nw = Math.max(1, Math.round(w * k)), nh = Math.max(1, Math.round(h * k));
-        java.awt.image.BufferedImage cur = src;
-        int cw = w, ch = h;
-        while (cw / 2 >= nw && ch / 2 >= nh) {
-            cw /= 2;
-            ch /= 2;
-            cur = scale(cur, cw, ch);
-        }
-        java.awt.image.BufferedImage rgb = scale(cur, nw, nh);
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-        javax.imageio.ImageIO.write(rgb, "png", out);
+        javax.imageio.ImageIO.write(shown, "png", out);
         return NativeImage.read(out.toByteArray());
-    }
-
-    private static java.awt.image.BufferedImage scale(java.awt.image.BufferedImage in, int w, int h) {
-        java.awt.image.BufferedImage out = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-        java.awt.Graphics2D gr = out.createGraphics();
-        gr.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        gr.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
-        gr.drawImage(in, 0, 0, w, h, null);
-        gr.dispose();
-        return out;
     }
 
     private static boolean drawImage(GuiGraphics g, int w, int h, String name) {

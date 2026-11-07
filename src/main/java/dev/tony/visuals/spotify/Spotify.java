@@ -5,7 +5,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.NativeImage;
-import com.sun.net.httpserver.HttpServer;
 import dev.tony.visuals.Config;
 import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
@@ -13,7 +12,11 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
 
 import java.io.ByteArrayInputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URLDecoder;
@@ -63,15 +66,20 @@ public final class Spotify {
     private static String artFor = "";
     private static String accessToken;
     private static long accessExpires;
-    private static HttpServer server;
+    private static ServerSocket server;
     private static boolean started;
     private static long backoffUntil;
 
     public static Track track() { return track; }
+
+    /** Shows a message in the Status row. */
+    public static void note(String message) {
+        status = message;
+    }
     public static Identifier art() { return art; }
 
     public static String status() {
-        if (Config.get().spotify.refreshToken.isEmpty() && !status.startsWith("Waiting") && !status.startsWith("Error")) return "Not connected";
+        if (Config.get().spotify.refreshToken.isEmpty() && !status.startsWith("Waiting") && !status.startsWith("Error") && !status.startsWith("Client")) return "Not connected";
         return status;
     }
 
@@ -95,32 +103,75 @@ public final class Spotify {
                 .encodeToString(MessageDigest.getInstance("SHA-256").digest(verifier.getBytes(StandardCharsets.US_ASCII)));
             String state = randomString(16);
             stopServer();
-            server = HttpServer.create(new InetSocketAddress("127.0.0.1", 43821), 0);
-            server.createContext("/callback", ex -> {
-                Map<String, String> q = query(ex.getRequestURI().getRawQuery());
-                boolean ok = state.equals(q.get("state")) && q.containsKey("code");
-                String body = page(ok ? "Connected to Flop Visuals" : "Spotify sign-in failed",
-                    ok ? "You can close this tab and go back to Minecraft." : "Close this tab and try Connect again.");
-                byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
-                ex.getResponseHeaders().add("Content-Type", "text/html; charset=utf-8");
-                ex.sendResponseHeaders(200, bytes.length);
-                try (OutputStream os = ex.getResponseBody()) {
-                    os.write(bytes);
-                }
-                if (ok) NET.execute(() -> exchange(q.get("code"), verifier));
-                else status = "Error: sign-in was cancelled";
-                NET.schedule(Spotify::stopServer, 1, TimeUnit.SECONDS);
-            });
-            server.start();
+            // A tiny one-shot web page on 127.0.0.1 for Spotify to send you back to (plain sockets, works on any Java).
+            ServerSocket ss = new ServerSocket();
+            ss.setReuseAddress(true);
+            try {
+                ss.bind(new InetSocketAddress("127.0.0.1", 43821));
+            } catch (java.io.IOException e) {
+                ss.close();
+                status = "Error: port 43821 is busy (close other launchers or restart Minecraft)";
+                return;
+            }
+            server = ss;
+            Thread t = new Thread(() -> serve(ss, state, verifier), "flopvisuals-spotify-login");
+            t.setDaemon(true);
+            t.start();
             String url = "https://accounts.spotify.com/authorize?client_id=" + enc(cfg.clientId)
                 + "&response_type=code&redirect_uri=" + enc(REDIRECT)
                 + "&code_challenge_method=S256&code_challenge=" + enc(challenge)
                 + "&scope=" + enc(SCOPES) + "&state=" + enc(state);
             status = "Waiting for browser…";
             Util.getPlatform().openUri(url);
-        } catch (Exception e) {
-            status = "Error: " + e.getClass().getSimpleName();
+        } catch (Throwable e) {
+            status = "Error: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
         }
+    }
+
+    /** Waits up to 5 minutes for Spotify's redirect, answers it with a small page, then closes. */
+    private static void serve(ServerSocket ss, String state, String verifier) {
+        try {
+            ss.setSoTimeout(300_000);
+            while (!ss.isClosed()) {
+                try (Socket sock = ss.accept()) {
+                    sock.setSoTimeout(10_000);
+                    BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream(), StandardCharsets.UTF_8));
+                    String line = in.readLine();   // GET /callback?code=...&state=... HTTP/1.1
+                    if (line == null) continue;
+                    String[] parts = line.split(" ");
+                    String target = parts.length > 1 ? parts[1] : "/";
+                    if (!target.startsWith("/callback")) {
+                        respond(sock, 404, "Not found", "");
+                        continue;
+                    }
+                    int qi = target.indexOf('?');
+                    Map<String, String> q = query(qi >= 0 ? target.substring(qi + 1) : "");
+                    boolean ok = state.equals(q.get("state")) && q.containsKey("code");
+                    String err = q.getOrDefault("error", "");
+                    respond(sock, 200, ok ? "Connected to Flop Visuals" : "Spotify sign-in failed",
+                        ok ? "You can close this tab and go back to Minecraft." : "Close this tab and try Connect again." + (err.isEmpty() ? "" : " (" + err + ")"));
+                    if (ok) NET.execute(() -> exchange(q.get("code"), verifier));
+                    else status = err.isEmpty() ? "Error: sign-in was cancelled" : "Error: " + err;
+                    break;
+                }
+            }
+        } catch (java.net.SocketTimeoutException e) {
+            if (status.startsWith("Waiting")) status = "Error: sign-in timed out, try Connect again";
+        } catch (Exception e) {
+            if (status.startsWith("Waiting")) status = "Error: " + e.getMessage();
+        } finally {
+            stopServer();
+        }
+    }
+
+    private static void respond(Socket sock, int code, String title, String text) throws java.io.IOException {
+        byte[] body = (code == 200 ? page(title, text) : title).getBytes(StandardCharsets.UTF_8);
+        String head = "HTTP/1.1 " + code + (code == 200 ? " OK" : " Not Found") + "\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: "
+            + body.length + "\r\nConnection: close\r\n\r\n";
+        OutputStream os = sock.getOutputStream();
+        os.write(head.getBytes(StandardCharsets.US_ASCII));
+        os.write(body);
+        os.flush();
     }
 
     public static synchronized void disconnect() {
@@ -133,7 +184,10 @@ public final class Spotify {
 
     private static synchronized void stopServer() {
         if (server != null) {
-            server.stop(0);
+            try {
+                server.close();
+            } catch (java.io.IOException ignored) {
+            }
             server = null;
         }
     }
@@ -171,7 +225,12 @@ public final class Spotify {
             .header("Content-Type", "application/x-www-form-urlencoded")
             .POST(HttpRequest.BodyPublishers.ofString(form)).build();
         HttpResponse<String> res = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
-        JsonObject json = JsonParser.parseString(res.body()).getAsJsonObject();
+        JsonObject json;
+        try {
+            json = JsonParser.parseString(res.body()).getAsJsonObject();
+        } catch (Exception e) {
+            throw new Exception("Spotify sign-in answered HTTP " + res.statusCode());
+        }
         if (res.statusCode() != 200) {
             String err = json.has("error_description") ? json.get("error_description").getAsString() : "HTTP " + res.statusCode();
             if (res.statusCode() == 400 && json.has("error") && json.get("error").getAsString().equals("invalid_grant")) {
@@ -203,13 +262,14 @@ public final class Spotify {
                     status = "Connected · nothing playing";
                 }
                 case 401 -> accessToken = null;
+                case 403 -> status = "Error: Spotify refused (add your account under User Management in the dashboard)";
                 case 429 -> {
                     long wait = res.headers().firstValueAsLong("Retry-After").orElse(10);
                     backoffUntil = System.currentTimeMillis() + wait * 1000;
                 }
                 default -> status = "Error: Spotify HTTP " + res.statusCode();
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             status = "Error: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
         }
     }
@@ -268,6 +328,13 @@ public final class Spotify {
             java.awt.image.BufferedImage src = javax.imageio.ImageIO.read(new ByteArrayInputStream(res.body()));
             if (src == null) return;
             int size = 128;
+            java.awt.image.BufferedImage sm = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_RGB);
+            java.awt.Graphics2D gr = sm.createGraphics();
+            gr.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            gr.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+            gr.drawImage(src, 0, 0, size, size, null);
+            gr.dispose();
+            src = sm;
             NativeImage img = new NativeImage(size, size, true);
             float radius = 22;
             for (int y = 0; y < size; y++) {
@@ -282,7 +349,13 @@ public final class Spotify {
             }
             Minecraft.getInstance().execute(() -> {
                 Identifier id = Identifier.fromNamespaceAndPath("flopvisuals", "spotify/art");
-                Minecraft.getInstance().getTextureManager().register(id, new DynamicTexture(() -> "flopvisuals spotify art", img));
+                DynamicTexture tex = new DynamicTexture(() -> "flopvisuals spotify art", img) {
+                    {
+                        this.sampler = com.mojang.blaze3d.systems.RenderSystem.getSamplerCache()
+                            .getClampToEdge(com.mojang.blaze3d.textures.FilterMode.LINEAR);
+                    }
+                };
+                Minecraft.getInstance().getTextureManager().register(id, tex);
                 art = id;
             });
         } catch (Throwable t) {

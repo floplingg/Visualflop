@@ -241,14 +241,21 @@ public class MainScreen extends SheetScreen {
         List<Sheet.Item> l = new ArrayList<>();
         l.add(new Sheet.Header("Now playing"));
         l.add(new Sheet.Toggle("Show on HUD", () -> c().widget("spotify").enabled, v -> c().widget("spotify").enabled = v));
+        l.add(new Sheet.Action("Move it on screen", () -> "", () -> minecraft.setScreen(new LayoutScreen(this))).chevron());
         l.add(new Sheet.Toggle("Album art", () -> sp.showArt, v -> sp.showArt = v));
         l.add(new Sheet.Toggle("Progress bar", () -> sp.showProgress, v -> sp.showProgress = v));
         l.add(new Sheet.Info("Status", Spotify::status));
 
         l.add(new Sheet.Header("Account"));
         l.add(new Sheet.Action("Client ID", () -> sp.clientId.isEmpty() ? "Paste" : mask(sp.clientId), () -> {
-            String clip = minecraft.keyboardHandler.getClipboard().trim();
-            if (clip.matches("[0-9a-fA-F]{32}")) sp.clientId = clip.toLowerCase(java.util.Locale.ROOT);
+            String clip = minecraft.keyboardHandler.getClipboard().replaceAll("\\s", "");
+            if (clip.matches("[0-9a-fA-F]{32}")) {
+                sp.clientId = clip.toLowerCase(java.util.Locale.ROOT);
+                Spotify.note("Client ID saved. Now click Connect Spotify.");
+            } else {
+                Spotify.note("Error: copy the 32-character Client ID first, then click here");
+            }
+            rebuild();
         }).chevron());
         if (sp.refreshToken.isEmpty()) {
             l.add(new Sheet.Action("Connect Spotify", () -> "", () -> {
@@ -266,7 +273,7 @@ public class MainScreen extends SheetScreen {
             Util.getPlatform().openUri("https://developer.spotify.com/dashboard")).accent().chevron());
         l.add(new Sheet.Footer("1. Create an app. Redirect URI:"));
         l.add(new Sheet.Footer("   " + Spotify.REDIRECT));
-        l.add(new Sheet.Footer("2. Tick Web API, save, copy the Client ID."));
+        l.add(new Sheet.Footer("2. Tick Web API, save. Under User Management add your Spotify email. Copy the Client ID."));
         l.add(new Sheet.Footer("3. Click Client ID above to paste it, then Connect."));
         return l;
     }
