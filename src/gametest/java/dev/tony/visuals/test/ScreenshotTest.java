@@ -47,9 +47,10 @@ public class ScreenshotTest implements FabricClientGameTest {
         Config.get().trails.enabled = false;
         Config.get().petals.enabled = false;
         context.runOnClient(mc -> {
-            mc.options.renderDistance().set(3);
+            mc.options.renderDistance().set(2);
             mc.options.simulationDistance().set(5);
-            mc.options.framerateLimit().set(10);
+            mc.options.framerateLimit().set(260);
+            mc.options.cloudStatus().set(net.minecraft.client.CloudStatus.OFF);
         });
         boolean sky = Config.get().sky.enabled, glass = Config.get().glass.enabled;
         Config.get().sky.enabled = false;
