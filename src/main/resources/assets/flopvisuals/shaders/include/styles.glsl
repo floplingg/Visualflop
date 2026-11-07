@@ -49,9 +49,9 @@ vec3 fv_stars(vec3 d, float t, float density, float scale) {
     float tw = 0.6 + 0.4 * sin(t * (1.5 + h * 3.0) + h * 40.0);
     float big = step(0.997, h);
     float core = exp(-r2 * mix(900.0, 260.0, big));
-    float cross = big * (exp(-abs(q.x) * 90.0 - q.y * q.y * 900.0) + exp(-abs(q.y) * 90.0 - q.x * q.x * 900.0)) * 0.6;
+    float flare = big * (exp(-abs(q.x) * 90.0 - q.y * q.y * 900.0) + exp(-abs(q.y) * 90.0 - q.x * q.x * 900.0)) * 0.6;
     vec3 col = mix(vec3(0.85, 0.9, 1.0), vec3(1.0, 0.9, 0.95), fv_hash1(id + 7.0));
-    return col * (core + cross) * tw;
+    return col * (core + flare) * tw;
 }
 
 float fv_shooting(vec3 d, float t) {

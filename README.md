@@ -13,14 +13,14 @@ Press **V** in game to open the menu. Change it in Options › Controls › Key 
 - **Petals**: Cherry, Pale Oak, Spore Blossom, Fireflies, Snowflakes, Ash, Crimson, Warped, End Rods, in a bubble around you only. Radius, density, outdoors-only.
 
 Trails and petals use the mod's own hi-res, anti-aliased particle textures (no 8x8 pixel art) and are client-side: only you see them.
-- **Sky**: animated glowing topographic contour lines in your accent colour, drawn per pixel by a shader so the lines stay sharp at any resolution. Sky cover, line count, speed, brightness, matching fog, optional Nether/End.
+- **Sky**: five animated looks drawn per pixel by a shader (sharp at any resolution): **Topographic** (glowing contour lines), **Galaxy** (nebulae, aurora, shooting stars and a ringed planet), **Aether** (silver light flowing over anthracite), **Nocturne** (soft clouds with a glowing edge), **Amethyst** (marble with fine veins of light). Each comes in its signature colour, your accent colour or a preset (Violet, Amber, Ice, Rose, Emerald, Silver, Crimson, Ocean, Sunset, Gold). Sky cover, speed, brightness, matching fog, optional Nether/End.
 
 All rounded shapes are drawn at your screen's real resolution (e.g. 1080p) with smoothed edges.
 
-- **Glass ground**: the ground around you mirrors the animated sky like polished glass (reflection %, radius, optional water).
-- **Wallpaper**: animated topographic background (or your own PNGs from `config/flop-visuals/wallpapers`) on the title screen and every menu outside a world.
+- **Glass ground**: the ground around you is polished glass that mirrors the blocks, players and mobs above it (screen-space reflections from one frame copy, no second world render), with the sky's pattern set into the floor where it is. Reflection %, radius, optional water.
+- **Wallpaper**: any of the five sky looks, animated, in any colour, or your own PNG/JPG images from `config/flop-visuals/wallpapers`, on the title screen and every menu outside a world.
 - **Spotify**: now-playing card with album art and progress. One-time setup: create an app at developer.spotify.com with redirect URI `http://127.0.0.1:43821/callback`, paste the Client ID in the menu, click Connect.
-- **Menus**: Apple-style settings window with sidebar, grouped cards, iOS switches and sliders, dark/light appearance, background blur, smooth Inter font (SIL Open Font License).
+- **Menus**: a drop-down panel that slides in from the top, page tabs with a sliding highlight, dropdown lists for every option picker, grouped cards, iOS switches and sliders, dark/light appearance, background blur, smooth Inter font (SIL Open Font License).
 
 ## Building
 
