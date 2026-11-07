@@ -60,6 +60,8 @@ public final class GlassGround {
     private static long builtAt;
     private static boolean builtWater, logged;
     private static double centreX, centreZ;
+    /** Origin for the floor pattern's coordinates, so they never wrap near you (that drew a streak along x = 0 and z = 0). */
+    private static int anchorX, anchorZ;
 
     public static void init() {}
 
@@ -119,6 +121,8 @@ public final class GlassGround {
         Vec3 pp = mc.player.position();
         centreX = pp.x;
         centreZ = pp.z;
+        anchorX = Math.floorDiv((int) Math.floor(pp.x), 4096) * 4096 - 8192;
+        anchorZ = Math.floorDiv((int) Math.floor(pp.z), 4096) * 4096 - 8192;
         int accent = dev.tony.visuals.sky.SkyStyles.skyColour();
         int flags = (dev.tony.visuals.sky.SkyStyles.skyStyle() << 1) | (SceneCopy.ready() && gc.realReflections ? 16 : 0);
         float ar = ((accent >> 16) & 255) / 255f, ag = ((accent >> 8) & 255) / 255f, ab = (accent & 255) / 255f;
@@ -199,7 +203,7 @@ public final class GlassGround {
             vc.addVertex((float) (x - cam.x), (float) (y - cam.y), (float) (z - cam.z))
                 .setColor(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), Math.max(0, a))
                 .setUv(time, packed)
-                .setUv1(Math.floorMod(Math.round(x), 16384), Math.floorMod(Math.round(z), 16384))
+                .setUv1(Math.round(x) - anchorX, Math.round(z) - anchorZ)
                 .setUv2((int) Math.max(-32000, Math.min(32000, Math.round(y * 8))), material | flags)
                 .setNormal(nx * k, ny * k, nz * k);
         }
@@ -229,31 +233,28 @@ public final class GlassGround {
                 int y = Math.min(h - 1, me.getY() + 3);
                 int floor = Math.max(level.getMinY(), me.getY() - 160);
                 BlockState state = null;
-                boolean buried = false;
-                if (y < h - 1) {
-                    // We start inside the column (under a roof or beside a hill): only keep going if that spot is open.
-                    pos.set(x, y, z);
-                    BlockState start = level.getBlockState(pos);
-                    buried = !start.isAir() && !seeThrough(start) && !start.getCollisionShape(level, pos).isEmpty();
-                }
-                if (buried) {
-                    // Inside something solid: a floating block or a roof has air under it within a few blocks,
-                    // a hillside doesn't. Skip down through the solid part to keep the ground beneath.
-                    int k = 0;
-                    while (k < 8 && y > floor) {
-                        pos.set(x, y, z);
-                        BlockState st = level.getBlockState(pos);
-                        if (st.isAir() || seeThrough(st) || st.getCollisionShape(level, pos).isEmpty()) break;
-                        y--;
-                        k++;
-                    }
-                    if (k >= 8) y = floor - 1;
-                }
+                // Scan down for the ground. Anything solid above your feet with air under it (a floating block,
+                // a roof, a bridge) is skipped so the ground underneath still gets glass; a hillside has no air
+                // under it within a few blocks, so its top is kept.
+                int feet = me.getY();
                 for (; y >= floor; y--) {
                     pos.set(x, y, z);
                     state = level.getBlockState(pos);
-                    if (state.isAir() || seeThrough(state)) continue;   // look through tree canopies and trunks
-                    if (!state.getCollisionShape(level, pos).isEmpty() || !state.getFluidState().isEmpty()) break;
+                    if (open(level, pos, state)) continue;   // air, plants, tree canopies and trunks
+                    if (y >= feet) {
+                        int k = y - 1;
+                        while (k > floor && k > y - 10) {
+                            pos.set(x, k, z);
+                            if (open(level, pos, level.getBlockState(pos))) break;
+                            k--;
+                        }
+                        pos.set(x, k, z);
+                        if (k > y - 10 && k > floor && open(level, pos, level.getBlockState(pos))) {
+                            y = k + 1;   // the loop's y-- lands on the air below the solid part
+                            continue;
+                        }
+                    }
+                    break;
                 }
                 ground[idx] = y + 1;
                 top[idx] = Double.NaN;
@@ -313,6 +314,12 @@ public final class GlassGround {
                 }
             }
         }
+    }
+
+    /** Nothing to stand on here: air, see-through tree parts, plants and other blocks without collision (water is not open). */
+    private static boolean open(ClientLevel level, BlockPos pos, BlockState s) {
+        if (s.isAir() || seeThrough(s)) return true;
+        return s.getFluidState().isEmpty() && s.getCollisionShape(level, pos).isEmpty();
     }
 
     private static boolean seeThrough(BlockState s) {

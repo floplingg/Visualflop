@@ -32,3 +32,12 @@ fabricApi {
         eula = true
     }
 }
+
+// Enough memory for the in-game screenshot test (world generation stalled on garbage collection).
+loom {
+    runs {
+        configureEach {
+            vmArgs "-Xmx4G", "-Xms2G", "-XX:+UseG1GC"
+        }
+    }
+}

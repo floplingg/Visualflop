@@ -20,7 +20,7 @@ void main() {
     float cover = tint.a;
     if (style != 0) {
         vec3 colour = fv_sky(style, d, t, tint.rgb, fract(params.y));
-        fragColor = vec4(colour, cover);
+        fragColor = vec4(colour + fv_dither(gl_FragCoord.xy), cover);
         return;
     }
     vec3 base = topo_base(d, brightness, tint.rgb);
@@ -29,5 +29,5 @@ void main() {
     vec3 lineColour = topo_glow_colour(tint.rgb, brightness, l.x);
     float a = clamp(cover + amount * (1.0 - cover), 0.0, 1.0);
     vec3 colour = (base * cover + lineColour * amount) / max(a, 1e-4);
-    fragColor = vec4(colour, a);
+    fragColor = vec4(colour + fv_dither(gl_FragCoord.xy), a);
 }

@@ -104,8 +104,8 @@ public final class Wallpapers {
             accentTex.getPixels().setPixel(1, 0, 0xFF000000 | ((style * 40) << 16));
             accentTex.upload();
         }
-        // Time travels in the vertex colour (24 bits, 1/20 s steps), the accent in the 1x1 texture.
-        long ticks = ((System.nanoTime() - START) / 50_000_000L) & 0xFFFFFF;
+        // Time travels in the vertex colour (24 bits, 1/100 s steps, so the motion is smooth).
+        long ticks = ((System.nanoTime() - START) / 10_000_000L) & 0xFFFFFF;
         int timeColour = 0xFF000000 | (int) ticks;
         g.blit(PIPELINE, ACCENT_TEX, 0, 0, 0f, 0f, w, h, w, h, timeColour);
     }
@@ -121,7 +121,14 @@ public final class Wallpapers {
                 NativeImage img = readImage(f);
                 imgW = img.getWidth();
                 imgH = img.getHeight();
-                Minecraft.getInstance().getTextureManager().register(IMAGE_TEX, new DynamicTexture(() -> "flopvisuals wallpaper " + name, img));
+                // Smooth filtering (Minecraft's default is blocky nearest-pixel sampling).
+                DynamicTexture tex = new DynamicTexture(() -> "flopvisuals wallpaper " + name, img) {
+                    {
+                        this.sampler = com.mojang.blaze3d.systems.RenderSystem.getSamplerCache()
+                            .getClampToEdge(com.mojang.blaze3d.textures.FilterMode.LINEAR);
+                    }
+                };
+                Minecraft.getInstance().getTextureManager().register(IMAGE_TEX, tex);
                 status = "Showing " + name + " (" + imgW + " × " + imgH + ")";
             } catch (Throwable e) {
                 imgW = imgH = 0;
@@ -137,28 +144,44 @@ public final class Wallpapers {
     private static NativeImage readImage(Path f) throws Exception {
         byte[] bytes = Files.readAllBytes(f);
         boolean png = bytes.length > 8 && (bytes[0] & 255) == 0x89 && bytes[1] == 'P' && bytes[2] == 'N' && bytes[3] == 'G';
-        if (png) {
-            try {
-                NativeImage img = NativeImage.read(bytes);
-                if (img.getWidth() <= 4096 && img.getHeight() <= 4096) return img;
-                img.close();
-            } catch (Exception ignored) {
-                // Unusual PNG flavour: fall through to the converter.
-            }
+        try {
+            return convert(bytes);
+        } catch (Throwable e) {
+            if (!png) throw e;
+            return NativeImage.read(bytes);   // no Java imaging available: load the PNG as it is
         }
+    }
+
+    private static NativeImage convert(byte[] bytes) throws Exception {
         java.awt.image.BufferedImage src = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(bytes));
         if (src == null) throw new IllegalArgumentException("not a supported image (use PNG or JPG)");
+        // Scale to cover the window (never up), halving in steps for a clean, sharp result.
+        var win = Minecraft.getInstance().getWindow();
+        int sw = Math.max(640, win.getWidth()), sh = Math.max(360, win.getHeight());
         int w = src.getWidth(), h = src.getHeight();
-        float k = Math.min(1f, 3840f / Math.max(w, h));
+        float k = Math.min(1f, Math.max(sw / (float) w, sh / (float) h));
         int nw = Math.max(1, Math.round(w * k)), nh = Math.max(1, Math.round(h * k));
-        java.awt.image.BufferedImage rgb = new java.awt.image.BufferedImage(nw, nh, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-        java.awt.Graphics2D gr = rgb.createGraphics();
-        gr.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        gr.drawImage(src, 0, 0, nw, nh, null);
-        gr.dispose();
+        java.awt.image.BufferedImage cur = src;
+        int cw = w, ch = h;
+        while (cw / 2 >= nw && ch / 2 >= nh) {
+            cw /= 2;
+            ch /= 2;
+            cur = scale(cur, cw, ch);
+        }
+        java.awt.image.BufferedImage rgb = scale(cur, nw, nh);
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
         javax.imageio.ImageIO.write(rgb, "png", out);
         return NativeImage.read(out.toByteArray());
+    }
+
+    private static java.awt.image.BufferedImage scale(java.awt.image.BufferedImage in, int w, int h) {
+        java.awt.image.BufferedImage out = new java.awt.image.BufferedImage(w, h, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        java.awt.Graphics2D gr = out.createGraphics();
+        gr.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        gr.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+        gr.drawImage(in, 0, 0, w, h, null);
+        gr.dispose();
+        return out;
     }
 
     private static boolean drawImage(GuiGraphics g, int w, int h, String name) {

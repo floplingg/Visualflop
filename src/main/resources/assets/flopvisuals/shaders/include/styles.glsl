@@ -7,11 +7,69 @@ float fv_hash1(vec3 p) {
     return fract((p.x + p.y) * p.z);
 }
 
+// 3D simplex noise (Ashima Arts / Stefan Gustavson, MIT). Smooth, without the grid look of value noise.
+vec4 fv_perm(vec4 x) { return mod(((x * 34.0) + 10.0) * x, 289.0); }
+
+float fv_snoise(vec3 v) {
+    const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
+    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+    vec3 i = floor(v + dot(v, C.yyy));
+    vec3 x0 = v - i + dot(i, C.xxx);
+    vec3 g = step(x0.yzx, x0.xyz);
+    vec3 l = 1.0 - g;
+    vec3 i1 = min(g.xyz, l.zxy);
+    vec3 i2 = max(g.xyz, l.zxy);
+    vec3 x1 = x0 - i1 + C.xxx;
+    vec3 x2 = x0 - i2 + C.yyy;
+    vec3 x3 = x0 - D.yyy;
+    i = mod(i, 289.0);
+    vec4 p = fv_perm(fv_perm(fv_perm(i.z + vec4(0.0, i1.z, i2.z, 1.0)) + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+    float n_ = 0.142857142857;
+    vec3 ns = n_ * D.wyz - D.xzx;
+    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+    vec4 x_ = floor(j * ns.z);
+    vec4 y_ = floor(j - 7.0 * x_);
+    vec4 x = x_ * ns.x + ns.yyyy;
+    vec4 y = y_ * ns.x + ns.yyyy;
+    vec4 h = 1.0 - abs(x) - abs(y);
+    vec4 b0 = vec4(x.xy, y.xy);
+    vec4 b1 = vec4(x.zw, y.zw);
+    vec4 s0 = floor(b0) * 2.0 + 1.0;
+    vec4 s1 = floor(b1) * 2.0 + 1.0;
+    vec4 sh = -step(h, vec4(0.0));
+    vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+    vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+    vec3 p0 = vec3(a0.xy, h.x);
+    vec3 p1 = vec3(a0.zw, h.y);
+    vec3 p2 = vec3(a1.xy, h.z);
+    vec3 p3 = vec3(a1.zw, h.w);
+    vec4 norm = inversesqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
+    p0 *= norm.x;
+    p1 *= norm.y;
+    p2 *= norm.z;
+    p3 *= norm.w;
+    vec4 m = max(0.5 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
+    m = m * m;
+    return 105.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
+}
+
+// Smooth noise in 0..1.
+float fv_noise(vec3 p) {
+    return clamp(fv_snoise(p) * 0.5 + 0.5, 0.0, 1.0);
+}
+
+// Tiny per-pixel noise that hides colour banding in dark gradients.
+vec3 fv_dither(vec2 frag) {
+    float a = fract(sin(dot(frag, vec2(12.9898, 78.233))) * 43758.5453);
+    float b = fract(sin(dot(frag + 0.37, vec2(39.346, 11.135))) * 24634.6345);
+    return vec3((a + b - 1.0) / 255.0);
+}
+
 float fv_fbm(vec3 p, int octaves) {
     float v = 0.0, a = 0.5;
     for (int i = 0; i < 5; i++) {
         if (i >= octaves) break;
-        v += a * topo_noise(p);
+        v += a * fv_noise(p);
         p = p * 2.02 + vec3(1.7, 9.2, 3.1);
         a *= 0.5;
     }
@@ -30,8 +88,8 @@ vec3 fv_hue(vec3 c, float shift) {
 vec2 fv_line(float v, float glowWidth) {
     float px = max(fwidth(v), 1e-5);
     float pixels = abs(v) / px;
-    float core = 1.0 - smoothstep(0.4, 1.4, pixels);
-    float glow = exp(-pixels / glowWidth) * 0.55 + exp(-pixels / (glowWidth * 4.0)) * 0.25;
+    float core = 1.0 - smoothstep(0.35, 1.25, pixels);
+    float glow = exp(-pixels / glowWidth) * 0.45 + exp(-pixels / (glowWidth * 5.0)) * 0.18;
     return vec2(core, glow);
 }
 
@@ -139,9 +197,10 @@ vec3 fv_galaxy(vec3 d, float t, vec3 c, float b) {
     col += pink * neb * 0.55 + mix(pink, vec3(1.0), 0.3) * fil * neb * 0.45;
 
     // Aurora curtains just above the horizon.
-    float az = atan(d.z, d.x);
-    float rays = topo_noise(vec3(az * 26.0, t * 0.12, 0.0));
-    rays = pow(rays, 2.5) * (0.5 + topo_noise(vec3(az * 5.0, t * 0.05, 3.0)));
+    // Curtain rays: noise of the horizontal direction only, so it runs straight up (no seam behind you).
+    vec2 ring = normalize(d.xz + vec2(1e-5));
+    float rays = fv_noise(vec3(ring * 9.0, t * 0.12));
+    rays = pow(rays, 2.5) * (0.5 + fv_noise(vec3(ring * 1.8, t * 0.05 + 3.0)));
     float band = smoothstep(-0.02, 0.06, up) * exp(-max(up, 0.0) * 3.2);
     vec3 auroraCol = mix(fv_hue(c, -0.08) * 1.3, c * 1.6 + 0.08, smoothstep(0.0, 0.3, up));
     col += auroraCol * rays * band * 0.9;
@@ -163,17 +222,19 @@ vec3 fv_galaxy(vec3 d, float t, vec3 c, float b) {
 
 float fv_aether_field(vec3 p, float t) {
     vec3 q = p + vec3(t * 0.006, -t * 0.004, t * 0.005);
-    vec3 warp = vec3(topo_noise(q * 0.7 + 2.0), topo_noise(q * 0.7 + 9.0), topo_noise(q * 0.7 + 5.0));
-    return fv_fbm(q + warp * 1.4 + vec3(0.0, t * 0.02, 0.0), 4) * 2.0 - 1.0;
+    vec3 warp = vec3(fv_noise(q * 0.6 + 2.0), fv_noise(q * 0.6 + 9.0), fv_noise(q * 0.6 + 5.0));
+    return fv_fbm(q + warp * 1.2 + vec3(0.0, t * 0.02, 0.0), 3) * 2.0 - 1.0;
 }
 
 vec3 fv_aether_colour(float field1, float field2, vec3 c, vec2 shade) {
-    vec2 l1 = fv_line(field1, 3.0);
-    vec2 l2 = fv_line(field2, 2.0) * 0.55;
-    float shadeK = 0.5 + 0.5 * shade.x;
-    vec3 base = vec3(0.10, 0.11, 0.13) * mix(0.55, 1.15, shade.y) + c * 0.03;
-    vec3 lineCol = mix(c, vec3(1.0), 0.55);
-    return base + lineCol * (l1.x * 0.9 + l1.y + l2.x * 0.6 + l2.y) * shadeK;
+    vec2 l1 = fv_line(field1, 2.2);
+    vec2 l2 = fv_line(field2, 1.6) * 0.45;
+    float shadeK = 0.45 + 0.55 * shade.x;
+    // Soft satin shading around the lines.
+    float sheen = exp(-abs(field1) * 7.0) * 0.12 + exp(-abs(field2) * 9.0) * 0.05;
+    vec3 base = vec3(0.105, 0.115, 0.135) * mix(0.6, 1.2, shade.y) + c * 0.025 + mix(c, vec3(1.0), 0.6) * sheen;
+    vec3 lineCol = mix(c, vec3(1.0), 0.6);
+    return base + lineCol * (l1.x * 0.75 + l1.y * 0.8 + l2.x * 0.5 + l2.y * 0.7) * shadeK;
 }
 
 vec3 fv_aether(vec3 d, float t, vec3 c, float b) {
@@ -192,9 +253,9 @@ vec3 fv_nocturne_colour(float n, vec3 c) {
     float cloud = smoothstep(0.38, 0.78, n);
     float edge = exp(-abs(n - 0.56) * 18.0);
     vec3 base = c * 0.06 + vec3(0.02, 0.015, 0.03);
-    vec3 cloudCol = c * 0.32 + vec3(0.02);
-    vec3 lilac = mix(c, vec3(1.0), 0.35) * 0.5;
-    return base + cloudCol * cloud + lilac * edge * cloud * 0.6;
+    vec3 cloudCol = c * 0.42 + vec3(0.025);
+    vec3 lilac = mix(c, vec3(1.0), 0.4) * 0.7;
+    return base + cloudCol * cloud + lilac * edge * cloud * 0.75;
 }
 
 vec3 fv_nocturne(vec3 d, float t, vec3 c, float b) {
@@ -214,15 +275,15 @@ vec3 fv_amethyst_at(vec3 p, float t, vec3 c) {
     vec3 r = vec3(fv_fbm(p + 4.0 * q + vec3(1.7, 9.2, 0.0) + t * 0.01, 3),
                   fv_fbm(p + 4.0 * q + vec3(8.3, 2.8, 5.0), 3), 0.0);
     float f = fv_fbm(p + 4.0 * r.xyx, 3);
-    vec3 dark = c * 0.06 + vec3(0.02, 0.01, 0.03);
-    vec3 mid = c * 0.55;
+    vec3 dark = c * 0.07 + vec3(0.02, 0.01, 0.03);
+    vec3 mid = c * 0.7;
     vec3 col = mix(dark, mid, smoothstep(0.25, 0.85, f * f * 2.2));
     col = mix(col, dark * 0.5, smoothstep(0.55, 0.9, length(q)) * 0.6);
     // Fine veins along contours of the warped field, only in some places.
     float v = fract(f * 9.0) - 0.5;
     vec2 vein = fv_line(v, 1.2);
     float mask = smoothstep(0.45, 0.62, fv_fbm(p * 2.5 + 3.0, 3));
-    col += mix(c, vec3(1.0), 0.6) * (vein.x * 0.7 + vein.y * 0.35) * mask;
+    col += mix(c, vec3(1.0), 0.65) * (vein.x * 0.85 + vein.y * 0.45) * mask;
     return col;
 }
 
