@@ -329,8 +329,9 @@ public class SheetScreen extends Screen {
             float rx = px + 7, rw = sideW - 14;
             boolean sel = i == page;
             sideHover[i] = Kit.approach(sideHover[i], inside(mx, my, rx, y, rw, rh) ? 1 : 0, 14, dt);
-            if (sel) Shapes.round(g, rx, y, rw, rh, 8, Kit.dark ? 0x1FFFFFFF : 0x14000000);
-            else if (sideHover[i] > 0.01f) Shapes.round(g, rx, y, rw, rh, 8, ((int) (sideHover[i] * (Kit.dark ? 16 : 12)) << 24) | (Kit.dark ? 0xFFFFFF : 0));
+            float rr = Math.min(8, rh / 2f - 0.5f);   // never more than half the height (overlapping corners drew a line)
+            if (sel) Shapes.round(g, rx, y, rw, rh, rr, Kit.dark ? 0x1FFFFFFF : 0x14000000);
+            else if (sideHover[i] > 0.01f) Shapes.round(g, rx, y, rw, rh, rr, ((int) (sideHover[i] * (Kit.dark ? 16 : 12)) << 24) | (Kit.dark ? 0xFFFFFF : 0));
             Kit.icon(g, p.icon(), rx + 5, y + (rh - icon) / 2, icon, p.colour());
             Kit.text(g, Kit.fit(p.name(), (int) (rw - icon - 16), true), rx + 11 + icon, y + (rh - 8) / 2, sel ? Kit.LABEL : Kit.SECONDARY, true);
             y += rh + 2;
