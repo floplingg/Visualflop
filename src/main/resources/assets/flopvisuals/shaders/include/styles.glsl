@@ -55,7 +55,7 @@ float fv_snoise(vec3 v) {
 
 // Smooth noise in 0..1.
 float fv_noise(vec3 p) {
-    return clamp(fv_snoise(p) * 0.5 + 0.5, 0.0, 1.0);
+    return clamp(fv_snoise(p) * 0.36 + 0.5, 0.0, 1.0);   // contrast matched to the old value noise
 }
 
 // Tiny per-pixel noise that hides colour banding in dark gradients.
@@ -194,7 +194,7 @@ vec3 fv_galaxy(vec3 d, float t, vec3 c, float b) {
     float neb = smoothstep(0.42, 0.78, n);
     float fil = pow(1.0 - abs(fv_fbm(p * 2.6 + warp * 2.0, 4) * 2.0 - 1.0), 7.0);
     vec3 pink = fv_hue(c, 0.06) * 1.4 + vec3(0.1, 0.0, 0.12);
-    col += pink * neb * 0.55 + mix(pink, vec3(1.0), 0.3) * fil * neb * 0.45;
+    col += pink * neb * 0.38 + mix(pink, vec3(1.0), 0.25) * fil * neb * 0.22;
 
     // Aurora curtains just above the horizon.
     // Curtain rays: noise of the horizontal direction only, so it runs straight up (no seam behind you).
@@ -228,7 +228,7 @@ float fv_aether_field(vec3 p, float t) {
 
 vec3 fv_aether_colour(float field1, float field2, vec3 c, vec2 shade) {
     vec2 l1 = fv_line(field1, 2.2);
-    vec2 l2 = fv_line(field2, 1.6) * 0.45;
+    vec2 l2 = fv_line(field2, 1.6) * 0.25;
     float shadeK = 0.45 + 0.55 * shade.x;
     // Soft satin shading around the lines.
     float sheen = exp(-abs(field1) * 7.0) * 0.12 + exp(-abs(field2) * 9.0) * 0.05;
@@ -280,10 +280,10 @@ vec3 fv_amethyst_at(vec3 p, float t, vec3 c) {
     vec3 col = mix(dark, mid, smoothstep(0.25, 0.85, f * f * 2.2));
     col = mix(col, dark * 0.5, smoothstep(0.55, 0.9, length(q)) * 0.6);
     // Fine veins along contours of the warped field, only in some places.
-    float v = fract(f * 9.0) - 0.5;
+    float v = fract(f * 6.0) - 0.5;
     vec2 vein = fv_line(v, 1.2);
-    float mask = smoothstep(0.45, 0.62, fv_fbm(p * 2.5 + 3.0, 3));
-    col += mix(c, vec3(1.0), 0.65) * (vein.x * 0.85 + vein.y * 0.45) * mask;
+    float mask = smoothstep(0.55, 0.68, fv_fbm(p * 1.6 + 3.0, 3));
+    col += mix(c, vec3(1.0), 0.6) * (vein.x * 0.7 + vein.y * 0.35) * mask;
     return col;
 }
 
