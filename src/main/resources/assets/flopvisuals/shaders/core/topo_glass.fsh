@@ -40,7 +40,7 @@ vec4 traceReflection(vec3 origin, vec3 dir) {
     float stepLen = 0.18;
     vec3 pos = origin;
     float travelled = 0.0;
-    for (int i = 0; i < 40; i++) {
+    for (int i = 0; i < 56; i++) {
         vec3 prev = pos;
         pos += dir * stepLen;
         travelled += stepLen;
@@ -48,7 +48,8 @@ vec4 traceReflection(vec3 origin, vec3 dir) {
         vec2 uv = toScreen(pos, w);
         if (w <= 0.05 || uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) break;
         float behind = sceneViewZ(uv) - pos.z;   // > 0: the ray went behind something on screen
-        if (behind > 0.0 && behind < stepLen * 2.5 + 0.4) {
+        // Tight thickness test, so things in front of the floor don't leave smeared ghost copies.
+        if (behind > 0.0 && behind < max(0.3, stepLen * 1.3)) {
             vec3 a = prev, b = pos;
             for (int k = 0; k < 5; k++) {
                 vec3 m = (a + b) * 0.5;
@@ -62,7 +63,7 @@ vec4 traceReflection(vec3 origin, vec3 dir) {
             float trust = e.x * e.y * (1.0 - smoothstep(70.0, 150.0, travelled));
             return vec4(texture(SceneColor, hit).rgb, trust);
         }
-        stepLen *= 1.11;
+        stepLen = min(stepLen * 1.12, 1.6);
     }
     return vec4(0.0);
 }
