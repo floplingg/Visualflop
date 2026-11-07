@@ -12,13 +12,15 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 21 }
       - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x gradlew && ./gradlew genSourcesWithVineflower --stacktrace -q
+      - run: chmod +x gradlew && ./gradlew genSourcesWithVineflower --stacktrace 2>&1 | tail -20
       - name: Publish selected sources
         run: |
-          SRC=$(find . ~/.gradle -name '*minecraft-merged*sources.jar' 2>/dev/null | head -1)
+          find $GITHUB_WORKSPACE/.gradle ~/.gradle -name '*sources*.jar' 2>/dev/null | grep -i minecraft | head -20
+          SRC=$(find $GITHUB_WORKSPACE/.gradle ~/.gradle -name '*sources*.jar' 2>/dev/null | grep -i 'minecraft-merged\|minecraft-client\|minecraft-common' | head -1)
           echo "SRC=$SRC"
           mkdir -p /tmp/out && cd /tmp/out
           unzip -q "$SRC" 'net/minecraft/client/renderer/*' 'com/mojang/blaze3d/*' 'net/minecraft/client/gui/*' 'net/minecraft/client/Minecraft.java' 'net/minecraft/client/Camera.java' 'net/minecraft/client/renderer/entity/*' -x 'net/minecraft/client/renderer/block/model/*' || true
+          ls
           FAB=$(find ~/.gradle ../ -name 'fabric-rendering-v1*sources*.jar' 2>/dev/null | head -1); echo "FAB=$FAB"
           [ -n "$FAB" ] && unzip -q -o "$FAB" '*.java' -d fabric || true
           MC=$(find $GITHUB_WORKSPACE ~/.gradle -path '*minecraft*' -name '*.jar' 2>/dev/null | grep -iE 'merged' | grep -v sources | head -1)
