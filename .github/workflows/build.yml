@@ -17,7 +17,15 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x gradlew && ./gradlew build --stacktrace
+      - run: chmod +x gradlew && ./gradlew build --stacktrace 2>&1 | tee /tmp/build.log; exit ${PIPESTATUS[0]}
+        shell: bash
+      - name: Publish the build log on failure
+        if: failure()
+        run: |
+          mkdir -p /tmp/log && cp /tmp/build.log /tmp/log/build.log && cd /tmp/log
+          git init -q -b ci-log && git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -qm "build log ${{ github.sha }}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-log
       - name: Read version
         id: v
         run: |
