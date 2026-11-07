@@ -292,6 +292,23 @@ public class SheetScreen extends Screen {
         return px + pw - w - 14;
     }
 
+    /** Sidebar rows: {first row y, row height, swatch label y (or -1 when there's no room for swatches)}. */
+    private float[] sideLayout() {
+        float y = py + 40;
+        int n = Math.max(1, pages.size());
+        float swatchTop = py + ph - 40;
+        float rh = (swatchTop - 6 - y) / n - 2;
+        if (rh < 13) {
+            swatchTop = -1;
+            rh = (py + ph - 8 - y) / n - 2;
+        }
+        return new float[]{y, Math.max(11, Math.min(21, rh)), swatchTop};
+    }
+
+    private float swatchStep() {
+        return Math.min(21, (sideW - 30) / (SWATCHES.length - 1f));
+    }
+
     private void drawSidebar(GuiGraphics g, int mx, int my, float dt) {
         Shapes.roundClip(g, px, py, pw, ph, 18, px, py, px + sideW, py + ph, Kit.dark ? 0x0AFFFFFF : 0x0A000000);
         Shapes.round(g, px + sideW - 0.5f, py, 0.5f, ph, 0, Kit.SEPARATOR);
@@ -299,15 +316,14 @@ public class SheetScreen extends Screen {
         // Logo: an accent ring with a dot, then the name.
         float lx = px + 12, ly = py + 13;
         Shapes.circle(g, lx + 8, ly + 8, 10, Kit.ACCENT_SOFT);
-        Shapes.ring(g, lx, ly, 16, 16, 5, 1.4f, Kit.ACCENT);
+        Shapes.ring(g, lx, ly, 16, 16, 8, 1.4f, Kit.ACCENT);
         Shapes.circle(g, lx + 8, ly + 8, 2.6f, Kit.ACCENT);
         Kit.text(g, "Flop Visuals", lx + 22, ly + 1, Kit.LABEL, true);
         Kit.text(g, "Fabric 1.21.11", lx + 22, ly + 10, Kit.SECONDARY, false);
 
-        float y = py + 40;
-        float swatchTop = py + ph - 38;
-        float rh = Math.max(15, Math.min(21, (swatchTop - y - 6) / Math.max(1, pages.size()) - 2));
-        float icon = Math.min(14, rh - 5);
+        float[] sl = sideLayout();
+        float y = sl[0], rh = sl[1], swatchTop = sl[2];
+        float icon = Math.min(14, rh - 4);
         for (int i = 0; i < pages.size(); i++) {
             Page p = pages.get(i);
             float rx = px + 7, rw = sideW - 14;
@@ -321,14 +337,15 @@ public class SheetScreen extends Screen {
         }
 
         // Accent swatches.
-        Kit.text(g, "ACCENT", px + 14, swatchTop, Kit.SECONDARY, false);
+        if (swatchTop < 0) return;
+        Kit.text(g, "ACCENT", px + 14, swatchTop, Kit.SECONDARY, true);
         int cur = Config.theme().accentColor & 0xFFFFFF;
-        float sx = px + 21;
+        float sx = px + 21, step = swatchStep(), rad = Math.min(7f, step * 0.4f);
         for (int[] sw : SWATCHES) {
             boolean on = !Config.theme().chroma && cur == sw[0];
-            if (on) Shapes.circle(g, sx, swatchTop + 20, 8.8f, 0xFFFFFFFF);
-            Shapes.circle(g, sx, swatchTop + 20, on ? 7.4f : 7f, 0xFF000000 | sw[0]);
-            sx += 21;
+            if (on) Shapes.circle(g, sx, swatchTop + 20, rad + 1.8f, 0xFFFFFFFF);
+            Shapes.circle(g, sx, swatchTop + 20, on ? rad + 0.4f : rad, 0xFF000000 | sw[0]);
+            sx += step;
         }
     }
 
@@ -472,8 +489,8 @@ public class SheetScreen extends Screen {
                 return true;
             }
             if (button == 0 && inside(mx, my, px, py, sideW, ph)) {
-                float y = py + 40, swatchTop = py + ph - 38;
-                float rh = Math.max(15, Math.min(21, (swatchTop - y - 6) / Math.max(1, pages.size()) - 2));
+                float[] sl = sideLayout();
+                float y = sl[0], rh = sl[1], swatchTop = sl[2];
                 for (int i = 0; i < pages.size(); i++) {
                     if (inside(mx, my, px + 7, y, sideW - 14, rh)) {
                         if (i != page) click();
@@ -482,16 +499,16 @@ public class SheetScreen extends Screen {
                     }
                     y += rh + 2;
                 }
-                float sx = px + 21;
+                float sx = px + 21, step = swatchStep();
                 for (int[] sw : SWATCHES) {
-                    if (Math.hypot(mx - sx, my - (swatchTop + 20)) <= 9) {
+                    if (swatchTop >= 0 && Math.hypot(mx - sx, my - (swatchTop + 20)) <= 9) {
                         click();
                         Config.theme().accentColor = sw[0];
                         Config.theme().chroma = false;
                         Config.save();
                         return true;
                     }
-                    sx += 21;
+                    sx += step;
                 }
                 return true;
             }
