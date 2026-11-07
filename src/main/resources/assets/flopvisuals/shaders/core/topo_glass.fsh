@@ -36,22 +36,25 @@ vec2 toScreen(vec3 v, out float w) {
 }
 
 // Screen-space reflection in view space. Returns colour and how much to trust it.
+// When the ray first slips behind something on screen, the crossing is refined and only accepted if the ray
+// really meets that surface there. Passing behind a thin thing in front (a petal, a hand, a player's edge) is
+// rejected and the march goes on, so small objects reflect as their true shape instead of long smears.
 vec4 traceReflection(vec3 origin, vec3 dir) {
-    float stepLen = 0.18;
+    if (dir.z > 0.35) return vec4(0.0);   // pointing back towards the camera: nothing reliable on screen
+    float stepLen = 0.1;
     vec3 pos = origin;
     float travelled = 0.0;
-    for (int i = 0; i < 56; i++) {
+    for (int i = 0; i < 64; i++) {
         vec3 prev = pos;
         pos += dir * stepLen;
         travelled += stepLen;
         float w;
         vec2 uv = toScreen(pos, w);
         if (w <= 0.05 || uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) break;
-        float behind = sceneViewZ(uv) - pos.z;   // > 0: the ray went behind something on screen
-        // Tight thickness test, so things in front of the floor don't leave smeared ghost copies.
-        if (behind > 0.0 && behind < max(0.3, stepLen * 1.3)) {
+        float behind = sceneViewZ(uv) - pos.z;   // > 0: the ray is behind what's drawn there
+        if (behind > 0.0) {
             vec3 a = prev, b = pos;
-            for (int k = 0; k < 5; k++) {
+            for (int k = 0; k < 6; k++) {
                 vec3 m = (a + b) * 0.5;
                 float wm;
                 vec2 um = toScreen(m, wm);
@@ -59,11 +62,14 @@ vec4 traceReflection(vec3 origin, vec3 dir) {
             }
             float wb;
             vec2 hit = toScreen(b, wb);
-            vec2 e = smoothstep(vec2(0.0), vec2(0.07), hit) * smoothstep(vec2(0.0), vec2(0.07), 1.0 - hit);
-            float trust = e.x * e.y * (1.0 - smoothstep(70.0, 150.0, travelled));
-            return vec4(texture(SceneColor, hit).rgb, trust);
+            float gap = sceneViewZ(hit) - b.z;
+            if (gap < 0.12 + travelled * 0.012) {
+                vec2 e = smoothstep(vec2(0.0), vec2(0.06), hit) * smoothstep(vec2(0.0), vec2(0.06), 1.0 - hit);
+                float trust = e.x * e.y * (1.0 - smoothstep(40.0, 70.0, travelled)) * (1.0 - smoothstep(0.0, 0.35, dir.z));
+                return vec4(texture(SceneColor, hit).rgb, trust);
+            }
         }
-        stepLen = min(stepLen * 1.12, 1.6);
+        stepLen = min(stepLen * 1.07, 0.6);
     }
     return vec4(0.0);
 }

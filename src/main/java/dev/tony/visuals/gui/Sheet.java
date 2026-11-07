@@ -72,8 +72,12 @@ public final class Sheet {
         final E[] values;
         final Supplier<E> get;
         final Consumer<E> set;
+        /** Laid out by the screen: inline pills when few options fit, otherwise a grid of option cards. */
+        boolean grid;
+        int rows = 1;
+        final List<float[]> boxes = new ArrayList<>();
         public Choice(String label, E[] values, Supplier<E> get, Consumer<E> set) { this.label = label; this.values = values; this.get = get; this.set = set; }
-        float height() { return 26; }
+        float height() { return grid ? 26 + rows * 24 + 6 : 28; }
         boolean clickable() { return true; }
         void step(int dir) {
             int n = values.length;

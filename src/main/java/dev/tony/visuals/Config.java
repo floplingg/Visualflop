@@ -18,6 +18,7 @@ public final class Config {
     public Keystrokes keystrokes = new Keystrokes();
     public Trails trails = new Trails();
     public Petals petals = new Petals();
+    public Aura aura = new Aura();
     public Sky sky = new Sky();
     public Glass glass = new Glass();
     public Wallpaper wallpaper = new Wallpaper();
@@ -62,6 +63,23 @@ public final class Config {
         public boolean whileFlying = true;
         /** How far particles drift, 1 to 10. */
         public int spread = 4;
+    }
+
+    public enum HaloStyle { RING, CROWN, TWIN_RING, SUN, HORNS, STARLIGHT }
+
+    /** Orbs, halo and aura around you. */
+    public static final class Aura {
+        public boolean orbs = true;
+        public boolean orbTrails = true;
+        /** Number of orbs, 1-12. */
+        public int orbCount = 6;
+        /** Orbit speed, 1-10. */
+        public int orbSpeed = 5;
+        public boolean orbsFirstPerson = true;
+        public boolean halo = true;
+        public HaloStyle haloStyle = HaloStyle.RING;
+        public boolean aura = true;
+        public Palette colour = Palette.ACCENT;
     }
 
     public enum PetalType { CHERRY, PALE_OAK, SPORE_BLOSSOM, FIREFLIES, SNOWFLAKES, ASH, CRIMSON, WARPED, END_RODS }
@@ -227,6 +245,11 @@ public final class Config {
         if (glass == null) glass = new Glass();
         if (wallpaper == null) wallpaper = new Wallpaper();
         if (spotify == null) spotify = new Spotify();
+        if (aura == null) aura = new Aura();
+        if (aura.haloStyle == null) aura.haloStyle = HaloStyle.RING;
+        if (aura.colour == null) aura.colour = Palette.ACCENT;
+        aura.orbCount = Theme.c(aura.orbCount, 1, 12);
+        aura.orbSpeed = Theme.c(aura.orbSpeed, 1, 10);
         if (wallpaper.mode == null) wallpaper.mode = WallpaperMode.TOPOGRAPHIC;
         if (wallpaper.image == null) wallpaper.image = "";
         if (wallpaper.colour == null) wallpaper.colour = Palette.SIGNATURE;

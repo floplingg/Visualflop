@@ -44,6 +44,23 @@ public class MainScreen extends SheetScreen {
 
     private static Config c() { return Config.get(); }
 
+    private static final String[] DESCRIPTIONS = {
+        "Accent colour and super smooth rounded edges across every screen.",
+        "Choose what sits on screen. Every module is a rounded glass card.",
+        "A rounded keystroke overlay that lights up in your accent as you press.",
+        "A cinematic trail that follows you as you move.",
+        "Orbs, halo, aura and particles that stay around you only, not the whole world.",
+        "Animated skies: topographic, galaxy, aether, nocturne and amethyst.",
+        "A polished glass floor that mirrors blocks, players and mobs.",
+        "Set your own backgrounds for the title screen and other menus.",
+        "A now-playing card with album art and progress.",
+    };
+
+    @Override
+    protected String describe(int page) {
+        return page >= 0 && page < DESCRIPTIONS.length ? DESCRIPTIONS[page] : "";
+    }
+
     // ------------------------------------------------------------ pages
 
     private List<Sheet.Item> appearance() {
@@ -135,6 +152,20 @@ public class MainScreen extends SheetScreen {
         l.add(Sheet.Slider.ints("Density", 1, 10, () -> pe.density, v -> pe.density = v, ""));
         l.add(new Sheet.Toggle("Also indoors and underground", () -> pe.indoors, v -> pe.indoors = v));
         l.add(new Sheet.Footer("Spawns only in a bubble around you. Only you see it."));
+
+        Config.Aura au = c().aura;
+        l.add(new Sheet.Header("Orbs"));
+        l.add(new Sheet.Toggle("Orbiting orbs", () -> au.orbs, v -> au.orbs = v));
+        l.add(new Sheet.Toggle("Fading trails", () -> au.orbTrails, v -> au.orbTrails = v));
+        l.add(Sheet.Slider.ints("Orbs", 1, 12, () -> au.orbCount, v -> au.orbCount = v, ""));
+        l.add(Sheet.Slider.ints("Orbit speed", 1, 10, () -> au.orbSpeed, v -> au.orbSpeed = v, ""));
+        l.add(new Sheet.Toggle("Show orbs in first person", () -> au.orbsFirstPerson, v -> au.orbsFirstPerson = v));
+        l.add(new Sheet.Header("Halo and aura"));
+        l.add(new Sheet.Toggle("Halo", () -> au.halo, v -> au.halo = v));
+        l.add(new Sheet.Choice<>("Halo style", Config.HaloStyle.values(), () -> au.haloStyle, v -> au.haloStyle = v));
+        l.add(new Sheet.Toggle("Aura", () -> au.aura, v -> au.aura = v));
+        l.add(new Sheet.Choice<>("Colour", Config.Palette.values(), () -> au.colour, v -> au.colour = v));
+        l.add(new Sheet.Footer("The halo and aura show in third person (F5); orbs show in first person too."));
         return l;
     }
 

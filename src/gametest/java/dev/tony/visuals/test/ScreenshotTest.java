@@ -30,11 +30,11 @@ public class ScreenshotTest implements FabricClientGameTest {
         }
         context.setScreen(() -> new MainScreen(null, 5));
         context.waitTicks(20);
-        context.runOnClient(mc -> {
-            if (mc.screen instanceof MainScreen m) m.testOpenDropdown(1);
-        });
+        context.setScreen(() -> new MainScreen(null, 4));
+        context.waitTicks(20);
+        context.runOnClient(mc -> mc.screen.mouseScrolled(0, 0, 0, -30));
         context.waitTicks(12);
-        context.takeScreenshot("11-menu-dropdown");
+        context.takeScreenshot("11-menu-ambience-halo");
         context.setScreen(() -> null);
         // The animated wallpaper is slow on CI's software renderer and also shows behind the loading screen.
         Config.get().wallpaper.mode = Config.WallpaperMode.VANILLA;

@@ -32,9 +32,11 @@ public class FlopVisuals implements ClientModInitializer {
             new KeyMapping("key.flopvisuals.menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY));
         TopoSky.init();
         GlassGround.init();
+        dev.tony.visuals.fx.AuraFx.init();
         Wallpapers.init();
         Spotify.start();
         WorldRenderEvents.AFTER_ENTITIES.register(TopoSky::render);
+        WorldRenderEvents.AFTER_ENTITIES.register(dev.tony.visuals.fx.AuraFx::render);   // before the glass, so it shows in the reflection
         WorldRenderEvents.AFTER_ENTITIES.register(GlassGround::render);
         WorldRenderEvents.END_MAIN.register(GlassGround::renderWater);
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
