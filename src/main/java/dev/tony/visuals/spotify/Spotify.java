@@ -56,7 +56,7 @@ public final class Spotify {
     public record Track(String title, String artist, String artUrl, long durationMs, long progressMs, boolean playing, long fetchedAt) {
         public long progressNow() {
             long p = progressMs + (playing ? System.currentTimeMillis() - fetchedAt : 0);
-            return Math.max(0, Math.min(durationMs, p));
+            return Math.max(0, durationMs > 0 ? Math.min(durationMs, p) : p);
         }
     }
 
@@ -271,7 +271,7 @@ public final class Spotify {
     private static void poll() {
         try {
             Config c = Config.get();
-            if (!c.widget("spotify").enabled) {
+            if (!c.widget("spotify").enabled && !c.widget("lyrics").enabled) {
                 WindowsMedia.stop();
                 return;
             }

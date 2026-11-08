@@ -58,6 +58,7 @@ public final class Hud {
         Theme t = Config.theme();
         if (id.equals("keystrokes")) return Keystrokes.size();
         if (id.equals("spotify")) return SpotifyWidget.size();
+        if (id.equals("lyrics")) return LyricsWidget.size();
         if (id.equals("armor")) {
             int n = armorItems().size();
             return new int[]{Math.max(1, n) * 18 + 2 * t.padding - 2 + strip(t), 16 + 2 * t.padding + (n > 0 ? 9 : 0)};
@@ -88,6 +89,7 @@ public final class Hud {
             case "keystrokes" -> Keystrokes.draw(g, font);
             case "armor" -> drawArmor(g, font, p.rawW(), p.rawH());
             case "spotify" -> SpotifyWidget.draw(g, p.rawW(), p.rawH());
+            case "lyrics" -> LyricsWidget.draw(g, p.rawW(), p.rawH());
             default -> drawText(g, font, id, p.rawW(), p.rawH());
         }
         g.pose().popMatrix();

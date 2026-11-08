@@ -19,6 +19,7 @@ public final class Config {
     public Trails trails = new Trails();
     public Petals petals = new Petals();
     public Aura aura = new Aura();
+    public Lyrics lyrics = new Lyrics();
     public Sky sky = new Sky();
     public Glass glass = new Glass();
     public Wallpaper wallpaper = new Wallpaper();
@@ -63,6 +64,17 @@ public final class Config {
         public boolean whileFlying = true;
         /** How far particles drift, 1 to 10. */
         public int spread = 4;
+    }
+
+    /** Synced lyrics card. */
+    public static final class Lyrics {
+        /** Lines shown above and below the sung line (0-2). */
+        public int context = 1;
+        /** Shift the timing if lyrics run early or late, in milliseconds. */
+        public int offsetMs = 0;
+        public int width = 240;
+        public boolean center = true;
+        public boolean accentLine = true;
     }
 
     public enum HaloStyle { RING, CROWN, TWIN_RING, SUN, HORNS, STARLIGHT }
@@ -155,7 +167,7 @@ public final class Config {
     // ------------------------------------------------------------ widget list
 
     public static final String[] WIDGETS = {
-        "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day", "spotify",
+        "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day", "spotify", "lyrics",
     };
 
     public static String widgetName(String id) {
@@ -172,6 +184,7 @@ public final class Config {
             case "armor" -> "Armor";
             case "day" -> "Day";
             case "spotify" -> "Spotify";
+            case "lyrics" -> "Lyrics";
             default -> id;
         };
     }
@@ -190,6 +203,7 @@ public final class Config {
         putDefault("armor", false, 0.995f, 0.97f);
         putDefault("day", false, 0.995f, 0.16f);
         putDefault("spotify", false, 0.5f, 0.02f);
+        putDefault("lyrics", false, 0.5f, 0.86f);
     }
 
     private void putDefault(String id, boolean on, float x, float y) {
@@ -251,6 +265,10 @@ public final class Config {
         if (spotify == null) spotify = new Spotify();
         if (spotify.source == null) spotify.source = SpotifySource.WINDOWS;
         if (aura == null) aura = new Aura();
+        if (lyrics == null) lyrics = new Lyrics();
+        lyrics.context = Theme.c(lyrics.context, 0, 2);
+        lyrics.offsetMs = Theme.c(lyrics.offsetMs, -3000, 3000);
+        lyrics.width = Theme.c(lyrics.width, 140, 360);
         if (aura.haloStyle == null) aura.haloStyle = HaloStyle.RING;
         if (aura.colour == null) aura.colour = Palette.ACCENT;
         aura.orbCount = Theme.c(aura.orbCount, 1, 12);

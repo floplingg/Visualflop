@@ -246,6 +246,20 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Toggle("Progress bar", () -> sp.showProgress, v -> sp.showProgress = v));
         l.add(new Sheet.Info("Status", Spotify::status));
 
+        Config.Lyrics ly = c().lyrics;
+        l.add(new Sheet.Header("Lyrics"));
+        l.add(new Sheet.Toggle("Show lyrics on HUD", () -> c().widget("lyrics").enabled, v -> c().widget("lyrics").enabled = v));
+        l.add(Sheet.Slider.ints("Lines around", 0, 2, () -> ly.context, v -> ly.context = v, ""));
+        l.add(Sheet.Slider.ints("Width", 140, 360, () -> ly.width, v -> ly.width = v, ""));
+        l.add(new Sheet.Toggle("Centre the lines", () -> ly.center, v -> ly.center = v));
+        l.add(new Sheet.Toggle("Highlight the sung line", () -> ly.accentLine, v -> ly.accentLine = v));
+        l.add(new Sheet.Slider("Timing", -3f, 3f, 0.1f, () -> ly.offsetMs / 1000f, v -> ly.offsetMs = Math.round(v * 1000),
+            v -> (v > 0 ? "+" : "") + String.format(java.util.Locale.ROOT, "%.1f s", v)));
+        l.add(new Sheet.Info("Lyrics", () -> c().widget("lyrics").enabled
+            ? (Spotify.track() == null ? "Play a song" : dev.tony.visuals.spotify.Lyrics.status().isEmpty() ? "Synced" : dev.tony.visuals.spotify.Lyrics.status())
+            : "Off"));
+        l.add(new Sheet.Footer("Synced lyrics come from LRCLIB (lrclib.net), a free community lyrics database. If they run early or late, nudge Timing."));
+
         l.add(new Sheet.Header("Source"));
         l.add(new Sheet.Choice<>("Read from", Config.SpotifySource.values(), () -> sp.source, v -> {
             sp.source = v;
