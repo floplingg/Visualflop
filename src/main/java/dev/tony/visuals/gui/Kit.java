@@ -190,6 +190,16 @@ public final class Kit {
         g.pose().popMatrix();
     }
 
+    /** Thin line icon from the preview (tinted with {@code colour}). */
+    public static void lineIcon(GuiGraphics g, String icon, float x, float y, float size, int colour) {
+        Identifier tex = Identifier.fromNamespaceAndPath("flopvisuals", "textures/gui/line/line_" + icon + ".png");
+        g.pose().pushMatrix();
+        g.pose().translate(x, y);
+        g.pose().scale(size / 48f, size / 48f);
+        g.blit(RenderPipelines.GUI_TEXTURED, tex, 0, 0, 0f, 0f, 48, 48, 48, 48, 0xFF000000 | (colour & 0xFFFFFF));
+        g.pose().popMatrix();
+    }
+
     /** Pill button. Returns nothing; hit testing is done by the caller. */
     public static void pill(GuiGraphics g, float x, float y, float w, float h, String label, boolean primary, float hover) {
         int fill = primary ? ACCENT : (dark ? 0xFF3A3A3C : 0xFFE5E5EA);

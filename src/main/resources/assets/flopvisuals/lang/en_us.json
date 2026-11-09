@@ -1,4 +1,7 @@
 {
   "key.flopvisuals.menu": "Open Flop Visuals menu",
+  "key.flopvisuals.playpause": "Spotify: play / pause",
+  "key.flopvisuals.next": "Spotify: next song",
+  "key.flopvisuals.previous": "Spotify: previous song",
   "key.category.flopvisuals.main": "Flop Visuals"
 }

@@ -76,6 +76,23 @@ public class MainScreen extends SheetScreen {
         }));
         l.add(new Sheet.Footer("Presets set the accent, background and text colours together."));
 
+        Config.Menu mn = c().menu;
+        l.add(new Sheet.Header("Menu"));
+        l.add(new Sheet.Choice<>("Position", Config.MenuPosition.values(), () -> mn.position, v -> {
+            mn.position = v;
+            relayout();
+        }));
+        l.add(Sheet.Slider.ints("Size", 70, 130, () -> mn.scale, v -> mn.scale = v, "%").relayout());
+        l.add(Sheet.Slider.ints("Glass opacity", 40, 100, () -> mn.opacity, v -> mn.opacity = v, "%"));
+        l.add(Sheet.Slider.ints("Corner roundness", 6, 24, () -> mn.radius, v -> mn.radius = v, ""));
+        l.add(new Sheet.Toggle("Blur the world behind", () -> mn.blurWorld, v -> mn.blurWorld = v));
+        l.add(new Sheet.Toggle("Sidebar names", () -> mn.sidebarLabels, v -> {
+            mn.sidebarLabels = v;
+            relayout();
+        }));
+        l.add(new Sheet.Toggle("Animations", () -> mn.animations, v -> mn.animations = v));
+        l.add(Sheet.Slider.ints("Animation speed", 1, 10, () -> mn.animSpeed, v -> mn.animSpeed = v, ""));
+
         l.add(new Sheet.Header("Menus"));
         l.add(new Sheet.Toggle("Light appearance", () -> t.lightMenus, v -> t.lightMenus = v));
         l.add(new Sheet.Toggle("Smooth font", () -> t.smoothFont, v -> t.smoothFont = v));
@@ -256,9 +273,12 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Slider("Timing", -3f, 3f, 0.1f, () -> ly.offsetMs / 1000f, v -> ly.offsetMs = Math.round(v * 1000),
             v -> (v > 0 ? "+" : "") + String.format(java.util.Locale.ROOT, "%.1f s", v)));
         l.add(new Sheet.Info("Lyrics", () -> c().widget("lyrics").enabled
-            ? (Spotify.track() == null ? "Play a song" : dev.tony.visuals.spotify.Lyrics.status().isEmpty() ? "Synced" : dev.tony.visuals.spotify.Lyrics.status())
+            ? (Spotify.track() == null ? "Play a song" : dev.tony.visuals.spotify.Lyrics.status().isEmpty() ? "From " + dev.tony.visuals.spotify.Lyrics.source() : dev.tony.visuals.spotify.Lyrics.status())
             : "Off"));
-        l.add(new Sheet.Footer("Synced lyrics come from LRCLIB (lrclib.net), a free community lyrics database. If they run early or late, nudge Timing."));
+        l.add(new Sheet.Toggle("Estimate timing for plain lyrics", () -> ly.approximate, v -> ly.approximate = v));
+        l.add(new Sheet.Footer("Lyrics come from LRCLIB (lrclib.net) and NetEase Cloud Music. If they run early or late, nudge Timing."));
+        l.add(new Sheet.Header("Controls"));
+        l.add(new Sheet.Footer("Open chat (T) and click the buttons on the card, or set keys for play / pause, next and previous in Options → Controls → Flop Visuals."));
 
         l.add(new Sheet.Header("Source"));
         l.add(new Sheet.Choice<>("Read from", Config.SpotifySource.values(), () -> sp.source, v -> {

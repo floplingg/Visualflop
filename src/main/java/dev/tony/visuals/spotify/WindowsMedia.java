@@ -105,7 +105,21 @@ public final class WindowsMedia {
         }
     }
 
+    /** Sends play/pause ("toggle"), "next" or "previous" to the song Windows is showing. */
+    public static synchronized boolean send(String command) {
+        if (proc == null || !proc.isAlive()) return false;
+        try {
+            var out = proc.getOutputStream();
+            out.write((command + "\n").getBytes(StandardCharsets.UTF_8));
+            out.flush();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     private static void handle(JsonObject o) {
+        if (o.has("ack")) return;
         String error = str(o, "error");
         String title = str(o, "title");
         if (title.isEmpty()) {

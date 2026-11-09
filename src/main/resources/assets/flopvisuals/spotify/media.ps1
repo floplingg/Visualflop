@@ -23,18 +23,49 @@ try {
 $browsers = 'chrome|msedge|firefox|brave|opera|vivaldi|arc'
 $lastKey = ''
 $artTries = 0
+
+function Pick-Session {
+    $sessions = @($mgr.GetSessions())
+    # Prefer the Spotify app, then a browser (the Spotify web player), then whatever Windows says is current.
+    $p = $sessions | Where-Object { $_.SourceAppUserModelId -match 'Spotify' } | Select-Object -First 1
+    if (-not $p) {
+        $cur = $mgr.GetCurrentSession()
+        if ($cur -and $cur.SourceAppUserModelId -match $browsers) { $p = $cur }
+    }
+    if (-not $p) { $p = $sessions | Where-Object { $_.SourceAppUserModelId -match $browsers } | Select-Object -First 1 }
+    return $p
+}
+
+# Commands from Minecraft arrive on standard input: toggle, next, previous.
+$stdin = New-Object System.IO.StreamReader([Console]::OpenStandardInput())
+$pendingCmd = $stdin.ReadLineAsync()
+$nextReport = [DateTime]::MinValue
+
 while ($true) {
     if ($ParentId -gt 0 -and -not (Get-Process -Id $ParentId -ErrorAction SilentlyContinue)) { exit 0 }
+    if ($pendingCmd -and $pendingCmd.IsCompleted) {
+        $cmd = $pendingCmd.Result
+        if ($null -eq $cmd) { $pendingCmd = $null; continue }   # no more commands coming
+        try {
+            $s = Pick-Session
+            if ($s) {
+                switch ($cmd.Trim()) {
+                    'toggle' { $null = Await ($s.TryTogglePlayPauseAsync()) ([bool]) }
+                    'next' { $null = Await ($s.TrySkipNextAsync()) ([bool]) }
+                    'previous' { $null = Await ($s.TrySkipPreviousAsync()) ([bool]) }
+                }
+            }
+        } catch { }
+        "{`"ack`":`"$($cmd.Trim())`"}" | ForEach-Object { [Console]::Out.WriteLine($_) }
+        $pendingCmd = $stdin.ReadLineAsync()
+        Start-Sleep -Milliseconds 150
+        $nextReport = [DateTime]::MinValue   # report the new state right away
+    }
+    if ([DateTime]::UtcNow -lt $nextReport) { Start-Sleep -Milliseconds 100; continue }
+    $nextReport = [DateTime]::UtcNow.AddMilliseconds(1000)
     $out = @{ playing = $false; title = ''; source = '' }
     try {
-        $sessions = @($mgr.GetSessions())
-        # Prefer the Spotify app, then a browser (the Spotify web player), then whatever Windows says is current.
-        $pick = $sessions | Where-Object { $_.SourceAppUserModelId -match 'Spotify' } | Select-Object -First 1
-        if (-not $pick) {
-            $cur = $mgr.GetCurrentSession()
-            if ($cur -and $cur.SourceAppUserModelId -match $browsers) { $pick = $cur }
-        }
-        if (-not $pick) { $pick = $sessions | Where-Object { $_.SourceAppUserModelId -match $browsers } | Select-Object -First 1 }
+        $pick = Pick-Session
         if ($pick) {
             $props = Await ($pick.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
             $info = $pick.GetPlaybackInfo()
@@ -69,5 +100,4 @@ while ($true) {
     }
     [Console]::Out.WriteLine(($out | ConvertTo-Json -Compress))
     [Console]::Out.Flush()
-    Start-Sleep -Milliseconds 1000
 }

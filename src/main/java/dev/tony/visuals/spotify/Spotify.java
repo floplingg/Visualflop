@@ -44,7 +44,7 @@ public final class Spotify {
     private Spotify() {}
 
     public static final String REDIRECT = "http://127.0.0.1:43821/callback";
-    private static final String SCOPES = "user-read-currently-playing user-read-playback-state";
+    private static final String SCOPES = "user-read-currently-playing user-read-playback-state user-modify-playback-state";
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final ScheduledExecutorService NET = Executors.newSingleThreadScheduledExecutor(r -> {
@@ -94,6 +94,37 @@ public final class Spotify {
                 if (src != null) uploadArt(src);
             } catch (Throwable ignored) {
                 // keep the placeholder
+            }
+        });
+    }
+
+    /** Play/pause ("toggle"), "next" or "previous". The card updates straight away, then catches up with the player. */
+    public static void control(String command) {
+        Track t = track;
+        if (t != null && command.equals("toggle")) {
+            track = new Track(t.title(), t.artist(), t.artUrl(), t.durationMs(), t.progressNow(), !t.playing(), System.currentTimeMillis());
+        }
+        if (windowsMode()) {
+            if (!WindowsMedia.send(command)) note("Error: the Windows reader isn't running yet");
+            return;
+        }
+        NET.execute(() -> {
+            try {
+                if (accessToken == null || System.currentTimeMillis() > accessExpires) refresh();
+                String path = switch (command) {
+                    case "next" -> "next";
+                    case "previous" -> "previous";
+                    default -> t != null && t.playing() ? "pause" : "play";
+                };
+                boolean post = path.equals("next") || path.equals("previous");
+                HttpRequest.Builder b = HttpRequest.newBuilder(URI.create("https://api.spotify.com/v1/me/player/" + path))
+                    .header("Authorization", "Bearer " + accessToken).timeout(Duration.ofSeconds(8));
+                HttpRequest req = post ? b.POST(HttpRequest.BodyPublishers.noBody()).build() : b.PUT(HttpRequest.BodyPublishers.noBody()).build();
+                HttpResponse<String> res = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
+                if (res.statusCode() == 401 || res.statusCode() == 403) status = "Error: reconnect Spotify to allow play/pause and skip";
+                NET.schedule(Spotify::poll, 400, TimeUnit.MILLISECONDS);
+            } catch (Throwable e) {
+                status = "Error: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
             }
         });
     }

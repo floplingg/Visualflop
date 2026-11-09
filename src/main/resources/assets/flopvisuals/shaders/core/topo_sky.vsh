@@ -25,6 +25,8 @@ vec3 decodeCamera(ivec2 uv1, ivec2 uv2) {
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+    // Pin the sky to the far plane: it only fills pixels nothing else has drawn on.
+    gl_Position.z = gl_Position.w * 0.999999;
     skyDir = Position;
     params = UV0;
     tint = Color;

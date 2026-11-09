@@ -20,6 +20,7 @@ public final class Config {
     public Petals petals = new Petals();
     public Aura aura = new Aura();
     public Lyrics lyrics = new Lyrics();
+    public Menu menu = new Menu();
     public Sky sky = new Sky();
     public Glass glass = new Glass();
     public Wallpaper wallpaper = new Wallpaper();
@@ -66,6 +67,24 @@ public final class Config {
         public int spread = 4;
     }
 
+    public enum MenuPosition { CENTER, LEFT, RIGHT }
+
+    /** How the Flop Visuals window itself looks. */
+    public static final class Menu {
+        public MenuPosition position = MenuPosition.CENTER;
+        /** Window size, 70-130 %. */
+        public int scale = 100;
+        /** Glass opacity, 40-100 %. */
+        public int opacity = 74;
+        /** Corner roundness, 6-24. */
+        public int radius = 16;
+        public boolean blurWorld = true;
+        public boolean animations = true;
+        /** 1 slow ... 10 quick. */
+        public int animSpeed = 6;
+        public boolean sidebarLabels = true;
+    }
+
     /** Synced lyrics card. */
     public static final class Lyrics {
         /** Lines shown above and below the sung line (0-2). */
@@ -75,6 +94,8 @@ public final class Config {
         public int width = 240;
         public boolean center = true;
         public boolean accentLine = true;
+        /** When a song only has plain lyrics, show them with estimated timing. */
+        public boolean approximate = true;
     }
 
     public enum HaloStyle { RING, CROWN, TWIN_RING, SUN, HORNS, STARLIGHT }
@@ -266,6 +287,12 @@ public final class Config {
         if (spotify.source == null) spotify.source = SpotifySource.WINDOWS;
         if (aura == null) aura = new Aura();
         if (lyrics == null) lyrics = new Lyrics();
+        if (menu == null) menu = new Menu();
+        if (menu.position == null) menu.position = MenuPosition.CENTER;
+        menu.scale = Theme.c(menu.scale, 70, 130);
+        menu.opacity = Theme.c(menu.opacity, 40, 100);
+        menu.radius = Theme.c(menu.radius, 6, 24);
+        menu.animSpeed = Theme.c(menu.animSpeed, 1, 10);
         lyrics.context = Theme.c(lyrics.context, 0, 2);
         lyrics.offsetMs = Theme.c(lyrics.offsetMs, -3000, 3000);
         lyrics.width = Theme.c(lyrics.width, 140, 360);

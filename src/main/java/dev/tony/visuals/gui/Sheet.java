@@ -14,6 +14,7 @@ public final class Sheet {
         /** Layout, filled in by the screen. */
         float y, h;
         float hover;
+        final Ease hoverE = new Ease(0.22f, 0);
 
         abstract float height();
 
@@ -42,8 +43,9 @@ public final class Sheet {
         final Supplier<Boolean> get;
         final Consumer<Boolean> set;
         float anim = -1;
+        final Ease knob = new Ease(0.32f);
         public Toggle(String label, Supplier<Boolean> get, Consumer<Boolean> set) { this.label = label; this.get = get; this.set = set; }
-        float height() { return 26; }
+        float height() { return 30; }
         boolean clickable() { return true; }
     }
 
@@ -55,6 +57,9 @@ public final class Sheet {
         final Function<Float, String> format;
         int fill;
         boolean rainbow;
+        /** Re-lay out the whole window when this slider is released (window size). */
+        boolean relayout;
+        public Slider relayout() { relayout = true; return this; }
         public Slider(String label, float min, float max, float step, Supplier<Float> get, Consumer<Float> set, Function<Float, String> format) {
             this.label = label; this.min = min; this.max = max; this.step = step; this.get = get; this.set = set; this.format = format;
         }
@@ -77,7 +82,9 @@ public final class Sheet {
         int rows = 1;
         final List<float[]> boxes = new ArrayList<>();
         public Choice(String label, E[] values, Supplier<E> get, Consumer<E> set) { this.label = label; this.values = values; this.get = get; this.set = set; }
-        float height() { return grid ? 26 + rows * 24 + 6 : 28; }
+        final List<Ease> optHover = new ArrayList<>();
+        final Ease selX = new Ease(0.3f), selW = new Ease(0.3f);
+        float height() { return grid ? 28 + rows * 26 + 6 : 30; }
         boolean clickable() { return true; }
         void step(int dir) {
             int n = values.length;

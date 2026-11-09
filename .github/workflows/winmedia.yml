@@ -15,7 +15,8 @@ jobs:
         run: |
           $file = (Resolve-Path src/main/resources/assets/flopvisuals/spotify/media.ps1).Path
           "file mode" | Out-File out.txt
-          $p = Start-Process powershell.exe -ArgumentList '-NoLogo','-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',$file,'-ParentId',$PID -RedirectStandardOutput o.txt -RedirectStandardError e.txt -PassThru
+          "toggle`nnext`nprevious" | Out-File -Encoding ascii cmds.txt
+          $p = Start-Process powershell.exe -ArgumentList '-NoLogo','-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File',$file,'-ParentId',$PID -RedirectStandardInput cmds.txt -RedirectStandardOutput o.txt -RedirectStandardError e.txt -PassThru
           Start-Sleep -Seconds 12
           if (!$p.HasExited) { Stop-Process -Id $p.Id -Force; "still running after 12s (good)" | Out-File -Append out.txt } else { "exited: $($p.ExitCode)" | Out-File -Append out.txt }
           Get-Content o.txt | Out-File -Append out.txt
