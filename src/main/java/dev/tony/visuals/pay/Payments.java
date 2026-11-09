@@ -31,8 +31,42 @@ import java.util.regex.Pattern;
 public final class Payments {
     private Payments() {}
 
-    /** "Name paid you $5M" / "$5.1M" / "$750K" / "$1,250,000" (with or without a full stop). */
-    private static final Pattern PAID = Pattern.compile("^\\s*\\[?([A-Za-z0-9_.]{2,17})]? paid you \\$([0-9][0-9,]*(?:\\.[0-9]+)?)([KkMmBbTt]?)\\.?\\s*$");
+    /**
+     * "Name paid you $5M" / "$1.1m" / "$750K" / "$1,250,000", found anywhere in the line, so prefixes, symbols, ranks,
+     * small-caps lettering, extra spaces and full stops don't stop it from matching.
+     */
+    private static final Pattern PAID = Pattern.compile("([A-Za-z0-9_.]{2,17})[^A-Za-z0-9_.$]{0,4}\\s*paid\\s+you\\s*:?\\s*\\$\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)\\s*([KkMmBbTt]?)(?![A-Za-z])", Pattern.CASE_INSENSITIVE);
+
+    /** The last few lines the server sent, shown on the Gamble page so a mismatch is easy to spot. */
+    private static final java.util.Deque<String> RECENT = new java.util.ArrayDeque<>();
+    private static volatile String lastMatch = "";
+
+    public static String recent() {
+        synchronized (RECENT) {
+            return RECENT.isEmpty() ? "nothing yet" : RECENT.peekLast();
+        }
+    }
+
+    public static String lastMatch() {
+        return lastMatch;
+    }
+
+    /** Turns fancy small-caps / full-width letters into normal ones and tidies spaces. */
+    static String normalise(String s) {
+        String from = "ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘǫʀꜱᴛᴜᴠᴡxʏᴢ";
+        String to = "abcdefghijklmnopqrstuvwxyz";
+        StringBuilder b = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            int k = from.indexOf(c);
+            if (k >= 0) c = to.charAt(k);
+            else if (c >= '\uFF01' && c <= '\uFF5E') c = (char) (c - 0xFEE0);   // full-width
+            else if (c == '\u00A0' || c == '\u2009' || c == '\u202F') c = ' ';
+            else if (c == '\uFE69') c = '$';   // small dollar sign
+            b.append(c);
+        }
+        return b.toString().replaceAll("\\s+", " ").trim();
+    }
 
     /** One payment line (possibly stacked). */
     static final class Entry {
@@ -67,14 +101,27 @@ public final class Payments {
                 return true;   // never lose a chat message because of us
             }
         });
+        // Some servers send it as a chat message instead of a system message.
+        ClientReceiveMessageEvents.ALLOW_CHAT.register((message, signed, sender, params, time) -> {
+            try {
+                return !handle(message);
+            } catch (Throwable e) {
+                return true;
+            }
+        });
     }
 
     /** Returns true when the message was a payment we took over. Public for the automated test. */
     public static boolean handle(Component message) {
         Config.Gamble cfg = Config.get().gamble;
         if (!cfg.enabled) return false;
-        Matcher m = PAID.matcher(message.getString());
-        if (!m.matches()) return false;
+        String raw = message.getString();
+        synchronized (RECENT) {
+            RECENT.addLast(raw);
+            while (RECENT.size() > 5) RECENT.removeFirst();
+        }
+        Matcher m = PAID.matcher(normalise(raw));
+        if (!m.find()) return false;
         String player = m.group(1);
         String number = m.group(2).replace(",", "");
         String suffix = m.group(3).toUpperCase(Locale.ROOT);
@@ -95,6 +142,7 @@ public final class Payments {
             if (!tag.isEmpty()) whole = number.substring(0, dot);
         }
         double bet = Double.parseDouble(whole) * mult;
+        lastMatch = player + " paid $" + m.group(2) + m.group(3) + (bet < cfg.minimum ? " (below your minimum)" : "");
         if (bet < cfg.minimum) return false;
         String shown = m.group(2) + m.group(3);
 

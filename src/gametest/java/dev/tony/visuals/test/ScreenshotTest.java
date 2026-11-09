@@ -89,7 +89,8 @@ public class ScreenshotTest implements FabricClientGameTest {
         // Gamble: payments in chat.
         context.runOnClient(mc -> {
             String[] msgs = {"Steve paid you $5M.", "Steve paid you $5M.", "Steve paid you $5M.", "Alex paid you $2.1M.",
-                "Bob paid you $500K.", "Kim paid you $3.2M.", "Lee paid you $1,500,000."};
+                "Bob paid you $500K.", "Kim paid you $3.2M.", "Lee paid you $1,500,000.",
+                "G4PP13 paid you $ 1.1M", "G4PP13 paid you $ 1.2M", "G4PP13 paid you $ 1M", "G4PP13 paid you $ 1M"};
             for (String m : msgs) {
                 boolean took = dev.tony.visuals.pay.Payments.handle(net.minecraft.network.chat.Component.literal(m));
                 org.slf4j.LoggerFactory.getLogger("flopvisuals-test").info("payment '{}' handled={}", m, took);

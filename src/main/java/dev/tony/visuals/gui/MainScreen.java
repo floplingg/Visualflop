@@ -375,6 +375,14 @@ public class MainScreen extends SheetScreen {
             v -> String.format(java.util.Locale.ROOT, "%.1f×", v)));
         l.add(new Sheet.Toggle("Stack repeat payments", () -> gb.stack, v -> gb.stack = v));
         l.add(new Sheet.Toggle("[Paper] and [BJ] tags", () -> gb.tags, v -> gb.tags = v));
+        l.add(new Sheet.Header("Check it"));
+        l.add(new Sheet.Action("Send a test payment to my chat", () -> "", () -> {
+            dev.tony.visuals.pay.Payments.handle(net.minecraft.network.chat.Component.literal("TestPlayer paid you $1.1M."));
+            onClose();
+        }).accent());
+        l.add(new Sheet.Info("Last payment found", () -> dev.tony.visuals.pay.Payments.lastMatch().isEmpty() ? "none yet" : dev.tony.visuals.pay.Payments.lastMatch()));
+        l.add(new Sheet.Info("Last server message", dev.tony.visuals.pay.Payments::recent));
+        l.add(new Sheet.Footer("If a real payment doesn't get buttons, take a screenshot of this page right after it arrives so the exact wording can be matched."));
         l.add(new Sheet.Footer("When someone pays you at least the minimum, the chat line gets [✔] and [✖]. Open chat (T) and click: ✔ = they won (turns lime and shows what to pay back), ✖ = they lost (turns red). Amounts ending in .1 are tagged [Paper], .2 [BJ]. The same person paying the same amount again stacks: \"Name paid you [5] $5M\"; clicking ✔ on a stack lets you pick how many they won."));
         return l;
     }
