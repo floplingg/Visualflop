@@ -180,7 +180,7 @@ public final class MoneyWidgets {
             String r = Auction.result();
             if (r == null) r = "";
             boolean won = r.contains(" wins the ");
-            Kit.tracked(g, "Auction ended", 16, 16, 0.75f, fade(DIM, o));
+            Kit.tracked(g, "Auction ended", 16, 16, 0.85f, fade(DIM, o));
             if (won) {
                 String name = r.substring(0, r.indexOf(" wins the "));
                 String item = r.substring(r.indexOf(" wins the ") + 10).replaceAll("!$", "");
@@ -199,7 +199,7 @@ public final class MoneyWidgets {
         // Header: live dot + AUCTION, countdown on the right.
         Shapes.circle(g, 19, 19.5f, 2.6f + 2f * pulse, fade((Math.round(70 * (1 - pulse)) << 24) | 0xFF5C6C, o));
         Shapes.circle(g, 19, 19.5f, 2.4f, fade(RED, o));
-        Kit.tracked(g, "Live auction", 27, 16.5f, 0.75f, fade(DIM, o));
+        Kit.tracked(g, "Live auction", 27, 16f, 0.85f, fade(DIM, o));
         String time = left >= 60 ? (int) left / 60 + ":" + String.format(java.util.Locale.ROOT, "%02d", (int) left % 60)
             : String.format(java.util.Locale.ROOT, "%.1f", left);
         float ts = 2.0f;
