@@ -340,6 +340,7 @@ public class SheetScreen extends Screen {
 
     private static final float SIDE_ROW = 22;
     private float frameDt = 1 / 60f;
+    private int sidePage = -1;
     private float sideScroll, sideScrollTarget;
     private boolean draggingSide;
     private float sideGrab;
@@ -388,6 +389,14 @@ public class SheetScreen extends Screen {
         }
 
         float[] sl = sideLayout();
+        if (page != sidePage) {
+            // Keep the selected page in view.
+            float top = page * (SIDE_ROW + 3), view = sl[4] - sl[3];
+            if (top < sideScrollTarget) sideScrollTarget = top;
+            else if (top + SIDE_ROW > sideScrollTarget + view) sideScrollTarget = top + SIDE_ROW - view;
+            if (sidePage < 0) sideScroll = Math.max(0, Math.min(sideMax(sl), sideScrollTarget));
+            sidePage = page;
+        }
         sideScrollTarget = Math.max(0, Math.min(sideMax(sl), sideScrollTarget));
         sideScroll = draggingSide ? sideScrollTarget : Kit.approach(sideScroll, sideScrollTarget, 18, frameDt);
         sl = sideLayout();
