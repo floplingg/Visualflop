@@ -405,7 +405,7 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Info("Now", () -> dev.tony.visuals.youtube.YouTube.videoId() == null ? "Nothing"
             : dev.tony.visuals.youtube.YouTube.title().isEmpty() ? dev.tony.visuals.youtube.YouTube.status() : dev.tony.visuals.youtube.YouTube.title()));
         l.add(new Sheet.Toggle("Show on HUD", () -> c().widget("youtube").enabled, v -> c().widget("youtube").enabled = v));
-        l.add(new Sheet.Action("Play / pause", () -> dev.tony.visuals.youtube.YouTube.videoId() == null ? "" : dev.tony.visuals.youtube.YouTube.paused() ? "Paused" : "Playing",
+        l.add(new Sheet.Action("Play / pause", () -> dev.tony.visuals.youtube.YouTube.videoId() == null ? "" : !dev.tony.visuals.youtube.YouTube.available() ? "Needs MCEF Modern" : dev.tony.visuals.youtube.YouTube.paused() ? "Paused" : "Playing",
             dev.tony.visuals.youtube.YouTube::togglePause));
         l.add(new Sheet.Action("Fullscreen", () -> "", () -> {
             if (dev.tony.visuals.youtube.YouTube.videoId() == null) return;
