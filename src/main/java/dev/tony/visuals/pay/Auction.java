@@ -15,8 +15,8 @@ import java.util.Map;
 
 /**
  * DonutSMP auction: start one for an item, and every "Name paid you $X" before the countdown ends is a bid (several
- * payments from the same player add up). When time runs out the highest total wins: "<IGN> wins the Netherite Ingot!",
- * and you get a private list of who to refund. Nothing is ever paid automatically.
+ * payments from the same player add up). When time runs out the highest total wins: "<IGN> wins the Netherite Ingot!".
+ * Nothing is ever paid automatically.
  */
 public final class Auction {
     private Auction() {}
@@ -83,7 +83,6 @@ public final class Auction {
     public static synchronized void cancel() {
         if (item == null) return;
         local(Component.literal("Auction for " + item + " cancelled.").withStyle(ChatFormatting.RED));
-        refunds(ranking(), null);
         item = null;
         BIDS.clear();
     }
@@ -112,19 +111,8 @@ public final class Auction {
                 .append(Component.literal(what).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD))
                 .append(Component.literal("! ($" + Payments.money(win.total()) + ")").withStyle(ChatFormatting.WHITE)));
             if (Config.get().auction.announce) say(result);
-            refunds(r, win);
         }
         resultUntil = System.currentTimeMillis() + 8000;
-    }
-
-    /** Private list of everyone who didn't win and what they paid. */
-    private static void refunds(List<Bid> bids, Bid winner) {
-        for (Bid b : bids) {
-            if (b == winner) continue;
-            local(Component.literal("  Refund ").withStyle(ChatFormatting.GRAY)
-                .append(Component.literal(b.player()).withStyle(ChatFormatting.WHITE))
-                .append(Component.literal(" $" + Payments.money(b.total())).withStyle(ChatFormatting.YELLOW)));
-        }
     }
 
     private static void local(MutableComponent c) {

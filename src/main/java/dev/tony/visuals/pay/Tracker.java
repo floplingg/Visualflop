@@ -5,47 +5,85 @@ import dev.tony.visuals.Config;
 import java.util.List;
 
 /**
- * Money tracker: every "Name paid you $X" adds to your total and every "You paid Name $X" takes away from it, while
- * tracking is on. Pause it when you aren't gambling so normal trades don't count. Saved, so it survives restarts.
+ * Money tracker, in gambling sessions: Start a session when you begin gambling and End it when you stop. During a
+ * session every "Name paid you $X" adds and every "You paid Name $X" takes away. Outside a session nothing counts, so
+ * normal trades stay out of it. Finished sessions are kept with their totals. Saved, so it survives restarts.
  */
 public final class Tracker {
     private Tracker() {}
 
-    private static final int MAX_POINTS = 400;
+    private static final int MAX_POINTS = 400, MAX_SESSIONS = 100;
     private static long lastSave;
 
+    private static Config.Gamble cfg() {
+        return Config.get().gamble;
+    }
+
+    /** True while a session is running. */
     public static boolean on() {
-        return Config.get().gamble.tracking;
+        return cfg().current != null;
+    }
+
+    public static Config.Session current() {
+        return cfg().current;
+    }
+
+    /** The running session, or the last finished one, or null. */
+    public static Config.Session shown() {
+        Config.Gamble g = cfg();
+        if (g.current != null) return g.current;
+        return g.sessions.isEmpty() ? null : g.sessions.get(g.sessions.size() - 1);
     }
 
     public static double profit() {
-        return Config.get().gamble.profit;
+        Config.Session s = shown();
+        return s == null ? 0 : s.profit;
+    }
+
+    public static List<Double> history() {
+        Config.Session s = shown();
+        return s == null ? List.of() : s.history;
+    }
+
+    public static void start() {
+        Config.Gamble g = cfg();
+        if (g.current != null) return;
+        g.current = new Config.Session();
+        g.current.history.add(0.0);
+        Config.save();
+    }
+
+    public static void end() {
+        Config.Gamble g = cfg();
+        if (g.current == null) return;
+        g.current.end = System.currentTimeMillis();
+        g.sessions.add(g.current);
+        while (g.sessions.size() > MAX_SESSIONS) g.sessions.remove(0);
+        g.current = null;
+        Config.save();
+    }
+
+    /** Every finished session plus the running one. */
+    public static double allTime() {
+        double t = 0;
+        for (Config.Session s : cfg().sessions) t += s.profit;
+        if (cfg().current != null) t += cfg().current.profit;
+        return t;
     }
 
     public static void add(double amount) {
-        Config.Gamble g = Config.get().gamble;
-        if (!g.tracking || amount == 0) return;
-        if (g.history.isEmpty()) g.history.add(0.0);
-        g.profit += amount;
-        g.history.add(g.profit);
-        while (g.history.size() > MAX_POINTS) g.history.remove(0);
+        Config.Session s = cfg().current;
+        if (s == null || amount == 0) return;
+        if (s.history.isEmpty()) s.history.add(0.0);
+        s.profit += amount;
+        s.history.add(s.profit);
+        while (s.history.size() > MAX_POINTS) s.history.remove(0);
         // Don't write the file on every payment in a fast burst.
         long now = System.currentTimeMillis();
         if (now - lastSave > 2000) {
             lastSave = now;
             Config.save();
         }
-    }
-
-    public static void reset() {
-        Config.Gamble g = Config.get().gamble;
-        g.profit = 0;
-        g.history.clear();
-        Config.save();
-    }
-
-    public static List<Double> history() {
-        return Config.get().gamble.history;
     }
 
     /** "+(102.63M)" / "-(4.10M)". */
@@ -60,5 +98,19 @@ public final class Tracker {
         if (v >= 1e6) return String.format(java.util.Locale.ROOT, "%.2fM", v / 1e6);
         if (v >= 1e3) return String.format(java.util.Locale.ROOT, "%.2fK", v / 1e3);
         return String.format(java.util.Locale.ROOT, "%.0f", v);
+    }
+
+    /** "1h 12m" / "8m" / "40s" */
+    public static String duration(Config.Session s) {
+        long ms = (s.end > 0 ? s.end : System.currentTimeMillis()) - s.start;
+        long sec = Math.max(0, ms / 1000);
+        if (sec >= 3600) return sec / 3600 + "h " + (sec % 3600) / 60 + "m";
+        if (sec >= 60) return sec / 60 + "m";
+        return sec + "s";
+    }
+
+    /** "Nov 8, 9:41 PM" */
+    public static String when(Config.Session s) {
+        return new java.text.SimpleDateFormat("MMM d, h:mm a", java.util.Locale.ENGLISH).format(new java.util.Date(s.start));
     }
 }

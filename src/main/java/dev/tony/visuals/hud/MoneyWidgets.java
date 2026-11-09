@@ -25,7 +25,7 @@ public final class MoneyWidgets {
 
     public static int[] profitSize() {
         Theme t = Config.theme();
-        int w = Kit.width(profitText(), true) + (Tracker.on() ? 0 : Kit.width(" paused") + 0);
+        int w = Kit.width(profitText(), true) + (Tracker.on() ? 0 : Kit.width(" no session") + 0);
         return new int[]{w + 2 * t.padding + 2 + 8, 8 + 2 * t.padding + 1};
     }
 
@@ -45,7 +45,7 @@ public final class MoneyWidgets {
         }
         float x = t.padding + 9;
         Kit.text(g, profitText(), x, t.padding + 1, col, true, t.textShadow);
-        if (!Tracker.on()) Kit.text(g, " paused", x + Kit.width(profitText(), true), t.padding + 1, DIM, false, t.textShadow);
+        if (!Tracker.on()) Kit.text(g, " no session", x + Kit.width(profitText(), true), t.padding + 1, DIM, false, t.textShadow);
     }
 
     // ------------------------------------------------------------ graph
@@ -60,14 +60,14 @@ public final class MoneyWidgets {
         Theme t = Config.theme();
         Hud.card(g, 0, 0, w, h);
         double p = Tracker.profit();
-        Kit.textScaled(g, "PROFIT", 6, 5, 0.7f, DIM, true);
+        Kit.textScaled(g, Tracker.on() ? "THIS SESSION" : Tracker.shown() != null ? "LAST SESSION" : "PROFIT", 6, 5, 0.7f, DIM, true);
         String lab = Tracker.label(p);
         Kit.textScaled(g, lab, w - 6 - Kit.width(lab, true) * 0.8f, 4.5f, 0.8f, p < 0 ? RED : GREEN, true);
 
         List<Double> hist = Tracker.history();
         float gx = 6, gy = 16, gw = w - 12, gh = h - 22;
         if (hist.size() < 2) {
-            Kit.textCenter(g, Tracker.on() ? "Waiting for payments…" : "Tracking paused", w / 2f, gy + gh / 2 - 4, DIM, false);
+            Kit.textCenter(g, Tracker.on() ? "Waiting for payments…" : "Start a session on the Gamble page", w / 2f, gy + gh / 2 - 4, DIM, false);
             return;
         }
         double lo = 0, hi = 0;

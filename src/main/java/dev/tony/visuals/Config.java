@@ -79,9 +79,17 @@ public final class Config {
         public float payout = 2f;
         public boolean stack = true;
         public boolean tags = true;
-        /** Money tracker: counts what people pay you (+) and what you pay out (−). */
-        public boolean tracking = true;
-        public double profit = 0;
+        /** The gambling session running now (money is only tracked during one), or null. */
+        public Session current;
+        /** Finished sessions, newest last. */
+        public List<Session> sessions = new ArrayList<>();
+    }
+
+    /** One gambling session: from Start to End, what you gained or lost. */
+    public static final class Session {
+        public long start = System.currentTimeMillis();
+        public long end;
+        public double profit;
         /** Running total after each payment, for the money graph (newest last). */
         public List<Double> history = new ArrayList<>();
     }
@@ -358,7 +366,9 @@ public final class Config {
         if (lyrics == null) lyrics = new Lyrics();
         if (menu == null) menu = new Menu();
         if (gamble == null) gamble = new Gamble();
-        if (gamble.history == null) gamble.history = new ArrayList<>();
+        if (gamble.sessions == null) gamble.sessions = new ArrayList<>();
+        if (gamble.current != null && gamble.current.history == null) gamble.current.history = new ArrayList<>();
+        for (Session ss : gamble.sessions) if (ss.history == null) ss.history = new ArrayList<>();
         if (auction == null) auction = new Auction();
         if (auction.items == null) auction.items = new ArrayList<>();
         auction.seconds = Math.max(5, Math.min(600, auction.seconds));

@@ -401,24 +401,37 @@ public class MainScreen extends SheetScreen {
             if (!v.isBlank()) au.items.add(v.trim());
             Config.save();
         }))).accent());
-        l.add(new Sheet.Footer("Press Start on an item: the countdown begins and every payment counts as a bid (one player's payments add up). When time runs out, the highest total wins: \"<IGN> wins the Netherite Ingot!\". Everyone else is listed in your chat with what to refund. Nothing is ever paid for you."));
+        l.add(new Sheet.Footer("Press Start on an item: the countdown begins and every payment counts as a bid (one player's payments add up). When time runs out, the highest total wins: \"<IGN> wins the Netherite Ingot!\". Nothing is ever paid for you."));
         return l;
     }
 
     private List<Sheet.Item> gamble() {
         Config.Gamble gb = c().gamble;
         List<Sheet.Item> l = new ArrayList<>();
-        l.add(new Sheet.Header("Money tracker"));
-        l.add(new Sheet.Toggle("Tracking", () -> gb.tracking, v -> gb.tracking = v));
-        l.add(new Sheet.Info("Gained / lost", () -> dev.tony.visuals.pay.Tracker.label(gb.profit)
-            + (gb.tracking ? "" : " · paused")));
+        l.add(new Sheet.Header("Session"));
+        l.add(new Sheet.Info("This session", () -> {
+            Config.Session cur = dev.tony.visuals.pay.Tracker.current();
+            return cur == null ? "Not gambling" : dev.tony.visuals.pay.Tracker.label(cur.profit) + " · " + dev.tony.visuals.pay.Tracker.duration(cur);
+        }));
+        boolean running = dev.tony.visuals.pay.Tracker.on();
+        Sheet.Action session = new Sheet.Action(running ? "End session" : "Start session", () -> "", () -> {
+            if (dev.tony.visuals.pay.Tracker.on()) dev.tony.visuals.pay.Tracker.end();
+            else dev.tony.visuals.pay.Tracker.start();
+            rebuild();
+        });
+        l.add(running ? session.destructive() : session.accent());
         l.add(new Sheet.Toggle("Show on HUD", () -> c().widget("profit").enabled, v -> c().widget("profit").enabled = v));
         l.add(new Sheet.Toggle("Money graph on HUD", () -> c().widget("moneygraph").enabled, v -> c().widget("moneygraph").enabled = v));
-        l.add(new Sheet.Action("Reset to +(0)", () -> "", () -> {
-            dev.tony.visuals.pay.Tracker.reset();
-            rebuild();
-        }).destructive());
-        l.add(new Sheet.Footer("While Tracking is on, every \"Name paid you $X\" adds and every \"You paid Name $X\" takes away. Turn it off when you aren't gambling so normal trades don't count."));
+        l.add(new Sheet.Footer("Start a session when you begin gambling and end it when you stop. Only during a session does \"Name paid you $X\" add and \"You paid Name $X\" take away, so normal trades don't count."));
+        if (!gb.sessions.isEmpty()) {
+            l.add(new Sheet.Header("Past sessions"));
+            l.add(new Sheet.Info("All sessions", () -> dev.tony.visuals.pay.Tracker.label(dev.tony.visuals.pay.Tracker.allTime())));
+            for (int i = gb.sessions.size() - 1; i >= Math.max(0, gb.sessions.size() - 15); i--) {
+                Config.Session ss = gb.sessions.get(i);
+                l.add(new Sheet.Info(dev.tony.visuals.pay.Tracker.when(ss) + " · " + dev.tony.visuals.pay.Tracker.duration(ss),
+                    () -> dev.tony.visuals.pay.Tracker.label(ss.profit)));
+            }
+        }
         l.add(new Sheet.Header("Payments in chat"));
         l.add(new Sheet.Toggle("Bet buttons on payments", () -> gb.enabled, v -> gb.enabled = v));
         l.add(new Sheet.Action("Minimum bet", () -> "$" + dev.tony.visuals.pay.Payments.money(gb.minimum), () -> minecraft.setScreen(
