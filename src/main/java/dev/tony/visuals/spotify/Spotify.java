@@ -88,14 +88,65 @@ public final class Spotify {
 
     /** Cover image bytes (PNG or JPEG) from any source. */
     static void setArt(byte[] bytes) {
+        String key = wantedArt;
         NET.execute(() -> {
             try {
                 java.awt.image.BufferedImage src = javax.imageio.ImageIO.read(new ByteArrayInputStream(bytes));
-                if (src != null) uploadArt(src);
+                if (src != null && key.equals(wantedArt)) {
+                    uploadArt(src);
+                    artKey = key;
+                }
             } catch (Throwable ignored) {
-                // keep the placeholder
+                // keep the placeholder; the iTunes backup may still find one
             }
         });
+    }
+
+    private static volatile String wantedArt = "", artKey = "";
+
+    /**
+     * Called when the song changes (Windows reader). Clears the old cover, and if Windows hasn't sent the new one
+     * within about 2 seconds, looks it up in Apple's iTunes catalogue (free, no account).
+     */
+    static void songChanged(String title, String artist) {
+        String key = title + "\u0001" + artist;
+        if (key.equals(wantedArt)) return;
+        wantedArt = key;
+        art = null;
+        NET.schedule(() -> {
+            if (!key.equals(wantedArt) || key.equals(artKey)) return;
+            try {
+                String term = java.net.URLEncoder.encode(title.replaceAll("\\s*[\\(\\[].*?[\\)\\]]", "") + " " + artist.split(",| & ")[0], StandardCharsets.UTF_8);
+                HttpRequest req = HttpRequest.newBuilder(URI.create("https://itunes.apple.com/search?media=music&entity=song&limit=5&term=" + term))
+                    .timeout(Duration.ofSeconds(8)).GET().build();
+                HttpResponse<String> res = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
+                if (res.statusCode() != 200) return;
+                JsonObject root = JsonParser.parseString(res.body()).getAsJsonObject();
+                if (!root.has("results") || root.getAsJsonArray("results").isEmpty()) return;
+                String url = null;
+                String want = artist.toLowerCase(java.util.Locale.ROOT);
+                for (var e : root.getAsJsonArray("results")) {
+                    JsonObject o = e.getAsJsonObject();
+                    if (!o.has("artworkUrl100")) continue;
+                    String a = o.has("artistName") ? o.get("artistName").getAsString().toLowerCase(java.util.Locale.ROOT) : "";
+                    if (url == null || want.contains(a) || a.contains(want)) {
+                        url = o.get("artworkUrl100").getAsString().replace("100x100bb", "600x600bb");
+                        if (want.contains(a) || a.contains(want)) break;
+                    }
+                }
+                if (url == null) return;
+                HttpResponse<byte[]> img = HTTP.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8)).GET().build(),
+                    HttpResponse.BodyHandlers.ofByteArray());
+                if (img.statusCode() != 200 || !key.equals(wantedArt) || key.equals(artKey)) return;
+                java.awt.image.BufferedImage src = javax.imageio.ImageIO.read(new ByteArrayInputStream(img.body()));
+                if (src != null) {
+                    uploadArt(src);
+                    artKey = key;
+                }
+            } catch (Throwable ignored) {
+                // no cover: keep the placeholder
+            }
+        }, 2200, TimeUnit.MILLISECONDS);
     }
 
     /** Play/pause ("toggle"), "next" or "previous". The card updates straight away, then catches up with the player. */

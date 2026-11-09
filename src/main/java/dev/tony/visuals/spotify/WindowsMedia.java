@@ -134,6 +134,7 @@ public final class WindowsMedia {
         // Windows only refreshes the position on play, pause and seek, so carry it forward from when it was set.
         if (playing && updated > 0 && now > updated) position += now - updated;
         if (duration > 0) position = Math.min(position, duration);
+        Spotify.songChanged(title, str(o, "artist"));
         Spotify.setTrack(new Spotify.Track(title, str(o, "artist"), "", duration, position, playing, System.currentTimeMillis()));
         Spotify.note((playing ? "Playing" : "Paused") + " · from the Spotify " + ("app".equals(str(o, "source")) ? "app" : "web player"));
         String art = str(o, "art");
