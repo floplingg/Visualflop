@@ -129,6 +129,12 @@ public final class SkyLyrics {
         }
     }
 
+    /** For the screenshot test: {texture, width, height} of a line as the sky would draw it, or null. */
+    public static Object[] preview(String text) {
+        SkyText.Line l = SkyText.get(text, Config.get().lyrics.skyFont, Config.get().lyrics.skyGlowSize);
+        return l == null ? null : new Object[]{l.id(), l.w(), l.h()};
+    }
+
     private static Component styled(String s, Config.SkyFont f) {
         return switch (f) {
             case HEAVY -> Kit.face(s, Kit.HEAVY);

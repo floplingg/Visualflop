@@ -39,6 +39,29 @@ class CardScreen extends net.minecraft.client.gui.screens.Screen {
     }
 }
 
+/** A sky lyric line: glow (bottom half of the image) under the text (top half), like in the world. */
+class SkyTextScreen extends net.minecraft.client.gui.screens.Screen {
+    SkyTextScreen() {
+        super(net.minecraft.network.chat.Component.literal("sky"));
+    }
+
+    @Override
+    public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+        super.render(g, mx, my, pt);
+        Object[] p = dev.tony.visuals.fx.SkyLyrics.preview("Come chat shit, I won't show no mercy");
+        if (p == null) return;
+        net.minecraft.resources.Identifier id = (net.minecraft.resources.Identifier) p[0];
+        int w = (int) p[1], h = (int) p[2];
+        float k = (width - 20f) / w;
+        g.pose().pushMatrix();
+        g.pose().translate(10, height / 2f - h * k / 2);
+        g.pose().scale(k, k);
+        g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, id, 0, 0, 0f, h, w, h, w, h, w, h * 2, 0xCC7DD3FC);
+        g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, id, 0, 0, 0f, 0f, w, h, w, h, w, h * 2, 0xFF7DD3FC);
+        g.pose().popMatrix();
+    }
+}
+
 /** The YouTube card at 2x, for the screenshot. */
 class YouTubeScreen extends net.minecraft.client.gui.screens.Screen {
     YouTubeScreen() {
@@ -208,6 +231,9 @@ public class ScreenshotTest implements FabricClientGameTest {
         context.setScreen(() -> new MainScreen(null, 9));
         context.waitTicks(20);
         context.takeScreenshot("22-menu-spotify-sky");
+        context.setScreen(SkyTextScreen::new);
+        context.waitTicks(10);
+        context.takeScreenshot("23-sky-text");
         context.setScreen(() -> null);
         // The animated wallpaper is slow on CI's software renderer and also shows behind the loading screen.
         Config.get().wallpaper.mode = Config.WallpaperMode.VANILLA;
