@@ -41,7 +41,7 @@ public class LayoutScreen extends Screen {
 
     private String widgetAt(double mx, double my) {
         String found = null;
-        for (String id : Config.WIDGETS) {
+        for (String id : Config.allWidgets()) {
             if (Config.get().widget(id).enabled && placement(id).contains(mx, my)) found = id;
         }
         return found;
@@ -68,7 +68,7 @@ public class LayoutScreen extends Screen {
         lastFrame = now;
         super.render(g, mouseX, mouseY, partialTick);
         String hover = dragging != null ? dragging : widgetAt(mouseX, mouseY);
-        for (String id : Config.WIDGETS) {
+        for (String id : Config.allWidgets()) {
             Config.Widget w = Config.get().widget(id);
             if (!w.enabled) continue;
             Hud.Placement p = Hud.draw(g, font, id, w, width, height);
@@ -163,7 +163,7 @@ public class LayoutScreen extends Screen {
         if (Math.abs(pos) < SNAP) return new double[]{0, -1};
         if (Math.abs(pos + size - screen) < SNAP) return new double[]{screen - size, -1};
         if (Math.abs(pos + size / 2.0 - screen / 2.0) < SNAP) return new double[]{screen / 2.0 - size / 2.0, screen / 2.0};
-        for (String other : Config.WIDGETS) {
+        for (String other : Config.allWidgets()) {
             if (other.equals(dragging) || !Config.get().widget(other).enabled) continue;
             Hud.Placement o = placement(other);
             int a = horizontal ? o.x() : o.y(), b = a + (horizontal ? o.w() : o.h());

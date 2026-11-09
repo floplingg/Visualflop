@@ -91,6 +91,7 @@ public class SheetScreen extends Screen {
             case "glass" -> "glass";
             case "wallpaper" -> "wallpaper";
             case "music" -> "music";
+            case "halo" -> "halo";
             default -> "hud";
         };
     }

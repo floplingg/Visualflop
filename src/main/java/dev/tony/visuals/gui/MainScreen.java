@@ -24,6 +24,7 @@ public class MainScreen extends SheetScreen {
         addPage("Keystrokes", "keyboard", 0xBF5AF2, this::keystrokes);
         addPage("Trails", "trails", 0x30D158, this::trails);
         addPage("Ambience", "petals", 0xFF6FAE, this::ambience);
+        addPage("Orbs & Halo", "halo", 0xFFD34D, this::orbs);
         addPage("Sky", "sky", 0x5E5CE6, this::sky);
         addPage("Glass Ground", "glass", 0x32ADE6, this::glass);
         addPage("Wallpaper", "wallpaper", 0xFF9F0A, this::wallpaper);
@@ -49,7 +50,8 @@ public class MainScreen extends SheetScreen {
         "Choose what sits on screen. Every module is a rounded glass card.",
         "A rounded keystroke overlay that lights up in your accent as you press.",
         "A cinematic trail that follows you as you move.",
-        "Orbs, halo, aura and particles that stay around you only, not the whole world.",
+        "Petals and particles that float around you only, not the whole world.",
+        "Glowing orbs that circle you, a halo or crown, and a soft aura.",
         "Animated skies: topographic, galaxy, aether, nocturne and amethyst.",
         "A polished glass floor that mirrors blocks, players and mobs.",
         "Set your own backgrounds for the title screen and other menus.",
@@ -120,6 +122,32 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Header("Layout"));
         l.add(new Sheet.Action("Edit HUD layout", () -> "", () -> minecraft.setScreen(new LayoutScreen(this))).accent().chevron());
         l.add(new Sheet.Footer("Drag to move, scroll to resize, right-click to hide."));
+        l.add(new Sheet.Header("Text"));
+        for (Config.CustomText ct : c().texts) {
+            l.add(new Sheet.Action(ct.text.isEmpty() ? "(empty text)" : ct.text, () -> "Edit", () -> minecraft.setScreen(
+                new TextEditScreen(this, "Edit text", ct.text, v -> ct.text = v))).chevron());
+            l.add(new Sheet.Colour("   Colour", () -> ct.colour, v -> ct.colour = v));
+            l.add(new Sheet.Toggle("   Show", () -> c().widget("text:" + ct.id).enabled, v -> c().widget("text:" + ct.id).enabled = v));
+            l.add(new Sheet.Toggle("   Bold", () -> ct.bold, v -> ct.bold = v));
+            l.add(new Sheet.Toggle("   Background card", () -> ct.background, v -> ct.background = v));
+            l.add(new Sheet.Action("   Remove", () -> "", () -> {
+                c().texts.remove(ct);
+                c().widgets.remove("text:" + ct.id);
+                Config.save();
+                rebuild();
+            }).destructive());
+        }
+        l.add(new Sheet.Action("Add text", () -> "", () -> minecraft.setScreen(new TextEditScreen(this, "New text", "", v -> {
+            if (v.isBlank()) return;
+            Config.CustomText ct = new Config.CustomText();
+            ct.text = v;
+            ct.colour = Config.theme().accent() & 0xFFFFFF;
+            c().texts.add(ct);
+            c().widget("text:" + ct.id).enabled = true;
+            Config.save();
+        }))).accent());
+        l.add(new Sheet.Footer("Your own labels on screen. Move them in Edit HUD layout. {fps}, {coords}, {ping}, {clock} and friends show live values."));
+
         l.add(new Sheet.Header("Widgets"));
         for (String id : Config.WIDGETS) {
             Config.Widget w = c().widget(id);
@@ -170,6 +198,11 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Toggle("Also indoors and underground", () -> pe.indoors, v -> pe.indoors = v));
         l.add(new Sheet.Footer("Spawns only in a bubble around you. Only you see it."));
 
+        return l;
+    }
+
+    private List<Sheet.Item> orbs() {
+        List<Sheet.Item> l = new ArrayList<>();
         Config.Aura au = c().aura;
         l.add(new Sheet.Header("Orbs"));
         l.add(new Sheet.Toggle("Orbiting orbs", () -> au.orbs, v -> au.orbs = v));

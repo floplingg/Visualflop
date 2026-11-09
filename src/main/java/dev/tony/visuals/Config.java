@@ -8,7 +8,9 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /** Everything saved to config/flop-visuals/config.json. */
@@ -191,7 +193,36 @@ public final class Config {
         "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day", "spotify", "lyrics",
     };
 
+    /** Your own text labels on the HUD. Each one is a widget with the id "text:<id>". */
+    public static final class CustomText {
+        public String id = Long.toHexString(System.nanoTime());
+        public String text = "Hello!";
+        public int colour = 0xFFFFFF;
+        public boolean bold = true;
+        public boolean background = true;
+    }
+
+    public List<CustomText> texts = new ArrayList<>();
+
+    public CustomText text(String widgetId) {
+        if (!widgetId.startsWith("text:")) return null;
+        String id = widgetId.substring(5);
+        for (CustomText t : texts) if (t.id.equals(id)) return t;
+        return null;
+    }
+
+    /** Built-in widgets plus your text labels. */
+    public static List<String> allWidgets() {
+        List<String> out = new ArrayList<>(java.util.Arrays.asList(WIDGETS));
+        for (CustomText t : get().texts) out.add("text:" + t.id);
+        return out;
+    }
+
     public static String widgetName(String id) {
+        if (id.startsWith("text:")) {
+            CustomText t = get().text(id);
+            return t == null ? "Text" : "Text: " + t.text;
+        }
         return switch (id) {
             case "keystrokes" -> "Keystrokes";
             case "fps" -> "FPS";
@@ -236,6 +267,11 @@ public final class Config {
         if (w == null) {
             defaults();
             w = widgets.get(id);
+        }
+        if (w == null) {
+            // A new text label starts in the middle of the screen.
+            w = new Widget(true, 0.5f, 0.4f);
+            widgets.put(id, w);
         }
         return w;
     }
@@ -288,6 +324,9 @@ public final class Config {
         if (aura == null) aura = new Aura();
         if (lyrics == null) lyrics = new Lyrics();
         if (menu == null) menu = new Menu();
+        if (texts == null) texts = new ArrayList<>();
+        texts.removeIf(t -> t == null || t.id == null);
+        for (CustomText t : texts) if (t.text == null) t.text = "";
         if (menu.position == null) menu.position = MenuPosition.CENTER;
         menu.scale = Theme.c(menu.scale, 70, 130);
         menu.opacity = Theme.c(menu.opacity, 40, 100);

@@ -45,7 +45,7 @@ public final class Hud {
         newFrame();
         if (mc.screen instanceof LayoutScreen) return;   // the layout editor draws its own copy
         Font font = mc.font;
-        for (String id : Config.WIDGETS) {
+        for (String id : Config.allWidgets()) {
             Config.Widget w = Config.get().widget(id);
             if (w.enabled) draw(g, font, id, w, g.guiWidth(), g.guiHeight());
         }
@@ -59,6 +59,12 @@ public final class Hud {
         if (id.equals("keystrokes")) return Keystrokes.size();
         if (id.equals("spotify")) return SpotifyWidget.size();
         if (id.equals("lyrics")) return LyricsWidget.size();
+        if (id.startsWith("text:")) {
+            Config.CustomText ct = Config.get().text(id);
+            String s = ct == null ? "" : fill(ct.text);
+            int w = Kit.width(s, ct != null && ct.bold);
+            return new int[]{w + 2 * t.padding + 2, 8 + 2 * t.padding + 1};
+        }
         if (id.equals("armor")) {
             int n = armorItems().size();
             return new int[]{Math.max(1, n) * 18 + 2 * t.padding - 2 + strip(t), 16 + 2 * t.padding + (n > 0 ? 9 : 0)};
@@ -90,7 +96,10 @@ public final class Hud {
             case "armor" -> drawArmor(g, font, p.rawW(), p.rawH());
             case "spotify" -> SpotifyWidget.draw(g, p.rawW(), p.rawH());
             case "lyrics" -> LyricsWidget.draw(g, p.rawW(), p.rawH());
-            default -> drawText(g, font, id, p.rawW(), p.rawH());
+            default -> {
+                if (id.startsWith("text:")) drawCustom(g, id, p.rawW(), p.rawH());
+                else drawText(g, font, id, p.rawW(), p.rawH());
+            }
         }
         g.pose().popMatrix();
         return p;
@@ -129,6 +138,24 @@ public final class Hud {
             x += Kit.width(parts[0], true) + 4;
         }
         Kit.text(g, parts[1], x, y, Theme.opaque(t.text), false, t.textShadow);
+    }
+
+    private static void drawCustom(GuiGraphics g, String id, int w, int h) {
+        Theme t = Config.theme();
+        Config.CustomText ct = Config.get().text(id);
+        if (ct == null) return;
+        if (ct.background) card(g, 0, 0, w, h);
+        Kit.text(g, fill(ct.text), t.padding + 1, t.padding + 1, 0xFF000000 | (ct.colour & 0xFFFFFF), ct.bold, t.textShadow);
+    }
+
+    /** Swaps {fps}, {coords}, {ping}, {clock}, {biome}, {speed}, {direction}, {cps}, {day} for live values. */
+    public static String fill(String s) {
+        if (s == null || s.indexOf('{') < 0) return s == null ? "" : s;
+        for (String key : new String[]{"fps", "coords", "ping", "clock", "biome", "speed", "direction", "cps", "day"}) {
+            String tag = "{" + key + "}";
+            if (s.contains(tag)) s = s.replace(tag, text(key)[1]);
+        }
+        return s;
     }
 
     private static final java.util.Map<String, String[]> textCache = new java.util.HashMap<>();

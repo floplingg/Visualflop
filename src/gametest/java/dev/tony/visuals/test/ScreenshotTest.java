@@ -39,7 +39,7 @@ public class ScreenshotTest implements FabricClientGameTest {
             context.takeScreenshot("01-wallpaper-" + walls[i]);
         }
 
-        String[] names = {"appearance", "hud", "keystrokes", "trails", "ambience", "sky", "glass", "wallpaper", "spotify"};
+        String[] names = {"appearance", "hud", "keystrokes", "trails", "ambience", "orbs-halo", "sky", "glass", "wallpaper", "spotify"};
         for (int i = 0; i < names.length; i++) {
             int page = i;
             context.setScreen(() -> new MainScreen(null, page));
@@ -48,11 +48,16 @@ public class ScreenshotTest implements FabricClientGameTest {
         }
         context.setScreen(() -> new MainScreen(null, 5));
         context.waitTicks(20);
-        context.setScreen(() -> new MainScreen(null, 4));
+        // HUD page with a text label added.
+        context.runOnClient(mc -> {
+            dev.tony.visuals.Config.CustomText ct = new dev.tony.visuals.Config.CustomText();
+            ct.text = "Hello {fps}";
+            ct.colour = 0xFFA235;
+            dev.tony.visuals.Config.get().texts.add(ct);
+        });
+        context.setScreen(() -> new MainScreen(null, 1));
         context.waitTicks(20);
-        context.runOnClient(mc -> mc.screen.mouseScrolled(0, 0, 0, -30));
-        context.waitTicks(12);
-        context.takeScreenshot("11-menu-ambience-halo");
+        context.takeScreenshot("11-menu-hud-text");
         // Spotify card: a JPEG cover decoded by the mod, then a cover found through the iTunes backup.
         context.runOnClient(mc -> {
             try (var in = ScreenshotTest.class.getResourceAsStream("/test_cover.jpg")) {
