@@ -1,0 +1,15 @@
+file mode
+still running after 12s (good)
+{"ack":"toggle"}
+{"title":"","source":"","playing":false}
+{"ack":"next"}
+{"title":"","source":"","playing":false}
+{"ack":"previous"}
+{"title":"","source":"","playing":false}
+{"title":"","source":"","playing":false}
+{"title":"","source":"","playing":false}
+{"title":"","source":"","playing":false}
+{"title":"","source":"","playing":false}
+{"title":"","source":"","playing":false}
+{"title":"","source":"","playing":false}
+--- stderr
