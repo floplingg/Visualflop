@@ -59,6 +59,9 @@ public final class Hud {
         if (id.equals("keystrokes")) return Keystrokes.size();
         if (id.equals("spotify")) return SpotifyWidget.size();
         if (id.equals("lyrics")) return LyricsWidget.size();
+        if (id.equals("profit")) return MoneyWidgets.profitSize();
+        if (id.equals("moneygraph")) return MoneyWidgets.graphSize();
+        if (id.equals("auction")) return MoneyWidgets.auctionSize();
         if (id.startsWith("text:")) {
             Config.CustomText ct = Config.get().text(id);
             String s = ct == null ? "" : fill(ct.text);
@@ -96,6 +99,9 @@ public final class Hud {
             case "armor" -> drawArmor(g, font, p.rawW(), p.rawH());
             case "spotify" -> SpotifyWidget.draw(g, p.rawW(), p.rawH());
             case "lyrics" -> LyricsWidget.draw(g, p.rawW(), p.rawH());
+            case "profit" -> MoneyWidgets.drawProfit(g, p.rawW(), p.rawH());
+            case "moneygraph" -> MoneyWidgets.drawGraph(g, p.rawW(), p.rawH());
+            case "auction" -> MoneyWidgets.drawAuction(g, p.rawW(), p.rawH());
             default -> {
                 if (id.startsWith("text:")) drawCustom(g, id, p.rawW(), p.rawH());
                 else drawText(g, font, id, p.rawW(), p.rawH());

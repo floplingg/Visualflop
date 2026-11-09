@@ -39,6 +39,30 @@ class CardScreen extends net.minecraft.client.gui.screens.Screen {
     }
 }
 
+/** Money gained/lost, the money graph and the auction card, for the screenshot. */
+class MoneyScreen extends net.minecraft.client.gui.screens.Screen {
+    MoneyScreen() {
+        super(net.minecraft.network.chat.Component.literal("money"));
+    }
+
+    @Override
+    public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+        super.render(g, mx, my, pt);
+        g.pose().pushMatrix();
+        g.pose().translate(20, 20);
+        g.pose().scale(2, 2);
+        int[] a = dev.tony.visuals.hud.MoneyWidgets.profitSize();
+        dev.tony.visuals.hud.MoneyWidgets.drawProfit(g, a[0], a[1]);
+        g.pose().translate(0, a[1] + 6);
+        int[] b = dev.tony.visuals.hud.MoneyWidgets.graphSize();
+        dev.tony.visuals.hud.MoneyWidgets.drawGraph(g, b[0], b[1]);
+        g.pose().translate(b[0] + 8, 0);
+        int[] c = dev.tony.visuals.hud.MoneyWidgets.auctionSize();
+        dev.tony.visuals.hud.MoneyWidgets.drawAuction(g, c[0], c[1]);
+        g.pose().popMatrix();
+    }
+}
+
 /** Screenshots of the wallpapers, the menu (with a dropdown open) and, in a world, every sky and the glass ground. */
 public class ScreenshotTest implements FabricClientGameTest {
     @Override
@@ -90,7 +114,8 @@ public class ScreenshotTest implements FabricClientGameTest {
         context.runOnClient(mc -> {
             String[] msgs = {"Steve paid you $5M.", "Steve paid you $5M.", "Steve paid you $5M.", "Alex paid you $2.1M.",
                 "Bob paid you $500K.", "Kim paid you $3.2M.", "Lee paid you $1,500,000.",
-                "G4PP13 paid you $ 1.1M", "G4PP13 paid you $ 1.2M", "G4PP13 paid you $ 1M", "G4PP13 paid you $ 1M"};
+                "G4PP13 paid you $ 1.1M", "G4PP13 paid you $ 1.2M", "G4PP13 paid you $ 1M", "G4PP13 paid you $ 1M", "You paid Shade2511 $ 10.2M", "Max paid you $ 40M",
+                "You paid Max $ 25M"};
             for (String m : msgs) {
                 boolean took = dev.tony.visuals.pay.Payments.handle(net.minecraft.network.chat.Component.literal(m));
                 org.slf4j.LoggerFactory.getLogger("flopvisuals-test").info("payment '{}' handled={}", m, took);
@@ -109,6 +134,36 @@ public class ScreenshotTest implements FabricClientGameTest {
             net.minecraft.resources.Identifier.fromNamespaceAndPath("flopvisuals", "pay/1/win")));
         context.waitTicks(20);
         context.takeScreenshot("15-gamble-wins-picker");
+        context.setScreen(() -> null);
+        context.runOnClient(mc -> org.slf4j.LoggerFactory.getLogger("flopvisuals-test").info("profit {} history {}",
+            dev.tony.visuals.pay.Tracker.label(dev.tony.visuals.pay.Tracker.profit()), dev.tony.visuals.pay.Tracker.history()));
+        // Auction: three bidders, one pays twice.
+        context.runOnClient(mc -> {
+            Config.get().auction.seconds = 5;
+            dev.tony.visuals.pay.Auction.start("Netherite Ingot");
+            for (String m : new String[]{"Steve paid you $ 2M", "G4PP13 paid you $ 3.5M", "Steve paid you $ 2.5M", "Alex paid you $ 1M"}) {
+                dev.tony.visuals.pay.Payments.handle(net.minecraft.network.chat.Component.literal(m));
+            }
+        });
+        context.setScreen(MoneyScreen::new);
+        context.waitTicks(10);
+        context.takeScreenshot("16-money-and-auction");
+        context.waitTicks(120);
+        context.runOnClient(mc -> {
+            for (var line : ((dev.tony.visuals.mixin.ChatComponentAccessor) mc.gui.getChat()).flopvisuals$allMessages()) {
+                org.slf4j.LoggerFactory.getLogger("flopvisuals-test").info("chat: {}", line.content().getString());
+            }
+        });
+        context.takeScreenshot("17-auction-finished");
+        context.setScreen(ChatViewScreen::new);
+        context.waitTicks(10);
+        context.takeScreenshot("18-auction-chat");
+        context.setScreen(() -> new MainScreen(null, 10));
+        context.waitTicks(20);
+        context.takeScreenshot("19-menu-gamble");
+        context.setScreen(() -> new MainScreen(null, 11));
+        context.waitTicks(20);
+        context.takeScreenshot("19-menu-auction");
         context.setScreen(() -> null);
         // The animated wallpaper is slow on CI's software renderer and also shows behind the loading screen.
         Config.get().wallpaper.mode = Config.WallpaperMode.VANILLA;

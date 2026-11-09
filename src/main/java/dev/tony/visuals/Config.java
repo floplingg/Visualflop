@@ -79,7 +79,22 @@ public final class Config {
         public float payout = 2f;
         public boolean stack = true;
         public boolean tags = true;
+        /** Money tracker: counts what people pay you (+) and what you pay out (−). */
+        public boolean tracking = true;
+        public double profit = 0;
+        /** Running total after each payment, for the money graph (newest last). */
+        public List<Double> history = new ArrayList<>();
     }
+
+    /** DonutSMP auctions: highest total payment before the countdown ends wins the item. */
+    public static final class Auction {
+        public List<String> items = new ArrayList<>(List.of("Netherite Ingot"));
+        public int seconds = 30;
+        /** Say "<IGN> wins the <item>!" in public chat when it ends. */
+        public boolean announce = true;
+    }
+
+    public Auction auction = new Auction();
 
     public enum MenuPosition { CENTER, LEFT, RIGHT }
 
@@ -202,7 +217,7 @@ public final class Config {
     // ------------------------------------------------------------ widget list
 
     public static final String[] WIDGETS = {
-        "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day", "spotify", "lyrics",
+        "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day", "spotify", "lyrics", "profit", "moneygraph", "auction",
     };
 
     /** Your own text labels on the HUD. Each one is a widget with the id "text:<id>". */
@@ -249,6 +264,9 @@ public final class Config {
             case "day" -> "Day";
             case "spotify" -> "Spotify";
             case "lyrics" -> "Lyrics";
+            case "profit" -> "Money gained / lost";
+            case "moneygraph" -> "Money graph";
+            case "auction" -> "Auction";
             default -> id;
         };
     }
@@ -268,6 +286,9 @@ public final class Config {
         putDefault("day", false, 0.995f, 0.16f);
         putDefault("spotify", false, 0.5f, 0.02f);
         putDefault("lyrics", false, 0.5f, 0.86f);
+        putDefault("profit", false, 0.005f, 0.26f);
+        putDefault("moneygraph", false, 0.005f, 0.33f);
+        putDefault("auction", false, 0.995f, 0.3f);
     }
 
     private void putDefault(String id, boolean on, float x, float y) {
@@ -337,6 +358,10 @@ public final class Config {
         if (lyrics == null) lyrics = new Lyrics();
         if (menu == null) menu = new Menu();
         if (gamble == null) gamble = new Gamble();
+        if (gamble.history == null) gamble.history = new ArrayList<>();
+        if (auction == null) auction = new Auction();
+        if (auction.items == null) auction.items = new ArrayList<>();
+        auction.seconds = Math.max(5, Math.min(600, auction.seconds));
         gamble.payout = Math.max(1f, Math.min(10f, gamble.payout));
         gamble.minimum = Math.max(0, gamble.minimum);
         if (texts == null) texts = new ArrayList<>();

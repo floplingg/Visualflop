@@ -37,6 +37,20 @@ public final class Payments {
      */
     private static final Pattern PAID = Pattern.compile("([A-Za-z0-9_.]{2,17})[^A-Za-z0-9_.$]{0,4}\\s*paid\\s+you\\s*:?\\s*\\$\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)\\s*([KkMmBbTt]?)(?![A-Za-z])", Pattern.CASE_INSENSITIVE);
 
+    /** "You paid Name $ 10.2M": money going out, for the tracker. */
+    private static final Pattern PAID_OUT = Pattern.compile("you\\s+paid\\s+([A-Za-z0-9_.]{2,17})\\s*:?\\s*\\$\\s*([0-9][0-9,]*(?:\\.[0-9]+)?)\\s*([KkMmBbTt]?)(?![A-Za-z])", Pattern.CASE_INSENSITIVE);
+
+    private static double amount(String number, String suffix) {
+        double mult = switch (suffix.toUpperCase(Locale.ROOT)) {
+            case "K" -> 1e3;
+            case "M" -> 1e6;
+            case "B" -> 1e9;
+            case "T" -> 1e12;
+            default -> 1;
+        };
+        return Double.parseDouble(number.replace(",", "")) * mult;
+    }
+
     /** The last few lines the server sent, shown on the Gamble page so a mismatch is easy to spot. */
     private static final java.util.Deque<String> RECENT = new java.util.ArrayDeque<>();
     private static volatile String lastMatch = "";
@@ -93,6 +107,7 @@ public final class Payments {
     private static final Map<String, Entry> OPEN = new HashMap<>();
 
     public static void init() {
+        Auction.init();
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> {
             if (overlay) return true;
             try {
@@ -114,15 +129,30 @@ public final class Payments {
     /** Returns true when the message was a payment we took over. Public for the automated test. */
     public static boolean handle(Component message) {
         Config.Gamble cfg = Config.get().gamble;
-        if (!cfg.enabled) return false;
         String raw = message.getString();
         synchronized (RECENT) {
             RECENT.addLast(raw);
             while (RECENT.size() > 5) RECENT.removeFirst();
         }
-        Matcher m = PAID.matcher(normalise(raw));
+        String clean = normalise(raw);
+        Matcher out = PAID_OUT.matcher(clean);
+        if (out.find()) {
+            Tracker.add(-amount(out.group(2), out.group(3)));
+            return false;
+        }
+        Matcher m = PAID.matcher(clean);
         if (!m.find()) return false;
         String player = m.group(1);
+        if (player.equalsIgnoreCase("you")) return false;
+        double paid = amount(m.group(2), m.group(3));
+        Tracker.add(paid);
+        // During an auction every payment is a bid, not a bet.
+        if (Auction.active()) {
+            Auction.bid(player, paid);
+            lastMatch = player + " bid $" + m.group(2) + m.group(3) + " on the " + Auction.item();
+            return false;
+        }
+        if (!cfg.enabled) return false;
         String number = m.group(2).replace(",", "");
         String suffix = m.group(3).toUpperCase(Locale.ROOT);
         double mult = switch (suffix) {

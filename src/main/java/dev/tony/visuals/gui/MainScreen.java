@@ -30,6 +30,7 @@ public class MainScreen extends SheetScreen {
         addPage("Wallpaper", "wallpaper", 0xFF9F0A, this::wallpaper);
         addPage("Spotify", "music", 0x1DB954, this::spotify);
         addPage("Gamble", "pay", 0xFFD34D, this::gamble);
+        addPage("Auction", "gavel", 0xFF8A3D, this::auction);
         page = lastPage;
     }
 
@@ -57,7 +58,8 @@ public class MainScreen extends SheetScreen {
         "A polished glass floor that mirrors blocks, players and mobs.",
         "Set your own backgrounds for the title screen and other menus.",
         "A now-playing card with album art and progress.",
-        "DonutSMP bets: mark payments as won or lost right in chat.",
+        "DonutSMP bets: mark payments as won or lost right in chat, and track your profit.",
+        "DonutSMP auctions: highest total payment before the countdown ends wins.",
     };
 
     @Override
@@ -361,9 +363,62 @@ public class MainScreen extends SheetScreen {
         return id.length() <= 8 ? id : id.substring(0, 4) + "••••" + id.substring(id.length() - 4);
     }
 
+    private List<Sheet.Item> auction() {
+        Config.Auction au = c().auction;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Now"));
+        l.add(new Sheet.Info("Status", () -> dev.tony.visuals.pay.Auction.active()
+            ? dev.tony.visuals.pay.Auction.item() + " · " + (int) Math.ceil(dev.tony.visuals.pay.Auction.secondsLeft()) + "s left"
+            : dev.tony.visuals.pay.Auction.result() != null ? dev.tony.visuals.pay.Auction.result() : "No auction running"));
+        l.add(new Sheet.Action("Stop auction (no winner)", () -> "", () -> {
+            dev.tony.visuals.pay.Auction.cancel();
+            rebuild();
+        }).destructive());
+        l.add(new Sheet.Toggle("Show on HUD", () -> c().widget("auction").enabled, v -> c().widget("auction").enabled = v));
+        l.add(new Sheet.Slider("Countdown", 5f, 300f, 5f, () -> (float) au.seconds, v -> au.seconds = Math.round(v),
+            v -> Math.round(v) + "s"));
+        l.add(new Sheet.Toggle("Announce in public chat", () -> au.announce, v -> au.announce = v));
+        l.add(new Sheet.Header("Items"));
+        for (String item : new ArrayList<>(au.items)) {
+            l.add(new Sheet.Action(item, () -> dev.tony.visuals.pay.Auction.active() ? "" : "Start", () -> {
+                if (dev.tony.visuals.pay.Auction.active()) return;
+                c().widget("auction").enabled = true;
+                Config.save();
+                dev.tony.visuals.pay.Auction.start(item);
+                onClose();
+            }).accent().chevron());
+            l.add(new Sheet.Action("   Rename", () -> "", () -> minecraft.setScreen(new TextEditScreen(this, "Item name", item, v -> {
+                int i = au.items.indexOf(item);
+                if (i >= 0 && !v.isBlank()) au.items.set(i, v.trim());
+            }))));
+            l.add(new Sheet.Action("   Remove", () -> "", () -> {
+                au.items.remove(item);
+                Config.save();
+                rebuild();
+            }).destructive());
+        }
+        l.add(new Sheet.Action("Add item", () -> "", () -> minecraft.setScreen(new TextEditScreen(this, "New item (e.g. Netherite Ingot)", "", v -> {
+            if (!v.isBlank()) au.items.add(v.trim());
+            Config.save();
+        }))).accent());
+        l.add(new Sheet.Footer("Press Start on an item: the countdown begins and every payment counts as a bid (one player's payments add up). When time runs out, the highest total wins: \"<IGN> wins the Netherite Ingot!\". Everyone else is listed in your chat with what to refund. Nothing is ever paid for you."));
+        return l;
+    }
+
     private List<Sheet.Item> gamble() {
         Config.Gamble gb = c().gamble;
         List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Money tracker"));
+        l.add(new Sheet.Toggle("Tracking", () -> gb.tracking, v -> gb.tracking = v));
+        l.add(new Sheet.Info("Gained / lost", () -> dev.tony.visuals.pay.Tracker.label(gb.profit)
+            + (gb.tracking ? "" : " · paused")));
+        l.add(new Sheet.Toggle("Show on HUD", () -> c().widget("profit").enabled, v -> c().widget("profit").enabled = v));
+        l.add(new Sheet.Toggle("Money graph on HUD", () -> c().widget("moneygraph").enabled, v -> c().widget("moneygraph").enabled = v));
+        l.add(new Sheet.Action("Reset to +(0)", () -> "", () -> {
+            dev.tony.visuals.pay.Tracker.reset();
+            rebuild();
+        }).destructive());
+        l.add(new Sheet.Footer("While Tracking is on, every \"Name paid you $X\" adds and every \"You paid Name $X\" takes away. Turn it off when you aren't gambling so normal trades don't count."));
         l.add(new Sheet.Header("Payments in chat"));
         l.add(new Sheet.Toggle("Bet buttons on payments", () -> gb.enabled, v -> gb.enabled = v));
         l.add(new Sheet.Action("Minimum bet", () -> "$" + dev.tony.visuals.pay.Payments.money(gb.minimum), () -> minecraft.setScreen(

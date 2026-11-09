@@ -38,6 +38,9 @@ public class SheetScreen extends Screen {
     private long lastFrame;
     private Sheet.Slider dragging;
     private float scrollbarAlpha;
+    private boolean draggingBar;
+    private float barGrab;
+    private final Ease barHover = new Ease(0.2f, 0);
 
     private static final int[] SWATCHES = {0x8B7CFF, 0x4FD1FF, 0xFF6FB5, 0x5CFFB0, 0xFFA235};
     private static final float CARD_GAP = 5;
@@ -93,6 +96,7 @@ public class SheetScreen extends Screen {
             case "music" -> "music";
             case "halo" -> "halo";
             case "pay" -> "pay";
+            case "gavel" -> "gavel";
             default -> "hud";
         };
     }
@@ -240,7 +244,7 @@ public class SheetScreen extends Screen {
         scrollTarget = Math.max(0, Math.min(Math.max(0, contentH - ch), scrollTarget));
         float before = scroll;
         scroll = Kit.approach(scroll, scrollTarget, 18, dt);
-        scrollbarAlpha = Kit.approach(scrollbarAlpha, Math.abs(before - scroll) > 0.05f || dragging != null ? 1 : 0, scrollbarAlpha > 0.5f ? 3 : 12, dt);
+        scrollbarAlpha = Kit.approach(scrollbarAlpha, Math.abs(before - scroll) > 0.05f || dragging != null || draggingBar ? 1 : 0, scrollbarAlpha > 0.5f ? 3 : 12, dt);
 
         // Opens with a cubic-out rise and grow.
         float rise = (1 - open) * 18, s = 0.94f + 0.06f * open;
@@ -267,13 +271,36 @@ public class SheetScreen extends Screen {
         drawItems(g, cx + ox, cy - scroll, mx, my, dt, pageT);
         g.disableScissor();
 
-        if (contentH > ch && scrollbarAlpha > 0.02f) {
-            float barH = Math.max(20, ch * ch / contentH);
-            float barY = cy + (ch - barH) * (scroll / Math.max(1, contentH - ch));
-            Shapes.round(g, px + pw - 7, barY, 3, barH, 1.5f, ((int) (scrollbarAlpha * (Kit.dark ? 110 : 90)) << 24) | (Kit.dark ? 0xFFFFFF : 0));
+        // Scroll bar: always shown when the page is longer than the window; drag it or click the track.
+        if (contentH > ch) {
+            float[] t = barTrack(), th = barThumb();
+            float hv = barHover.to(draggingBar || inside(mx, my, t[0] - 3, t[1], t[2] + 6, t[3]) ? 1 : 0);
+            float w = 3 + 2 * hv;
+            Shapes.round(g, t[0] + (t[2] - w) / 2, t[1], w, t[3], w / 2, glass(0.05f + 0.05f * hv));
+            int a = Math.round(255 * Math.min(1, 0.35f + 0.35f * hv + 0.3f * scrollbarAlpha));
+            Shapes.round(g, t[0] + (t[2] - w) / 2, th[1], w, th[3], w / 2, (a << 24) | (Kit.dark ? 0xFFFFFF : 0x000000));
         }
         g.pose().popMatrix();
         super.render(g, mouseX, mouseY, partialTick);
+    }
+
+    /** Scroll track {x, y, w, h} on the right edge of the content. */
+    private float[] barTrack() {
+        return new float[]{px + pw - 10, cy + 2, 8, ch - 4};
+    }
+
+    private float[] barThumb() {
+        float[] t = barTrack();
+        float h = Math.max(22, t[3] * ch / Math.max(ch, contentH));
+        float y = t[1] + (t[3] - h) * (scroll / Math.max(1, contentH - ch));
+        return new float[]{t[0], y, t[2], h};
+    }
+
+    private void dragBar(double my) {
+        float[] t = barTrack(), th = barThumb();
+        float k = (float) ((my - barGrab - t[1]) / Math.max(1, t[3] - th[3]));
+        scrollTarget = Math.max(0, Math.min(1, k)) * Math.max(0, contentH - ch);
+        scroll = scrollTarget;
     }
 
     private int onAccent() {
@@ -508,6 +535,16 @@ public class SheetScreen extends Screen {
         double mx = event.x(), my = event.y();
         int button = event.button();
         if (closing) return true;
+        if (button == 0 && contentH > ch) {
+            float[] t = barTrack(), th = barThumb();
+            if (inside(mx, my, t[0] - 3, t[1], t[2] + 6, t[3])) {
+                // Grab the thumb where you clicked it; clicking the track jumps there.
+                barGrab = inside(mx, my, t[0] - 3, th[1], t[2] + 6, th[3]) ? (float) (my - th[1]) : th[3] / 2f;
+                draggingBar = true;
+                dragBar(my);
+                return true;
+            }
+        }
         if (multi()) {
             float[] c = closeChip();
             if (button == 0 && inside(mx, my, c[0], c[1], c[2], c[3])) {
@@ -605,6 +642,10 @@ public class SheetScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (draggingBar) {
+            dragBar(event.y());
+            return true;
+        }
         if (dragging != null) {
             setSlider(dragging, event.x());
             return true;
@@ -614,6 +655,10 @@ public class SheetScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        if (draggingBar) {
+            draggingBar = false;
+            return true;
+        }
         if (dragging != null) {
             Sheet.Slider was = dragging;
             dragging = null;
