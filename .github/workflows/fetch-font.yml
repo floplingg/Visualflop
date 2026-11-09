@@ -12,14 +12,13 @@ jobs:
           set -e
           dir=src/main/resources/assets/flopvisuals/font
           mkdir -p $dir
-          git clone -q --depth 1 https://github.com/sharanda/manrope.git /tmp/manrope
-          find /tmp/manrope -iname "*.ttf" | head -40
-          for w in Medium SemiBold Bold ExtraBold; do
-            f=$(find /tmp/manrope -iname "manrope-${w}.ttf" | grep -vi variable | head -1)
-            echo "manrope $w -> $f"
-            cp "$f" "$dir/manrope-$(echo $w | tr A-Z a-z).ttf"
+          # Manrope static weights (Latin + Latin Extended) from Fontsource's CDN.
+          for w in 500:medium 600:semibold 700:bold 800:extrabold; do
+            n=${w%%:*}; name=${w##*:}
+            curl -fsSL -o $dir/manrope-$name.ttf "https://cdn.jsdelivr.net/fontsource/fonts/manrope@latest/latin-$n-normal.ttf"
+            curl -fsSL -o $dir/manrope-$name-ext.ttf "https://cdn.jsdelivr.net/fontsource/fonts/manrope@latest/latin-ext-$n-normal.ttf"
           done
-          cp "$(find /tmp/manrope -iname 'OFL*.txt' -o -iname 'LICENSE*' | head -1)" $dir/MANROPE-LICENSE.txt
+          curl -fsSL -o $dir/MANROPE-LICENSE.txt https://raw.githubusercontent.com/google/fonts/main/ofl/manrope/OFL.txt
           curl -fsSL -o jbm.zip https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip
           f=$(unzip -l jbm.zip | grep -oE "[^ ]*ttf/JetBrainsMono-SemiBold\.ttf" | head -1)
           unzip -p jbm.zip "$f" > $dir/jetbrainsmono-semibold.ttf
