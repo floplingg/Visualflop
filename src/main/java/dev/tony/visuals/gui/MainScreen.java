@@ -29,6 +29,7 @@ public class MainScreen extends SheetScreen {
         addPage("Glass Ground", "glass", 0x32ADE6, this::glass);
         addPage("Wallpaper", "wallpaper", 0xFF9F0A, this::wallpaper);
         addPage("Spotify", "music", 0x1DB954, this::spotify);
+        addPage("Gamble", "pay", 0xFFD34D, this::gamble);
         page = lastPage;
     }
 
@@ -56,6 +57,7 @@ public class MainScreen extends SheetScreen {
         "A polished glass floor that mirrors blocks, players and mobs.",
         "Set your own backgrounds for the title screen and other menus.",
         "A now-playing card with album art and progress.",
+        "DonutSMP bets: mark payments as won or lost right in chat.",
     };
 
     @Override
@@ -357,5 +359,23 @@ public class MainScreen extends SheetScreen {
 
     private static String mask(String id) {
         return id.length() <= 8 ? id : id.substring(0, 4) + "••••" + id.substring(id.length() - 4);
+    }
+
+    private List<Sheet.Item> gamble() {
+        Config.Gamble gb = c().gamble;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Payments in chat"));
+        l.add(new Sheet.Toggle("Bet buttons on payments", () -> gb.enabled, v -> gb.enabled = v));
+        l.add(new Sheet.Action("Minimum bet", () -> "$" + dev.tony.visuals.pay.Payments.money(gb.minimum), () -> minecraft.setScreen(
+            new TextEditScreen(this, "Minimum bet (e.g. 1M, 500K)", dev.tony.visuals.pay.Payments.money(gb.minimum), v -> {
+                double m = dev.tony.visuals.pay.Payments.parse(v);
+                if (m >= 0) gb.minimum = m;
+            }))).chevron());
+        l.add(new Sheet.Slider("Win pays", 1f, 5f, 0.1f, () -> gb.payout, v -> gb.payout = v,
+            v -> String.format(java.util.Locale.ROOT, "%.1f×", v)));
+        l.add(new Sheet.Toggle("Stack repeat payments", () -> gb.stack, v -> gb.stack = v));
+        l.add(new Sheet.Toggle("[Paper] and [BJ] tags", () -> gb.tags, v -> gb.tags = v));
+        l.add(new Sheet.Footer("When someone pays you at least the minimum, the chat line gets [✔] and [✖]. Open chat (T) and click: ✔ = they won (turns lime and shows what to pay back), ✖ = they lost (turns red). Amounts ending in .1 are tagged [Paper], .2 [BJ]. The same person paying the same amount again stacks: \"Name paid you [5] $5M\"; clicking ✔ on a stack lets you pick how many they won."));
+        return l;
     }
 }

@@ -37,6 +37,7 @@ public class FlopVisuals implements ClientModInitializer {
         previousKey = KeyBindingHelper.registerKeyBinding(
             new KeyMapping("key.flopvisuals.previous", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
         dev.tony.visuals.hud.SpotifyWidget.registerClicks();
+        dev.tony.visuals.pay.Payments.init();
         TopoSky.init();
         GlassGround.init();
         dev.tony.visuals.fx.AuraFx.init();

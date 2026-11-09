@@ -23,6 +23,7 @@ public final class Config {
     public Aura aura = new Aura();
     public Lyrics lyrics = new Lyrics();
     public Menu menu = new Menu();
+    public Gamble gamble = new Gamble();
     public Sky sky = new Sky();
     public Glass glass = new Glass();
     public Wallpaper wallpaper = new Wallpaper();
@@ -67,6 +68,17 @@ public final class Config {
         public boolean whileFlying = true;
         /** How far particles drift, 1 to 10. */
         public int spread = 4;
+    }
+
+    /** DonutSMP bet helper for payments in chat. */
+    public static final class Gamble {
+        public boolean enabled = true;
+        /** Payments below this are left alone. */
+        public double minimum = 1_000_000;
+        /** What a win pays back, as a multiple of the bet (2 = double). */
+        public float payout = 2f;
+        public boolean stack = true;
+        public boolean tags = true;
     }
 
     public enum MenuPosition { CENTER, LEFT, RIGHT }
@@ -324,6 +336,9 @@ public final class Config {
         if (aura == null) aura = new Aura();
         if (lyrics == null) lyrics = new Lyrics();
         if (menu == null) menu = new Menu();
+        if (gamble == null) gamble = new Gamble();
+        gamble.payout = Math.max(1f, Math.min(10f, gamble.payout));
+        gamble.minimum = Math.max(0, gamble.minimum);
         if (texts == null) texts = new ArrayList<>();
         texts.removeIf(t -> t == null || t.id == null);
         for (CustomText t : texts) if (t.text == null) t.text = "";

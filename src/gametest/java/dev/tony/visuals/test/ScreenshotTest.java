@@ -7,6 +7,20 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.CameraType;
 
+/** Shows the chat box (for the screenshot; the real chat screen needs a world). */
+class ChatViewScreen extends net.minecraft.client.gui.screens.Screen {
+    ChatViewScreen() {
+        super(net.minecraft.network.chat.Component.literal("chat"));
+    }
+
+    @Override
+    public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+        super.render(g, mx, my, pt);
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        mc.gui.getChat().render(g, font, mc.gui.getGuiTicks(), mx, my, true, false);
+    }
+}
+
 /** A plain screen that shows the Spotify card, for the screenshot. */
 class CardScreen extends net.minecraft.client.gui.screens.Screen {
     CardScreen() {
@@ -72,6 +86,28 @@ public class ScreenshotTest implements FabricClientGameTest {
         context.runOnClient(mc -> dev.tony.visuals.spotify.Spotify.testInject("Blinding Lights", "The Weeknd", null));
         context.waitTicks(160);
         context.takeScreenshot("13-spotify-card-itunes");
+        // Gamble: payments in chat.
+        context.runOnClient(mc -> {
+            String[] msgs = {"Steve paid you $5M.", "Steve paid you $5M.", "Steve paid you $5M.", "Alex paid you $2.1M.",
+                "Bob paid you $500K.", "Kim paid you $3.2M.", "Lee paid you $1,500,000."};
+            for (String m : msgs) {
+                boolean took = dev.tony.visuals.pay.Payments.handle(net.minecraft.network.chat.Component.literal(m));
+                org.slf4j.LoggerFactory.getLogger("flopvisuals-test").info("payment '{}' handled={}", m, took);
+                if (!took) mc.gui.getChat().addMessage(net.minecraft.network.chat.Component.literal(m));
+            }
+            dev.tony.visuals.pay.Payments.click(net.minecraft.resources.Identifier.fromNamespaceAndPath("flopvisuals", "pay/3/win"));
+            dev.tony.visuals.pay.Payments.click(net.minecraft.resources.Identifier.fromNamespaceAndPath("flopvisuals", "pay/2/lose"));
+            for (var line : ((dev.tony.visuals.mixin.ChatComponentAccessor) mc.gui.getChat()).flopvisuals$allMessages()) {
+                org.slf4j.LoggerFactory.getLogger("flopvisuals-test").info("chat: {}", line.content().getString());
+            }
+        });
+        context.setScreen(ChatViewScreen::new);
+        context.waitTicks(10);
+        context.takeScreenshot("14-gamble-chat");
+        context.runOnClient(mc -> dev.tony.visuals.pay.Payments.click(
+            net.minecraft.resources.Identifier.fromNamespaceAndPath("flopvisuals", "pay/1/win")));
+        context.waitTicks(20);
+        context.takeScreenshot("15-gamble-wins-picker");
         context.setScreen(() -> null);
         // The animated wallpaper is slow on CI's software renderer and also shows behind the loading screen.
         Config.get().wallpaper.mode = Config.WallpaperMode.VANILLA;
