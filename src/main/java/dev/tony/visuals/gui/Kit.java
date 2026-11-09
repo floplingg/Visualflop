@@ -64,11 +64,11 @@ public final class Kit {
 
     private static final FontDescription UI = new FontDescription.Resource(Identifier.fromNamespaceAndPath("flopvisuals", "ui"));
     private static final FontDescription UI_BOLD = new FontDescription.Resource(Identifier.fromNamespaceAndPath("flopvisuals", "ui_bold"));
-    private static final Map<String, Component> REGULAR = new HashMap<>(), BOLD = new HashMap<>();
+    private static final Map<String, Component> REG_CACHE = new HashMap<>(), BOLD_CACHE = new HashMap<>();
 
     public static Component c(String s, boolean bold) {
         boolean smooth = Config.theme().smoothFont;
-        Map<String, Component> cache = bold ? BOLD : REGULAR;
+        Map<String, Component> cache = bold ? BOLD_CACHE : REG_CACHE;
         if (cache.size() > 1024) cache.clear();
         String key = smooth ? s : "\u0000" + s;
         return cache.computeIfAbsent(key, k -> {
