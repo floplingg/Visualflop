@@ -12,26 +12,15 @@ jobs:
           set -e
           dir=src/main/resources/assets/flopvisuals/font
           mkdir -p $dir
-          # Manrope static weights from the Fontsource npm package (WOFF), turned back into TTF with fontTools.
+          # JetBrains Mono SemiBold, unhinted web build (renders smooth in Minecraft), back to TTF with fontTools.
           pip install -q fonttools
-          npm pack -q @fontsource/manrope
-          tar xzf fontsource-manrope-*.tgz
-          ls package/files | grep -E "latin-(ext-)?[5-8]00-normal\.woff$"
-          for w in 500:medium 600:semibold 700:bold 800:extrabold; do
-            n=${w%%:*}; name=${w##*:}
-            python -c "from fontTools.ttLib import TTFont; f=TTFont('package/files/manrope-latin-$n-normal.woff'); f.flavor=None; f.save('$dir/manrope-$name.ttf')"
-            python -c "from fontTools.ttLib import TTFont; f=TTFont('package/files/manrope-latin-ext-$n-normal.woff'); f.flavor=None; f.save('$dir/manrope-$name-ext.ttf')"
-          done
-          cp package/LICENSE $dir/MANROPE-LICENSE.txt
-          rm -rf package fontsource-manrope-*.tgz
-          curl -fsSL -o jbm.zip https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip
-          f=$(unzip -l jbm.zip | grep -oE "[^ ]*ttf/JetBrainsMono-SemiBold\.ttf" | head -1)
-          unzip -p jbm.zip "$f" > $dir/jetbrainsmono-semibold.ttf
-          lic=$(unzip -l jbm.zip | grep -oE "[^ ]*OFL\.txt" | head -1)
-          unzip -p jbm.zip "$lic" > $dir/JETBRAINSMONO-LICENSE.txt
+          npm pack -q @fontsource/jetbrains-mono
+          tar xzf fontsource-jetbrains-mono-*.tgz
+          python -c "from fontTools.ttLib import TTFont; f=TTFont('package/files/jetbrains-mono-latin-600-normal.woff'); f.flavor=None; f.save('$dir/jetbrainsmono-semibold.ttf')"
+          rm -rf package fontsource-jetbrains-mono-*.tgz
           ls -la $dir
       - name: Commit
         run: |
           git config user.name floplingg && git config user.email floplingg@users.noreply.github.com
           git add src/main/resources/assets/flopvisuals/font
-          git commit -m "Add Manrope and JetBrains Mono fonts (OFL)" && git push
+          git commit -m "Unhinted JetBrains Mono" && git push
