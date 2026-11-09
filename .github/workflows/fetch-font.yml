@@ -12,13 +12,18 @@ jobs:
           set -e
           dir=src/main/resources/assets/flopvisuals/font
           mkdir -p $dir
-          # Manrope static weights (Latin + Latin Extended) from Fontsource's CDN.
+          # Manrope static weights from the Fontsource npm package (WOFF), turned back into TTF with fontTools.
+          pip install -q fonttools
+          npm pack -q @fontsource/manrope
+          tar xzf fontsource-manrope-*.tgz
+          ls package/files | grep -E "latin-(ext-)?[5-8]00-normal\.woff$"
           for w in 500:medium 600:semibold 700:bold 800:extrabold; do
             n=${w%%:*}; name=${w##*:}
-            curl -fsSL -o $dir/manrope-$name.ttf "https://cdn.jsdelivr.net/fontsource/fonts/manrope@latest/latin-$n-normal.ttf"
-            curl -fsSL -o $dir/manrope-$name-ext.ttf "https://cdn.jsdelivr.net/fontsource/fonts/manrope@latest/latin-ext-$n-normal.ttf"
+            python -c "from fontTools.ttLib import TTFont; f=TTFont('package/files/manrope-latin-$n-normal.woff'); f.flavor=None; f.save('$dir/manrope-$name.ttf')"
+            python -c "from fontTools.ttLib import TTFont; f=TTFont('package/files/manrope-latin-ext-$n-normal.woff'); f.flavor=None; f.save('$dir/manrope-$name-ext.ttf')"
           done
-          curl -fsSL -o $dir/MANROPE-LICENSE.txt https://raw.githubusercontent.com/google/fonts/main/ofl/manrope/OFL.txt
+          cp package/LICENSE $dir/MANROPE-LICENSE.txt
+          rm -rf package fontsource-manrope-*.tgz
           curl -fsSL -o jbm.zip https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip
           f=$(unzip -l jbm.zip | grep -oE "[^ ]*ttf/JetBrainsMono-SemiBold\.ttf" | head -1)
           unzip -p jbm.zip "$f" > $dir/jetbrainsmono-semibold.ttf
