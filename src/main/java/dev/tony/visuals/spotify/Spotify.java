@@ -87,17 +87,25 @@ public final class Spotify {
     }
 
     /** Cover image bytes (PNG or JPEG) from any source. */
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger("flopvisuals");
+
+    /** For the automated test: pretend a song is playing with this cover (null = let the iTunes backup find one). */
+    public static void testInject(String title, String artist, byte[] cover) {
+        songChanged(title, artist);
+        setTrack(new Track(title, artist, "", 200_000, 60_000, true, System.currentTimeMillis()));
+        if (cover != null) setArt(cover);
+    }
+
     static void setArt(byte[] bytes) {
         String key = wantedArt;
         NET.execute(() -> {
             try {
-                java.awt.image.BufferedImage src = javax.imageio.ImageIO.read(new ByteArrayInputStream(bytes));
-                if (src != null && key.equals(wantedArt)) {
-                    uploadArt(src);
+                if (key.equals(wantedArt)) {
+                    uploadArt(bytes);
                     artKey = key;
                 }
-            } catch (Throwable ignored) {
-                // keep the placeholder; the iTunes backup may still find one
+            } catch (Throwable e) {
+                LOG.warn("Cover from Windows couldn't be read", e);
             }
         });
     }
@@ -138,13 +146,10 @@ public final class Spotify {
                 HttpResponse<byte[]> img = HTTP.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8)).GET().build(),
                     HttpResponse.BodyHandlers.ofByteArray());
                 if (img.statusCode() != 200 || !key.equals(wantedArt) || key.equals(artKey)) return;
-                java.awt.image.BufferedImage src = javax.imageio.ImageIO.read(new ByteArrayInputStream(img.body()));
-                if (src != null) {
-                    uploadArt(src);
-                    artKey = key;
-                }
-            } catch (Throwable ignored) {
-                // no cover: keep the placeholder
+                uploadArt(img.body());
+                artKey = key;
+            } catch (Throwable e) {
+                LOG.warn("Cover lookup on iTunes failed", e);
             }
         }, 2200, TimeUnit.MILLISECONDS);
     }
@@ -440,35 +445,69 @@ public final class Spotify {
         try {
             HttpResponse<byte[]> res = HTTP.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(10)).GET().build(),
                 HttpResponse.BodyHandlers.ofByteArray());
-            java.awt.image.BufferedImage src = javax.imageio.ImageIO.read(new ByteArrayInputStream(res.body()));
-            if (src == null) return;
-            uploadArt(src);
+            uploadArt(res.body());
         } catch (Throwable t) {
             art = null;   // no ImageIO, network hiccup: just show the placeholder
         }
     }
 
     /** Rounds the cover's corners and uploads it as a smooth texture. */
-    private static void uploadArt(java.awt.image.BufferedImage src) {
+    /**
+     * Decodes a JPEG or PNG cover with stb (bundled with Minecraft, no Java desktop imaging needed), scales it to
+     * 128 x 128 with smooth supersampling, rounds the corners and uploads it.
+     */
+    private static void uploadArt(byte[] bytes) throws java.io.IOException {
+        int sw, sh;
+        int[] srcPx;
+        java.nio.ByteBuffer buf = org.lwjgl.system.MemoryUtil.memAlloc(bytes.length);
+        try (org.lwjgl.system.MemoryStack st = org.lwjgl.system.MemoryStack.stackPush()) {
+            buf.put(bytes).flip();
+            java.nio.IntBuffer w = st.mallocInt(1), h = st.mallocInt(1), c = st.mallocInt(1);
+            java.nio.ByteBuffer px = org.lwjgl.stb.STBImage.stbi_load_from_memory(buf, w, h, c, 4);
+            if (px == null) throw new java.io.IOException("cover image: " + org.lwjgl.stb.STBImage.stbi_failure_reason());
+            sw = w.get(0);
+            sh = h.get(0);
+            srcPx = new int[sw * sh];
+            for (int k = 0; k < srcPx.length; k++) {
+                int r = px.get(k * 4) & 255, g = px.get(k * 4 + 1) & 255, b = px.get(k * 4 + 2) & 255;
+                srcPx[k] = (r << 16) | (g << 8) | b;
+            }
+            org.lwjgl.stb.STBImage.stbi_image_free(px);
+        } finally {
+            org.lwjgl.system.MemoryUtil.memFree(buf);
+        }
         {
             int size = 128;
-            java.awt.image.BufferedImage sm = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_RGB);
-            java.awt.Graphics2D gr = sm.createGraphics();
-            gr.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-            gr.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
-            gr.drawImage(src, 0, 0, size, size, null);
-            gr.dispose();
-            src = sm;
+            // Centre-crop to a square, then 4 x 4 supersampled bilinear scaling.
+            int side = Math.min(sw, sh), ox = (sw - side) / 2, oy = (sh - side) / 2;
             NativeImage img = new NativeImage(size, size, true);
             float radius = 22;
             for (int y = 0; y < size; y++) {
                 for (int x = 0; x < size; x++) {
-                    int rgb = src.getRGB(x * src.getWidth() / size, y * src.getHeight() / size);
+                    float rr = 0, gg = 0, bb = 0;
+                    for (int sy = 0; sy < 4; sy++) {
+                        for (int sx = 0; sx < 4; sx++) {
+                            float fx = ox + (x + (sx + 0.5f) / 4f) * side / size - 0.5f;
+                            float fy = oy + (y + (sy + 0.5f) / 4f) * side / size - 0.5f;
+                            int x0 = Math.max(0, Math.min(sw - 1, (int) Math.floor(fx))), y0 = Math.max(0, Math.min(sh - 1, (int) Math.floor(fy)));
+                            int x1 = Math.min(sw - 1, x0 + 1), y1 = Math.min(sh - 1, y0 + 1);
+                            float tx = Math.max(0, Math.min(1, fx - x0)), ty = Math.max(0, Math.min(1, fy - y0));
+                            int a = srcPx[y0 * sw + x0], b2 = srcPx[y0 * sw + x1], c2 = srcPx[y1 * sw + x0], d = srcPx[y1 * sw + x1];
+                            for (int ch = 0; ch < 3; ch++) {
+                                int sh2 = 16 - ch * 8;
+                                float top = ((a >> sh2) & 255) * (1 - tx) + ((b2 >> sh2) & 255) * tx;
+                                float bot = ((c2 >> sh2) & 255) * (1 - tx) + ((d >> sh2) & 255) * tx;
+                                float v = top * (1 - ty) + bot * ty;
+                                if (ch == 0) rr += v; else if (ch == 1) gg += v; else bb += v;
+                            }
+                        }
+                    }
+                    int rgb = (Math.round(rr / 16) << 16) | (Math.round(gg / 16) << 8) | Math.round(bb / 16);
                     float cx = Math.max(radius - x - 0.5f, Math.max(0, x + 0.5f - (size - radius)));
                     float cy = Math.max(radius - y - 0.5f, Math.max(0, y + 0.5f - (size - radius)));
-                    float d = (float) Math.sqrt(cx * cx + cy * cy);
-                    float a = (cx > 0 && cy > 0) ? Math.max(0, Math.min(1, radius - d + 0.5f)) : 1;
-                    img.setPixel(x, y, (Math.round(a * 255) << 24) | (rgb & 0xFFFFFF));
+                    float dd = (float) Math.sqrt(cx * cx + cy * cy);
+                    float al = (cx > 0 && cy > 0) ? Math.max(0, Math.min(1, radius - dd + 0.5f)) : 1;
+                    img.setPixel(x, y, (Math.round(al * 255) << 24) | rgb);
                 }
             }
             Minecraft.getInstance().execute(() -> {

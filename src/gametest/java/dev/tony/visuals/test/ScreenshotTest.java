@@ -7,6 +7,24 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.CameraType;
 
+/** A plain screen that shows the Spotify card, for the screenshot. */
+class CardScreen extends net.minecraft.client.gui.screens.Screen {
+    CardScreen() {
+        super(net.minecraft.network.chat.Component.literal("card"));
+    }
+
+    @Override
+    public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+        super.render(g, mx, my, pt);
+        int[] size = dev.tony.visuals.hud.SpotifyWidget.size();
+        g.pose().pushMatrix();
+        g.pose().translate(20, 20);
+        g.pose().scale(2, 2);
+        dev.tony.visuals.hud.SpotifyWidget.draw(g, size[0], size[1]);
+        g.pose().popMatrix();
+    }
+}
+
 /** Screenshots of the wallpapers, the menu (with a dropdown open) and, in a world, every sky and the glass ground. */
 public class ScreenshotTest implements FabricClientGameTest {
     @Override
@@ -35,6 +53,20 @@ public class ScreenshotTest implements FabricClientGameTest {
         context.runOnClient(mc -> mc.screen.mouseScrolled(0, 0, 0, -30));
         context.waitTicks(12);
         context.takeScreenshot("11-menu-ambience-halo");
+        // Spotify card: a JPEG cover decoded by the mod, then a cover found through the iTunes backup.
+        context.runOnClient(mc -> {
+            try (var in = ScreenshotTest.class.getResourceAsStream("/test_cover.jpg")) {
+                dev.tony.visuals.spotify.Spotify.testInject("Test Song", "Test Artist", in.readAllBytes());
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+        context.setScreen(CardScreen::new);
+        context.waitTicks(40);
+        context.takeScreenshot("12-spotify-card-jpeg");
+        context.runOnClient(mc -> dev.tony.visuals.spotify.Spotify.testInject("Blinding Lights", "The Weeknd", null));
+        context.waitTicks(160);
+        context.takeScreenshot("13-spotify-card-itunes");
         context.setScreen(() -> null);
         // The animated wallpaper is slow on CI's software renderer and also shows behind the loading screen.
         Config.get().wallpaper.mode = Config.WallpaperMode.VANILLA;
