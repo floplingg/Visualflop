@@ -370,10 +370,12 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Info("Status", () -> dev.tony.visuals.pay.Auction.active()
             ? dev.tony.visuals.pay.Auction.item() + " · " + (int) Math.ceil(dev.tony.visuals.pay.Auction.secondsLeft()) + "s left"
             : dev.tony.visuals.pay.Auction.result() != null ? dev.tony.visuals.pay.Auction.result() : "No auction running"));
-        l.add(new Sheet.Action("Stop auction (no winner)", () -> "", () -> {
-            dev.tony.visuals.pay.Auction.cancel();
-            rebuild();
-        }).destructive());
+        if (dev.tony.visuals.pay.Auction.active()) {
+            l.add(new Sheet.Action("Stop auction (no winner)", () -> "", () -> {
+                dev.tony.visuals.pay.Auction.cancel();
+                rebuild();
+            }).destructive());
+        }
         l.add(new Sheet.Toggle("Show on HUD", () -> c().widget("auction").enabled, v -> c().widget("auction").enabled = v));
         l.add(new Sheet.Slider("Countdown", 5f, 300f, 5f, () -> (float) au.seconds, v -> au.seconds = Math.round(v),
             v -> Math.round(v) + "s"));
