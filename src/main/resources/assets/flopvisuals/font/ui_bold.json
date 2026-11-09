@@ -1,6 +1,28 @@
 {
   "providers": [
-    { "type": "ttf", "file": "flopvisuals:inter-semibold.ttf", "size": 9.0, "oversample": 4.0, "shift": [0.0, 0.5] },
-    { "type": "reference", "id": "minecraft:include/default" }
+    {
+      "type": "ttf",
+      "file": "flopvisuals:manrope-bold.ttf",
+      "size": 9.0,
+      "oversample": 4.0,
+      "shift": [
+        0.0,
+        0.5
+      ]
+    },
+    {
+      "type": "ttf",
+      "file": "flopvisuals:manrope-bold-ext.ttf",
+      "size": 9.0,
+      "oversample": 4.0,
+      "shift": [
+        0.0,
+        0.5
+      ]
+    },
+    {
+      "type": "reference",
+      "id": "minecraft:include/default"
+    }
   ]
 }

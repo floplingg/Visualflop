@@ -312,7 +312,7 @@ public class SheetScreen extends Screen {
     }
 
     private float[] closeChip() {
-        float w = Kit.width(closeKey(), true) + Kit.width(" to close") + 20;
+        float w = Kit.width(closeKey(), Kit.MONO, 1) + Kit.width(" to close") + 20;
         return new float[]{px + pw - w - 16, py + 14, w, 18};
     }
 
@@ -320,16 +320,16 @@ public class SheetScreen extends Screen {
         String title = pages.isEmpty() ? getTitle().getString() : pages.get(page).name();
         float tx = cx + 2;
         if (multi()) {
-            Kit.textScaled(g, title, tx, py + 14, 1.55f, text(), true);
+            Kit.draw(g, title, tx, py + 13, 1.6f, text(), Kit.HEAVY);
             String d = describe(page);
             if (!d.isEmpty()) Kit.text(g, Kit.fit(d, (int) (cw - 100), false), tx, py + 32, sub(), false);
             float[] c = closeChip();
             float hv = closeHover.to(inside(mx, my, c[0], c[1], c[2], c[3]) ? 1 : 0);
             Shapes.round(g, c[0], c[1], c[2], c[3], 9, Kit.lerpColour(glass(0.06f), glass(0.14f), hv));
-            Kit.text(g, closeKey(), c[0] + 10, c[1] + 5, text(), true);
-            Kit.text(g, " to close", c[0] + 10 + Kit.width(closeKey(), true), c[1] + 5, sub(), false);
+            Kit.draw(g, closeKey(), c[0] + 10, c[1] + 5, 1, text(), Kit.MONO);
+            Kit.text(g, " to close", c[0] + 10 + Kit.width(closeKey(), Kit.MONO, 1), c[1] + 5, sub(), false);
         } else {
-            Kit.textScaled(g, title, tx, py + 13, 1.35f, text(), true);
+            Kit.draw(g, title, tx, py + 12, 1.4f, text(), Kit.HEAVY);
             float dw = Kit.width("Done", true) + 22, dx = px + pw - dw - 12, dy = py + 10;
             float hv = closeHover.to(inside(mx, my, dx, dy, dw, 18) ? 1 : 0);
             Kit.pill(g, dx, dy, dw, 18, "Done", true, hv);
@@ -364,7 +364,7 @@ public class SheetScreen extends Screen {
         Shapes.ring(g, lx, ly, ls, ls, 6, 1.2f, Kit.ACCENT);
         Shapes.circle(g, lx + ls / 2, ly + ls / 2, 3.2f, Kit.ACCENT);
         if (labels) {
-            Kit.text(g, "Flop Visuals", lx + ls + 7, ly + 1, text(), true);
+            Kit.draw(g, "Flop Visuals", lx + ls + 7, ly + 1, 1, text(), Kit.HEAVY);
             Kit.text(g, "Fabric 1.21.11", lx + ls + 7, ly + 11, muted(), false);
         }
 
@@ -388,7 +388,7 @@ public class SheetScreen extends Screen {
         }
 
         if (swatchTop < 0 || !labels) return;
-        Kit.text(g, "ACCENT", px + 14, swatchTop, muted(), true);
+        Kit.tracked(g, "Accent", px + 14, swatchTop + 1, 0.72f, muted());
         int cur = Config.theme().accentColor & 0xFFFFFF;
         float sx = px + 21, step = swatchStep(), rad = Math.min(7f, step * 0.4f);
         for (int i = 0; i < SWATCHES.length; i++) {
@@ -432,7 +432,7 @@ public class SheetScreen extends Screen {
         float ty = y + (it.h - 8) / 2f;
         float right = x + w - 12;
         if (it instanceof Sheet.Header h) {
-            Kit.text(g, h.text.toUpperCase(java.util.Locale.ROOT), x + 4, y + it.h - 11, muted(), true);
+            Kit.tracked(g, h.text, x + 4, y + it.h - 10, 0.72f, muted());
         } else if (it instanceof Sheet.Footer f) {
             for (int k = 0; k < f.lines.size(); k++) Kit.text(g, f.lines.get(k), x + 4, y + 4 + k * 10, muted(), false);
         } else if (it instanceof Sheet.Toggle t) {
@@ -441,7 +441,8 @@ public class SheetScreen extends Screen {
             drawToggle(g, right - 27, y + (it.h - 16) / 2f, v);
         } else if (it instanceof Sheet.Slider s) {
             Kit.text(g, s.label, x + 12, y + 9, text(), true);
-            Kit.textRight(g, s.format.apply(s.get.get()), right, y + 9, text(), false);
+            String sv = s.format.apply(s.get.get());
+            Kit.draw(g, sv, right - Kit.width(sv, Kit.MONO, 1), y + 9, 1, text(), Kit.MONO);
             float tx = x + 18, tw = w - 36, t = Math.max(0, Math.min(1, (s.get.get() - s.min) / Math.max(1e-4f, s.max - s.min)));
             float ky = y + 28;
             if (s.rainbow) {

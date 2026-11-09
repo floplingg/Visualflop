@@ -22,40 +22,62 @@ import net.minecraft.resources.Identifier;
 public final class SpotifyWidget {
     private SpotifyWidget() {}
 
-    private static final int W = 200, P = 8, ART = 40;
+    private static final int W = 228, P = 10, ART = 50, R = 16;
     private static final String[] BUTTONS = {"previous", "toggle", "next"};
     private static final Ease[] HOVER = {new Ease(0.2f, 0), new Ease(0.2f, 0), new Ease(0.2f, 0)};
     private static final Ease[] PRESS = {new Ease(0.25f, 0), new Ease(0.25f, 0), new Ease(0.25f, 0)};
+    private static final Ease TINT_R = new Ease(0.6f), TINT_G = new Ease(0.6f), TINT_B = new Ease(0.6f);
     private static float lastProgress;
     private static volatile int hovered = -1;
 
+    private static int topH() {
+        return Config.get().spotify.showArt ? ART : 40;
+    }
+
+    /** y of the controls row (centre), card coordinates. */
+    private static float rowY() {
+        float y = P + topH() + 9;
+        if (Config.get().spotify.showProgress) y += 3 + 4;
+        return y + 9;
+    }
+
     public static int[] size() {
-        Config.Spotify s = Config.get().spotify;
-        int text = 6 + 3 + 10 + 2 + 8;
-        int bar = s.showProgress ? 5 + 3 + 3 + 6 : 0;
-        return new int[]{W, Math.max(s.showArt ? ART : 0, text + bar) + 2 * P};
+        return new int[]{W, Math.round(rowY() + 9 + P - 1)};
     }
 
     /** Button centres in card coordinates: {x, y} for previous, play/pause, next. */
     private static float[][] buttons() {
-        float y = P + 3;
-        return new float[][]{{W - P - 30, y}, {W - P - 17, y}, {W - P - 4, y}};
+        float y = rowY(), c = W / 2f;
+        return new float[][]{{c - 26, y}, {c, y}, {c + 26, y}};
+    }
+
+    /** Glow colour: the cover's own colour when there is one, else the accent. Fades between songs. */
+    private static int tint(int accent) {
+        int c = Spotify.artColour();
+        if (c < 0) c = accent & 0xFFFFFF;
+        int r = Math.round(TINT_R.to((c >> 16) & 255)), g = Math.round(TINT_G.to((c >> 8) & 255)), b = Math.round(TINT_B.to(c & 255));
+        return 0xFF000000 | (Math.max(0, Math.min(255, r)) << 16) | (Math.max(0, Math.min(255, g)) << 8) | Math.max(0, Math.min(255, b));
     }
 
     public static void draw(GuiGraphics g, int w, int h) {
         Theme t = Config.theme();
         Config.Spotify s = Config.get().spotify;
         Spotify.Track tr = Spotify.track();
-        int accent = 0xFF000000 | (t.accent() & 0xFFFFFF);
+        int tint = tint(t.accent());
+        boolean playing = tr != null && tr.playing();
 
-        // Card: dark glass with a soft edge and shadow, like the preview.
-        Kit.shadow(g, 0, 0, w, h, 12, 0.9f);
-        Shapes.round(g, 0, 0, w, h, 12, 0x9E0E101E);
-        Shapes.ring(g, 0, 0, w, h, 12, 0.5f, 0x1AFFFFFF);
+        // Card: frosted glass with a soft glow in the cover's colour.
+        Hud.card(g, 0, 0, w, h, R);
+        for (int i = 0; i < 5; i++) {
+            float grow = 6 + i * 7;
+            Shapes.round(g, P - grow * 0.4f, P - grow * 0.4f, Math.min(w - P, ART + grow * 2.2f), Math.min(h - P, ART + grow), R,
+                (Math.round(9 - i * 1.4f) << 24) | (tint & 0xFFFFFF));
+        }
 
         float tx = P;
         if (s.showArt) {
-            float ay = (h - ART) / 2f;
+            float ay = P;
+            Kit.shadow(g, P, ay, ART, ART, 10, 0.8f);
             Identifier art = Spotify.art();
             if (art != null && tr != null) {
                 g.pose().pushMatrix();
@@ -64,54 +86,69 @@ public final class SpotifyWidget {
                 g.blit(RenderPipelines.GUI_TEXTURED, art, 0, 0, 0f, 0f, 128, 128, 128, 128, 0xFFFFFFFF);
                 g.pose().popMatrix();
             } else {
-                // Gradient-ish tile with three bouncing bars.
-                Shapes.round(g, P, ay, ART, ART, 9, 0xFF1D2559);
-                Shapes.round(g, P + ART * 0.3f, ay + ART * 0.3f, ART * 0.7f, ART * 0.7f, 9, (0x99 << 24) | (accent & 0xFFFFFF));
-                float time = System.nanoTime() / 1e9f;
-                boolean moving = tr != null && tr.playing();
-                for (int i = 0; i < 3; i++) {
-                    float bh = moving ? 5 + 6 * (0.5f + 0.5f * (float) Math.sin(time * 7 + i * 2.1f)) : 4;
-                    Shapes.round(g, P + ART / 2f - 6.5f + i * 5, ay + ART - 7 - bh, 3, bh, 1.5f, 0xFFFFFFFF);
-                }
+                Shapes.round(g, P, ay, ART, ART, 10, 0xFF1D2559);
+                Shapes.round(g, P + ART * 0.25f, ay + ART * 0.25f, ART * 0.75f, ART * 0.75f, 10, (0xAA << 24) | (tint & 0xFFFFFF));
+                Kit.lineIcon(g, "music", P + ART / 2f - 9, ay + ART / 2f - 9, 18, 0xE6FFFFFF);
             }
-            tx = P + ART + 8;
+            tx = P + ART + 10;
         }
         float maxW = w - tx - P;
 
-        // NOW PLAYING + buttons.
-        Kit.textScaled(g, "NOW PLAYING", tx, P + 1, 0.7f, 0xFFA9B0C7, true);
+        // NOW PLAYING + little equaliser while a song plays.
+        float ly = P + 2;
+        Kit.tracked(g, playing ? "Now playing" : "Paused", tx, ly, 0.62f, t.labelColour());
+        if (playing) {
+            float ex = tx + Kit.trackedWidth("Now playing", 0.62f) + 5, time = System.nanoTime() / 1e9f;
+            for (int i = 0; i < 3; i++) {
+                float bh = 1.5f + 3.5f * (0.5f + 0.5f * (float) Math.sin(time * 8 + i * 2.1f));
+                Shapes.round(g, ex + i * 2.6f, ly + 5.5f - bh, 1.6f, bh, 0.8f, tint);
+            }
+        }
+        String title = tr == null ? "Not playing" : tr.title();
+        String artist = tr == null ? Spotify.status() : tr.artist();
+        Kit.draw(g, fit(title, maxW, Kit.HEAVY, 1.12f), tx, ly + 10, 1.12f, 0xFFFFFFFF, Kit.HEAVY);
+        Kit.draw(g, fit(artist, maxW, Kit.REGULAR, 0.85f), tx, ly + 23, 0.85f, 0xFFC3C8DB, Kit.REGULAR);
+
+        float row = rowY();
+        if (s.showProgress) {
+            float by = P + topH() + 9, bw = w - 2 * P;
+            float frac = tr == null || tr.durationMs() <= 0 ? 0 : tr.progressNow() / (float) tr.durationMs();
+            lastProgress = Math.abs(frac - lastProgress) > 0.02f ? lastProgress + (frac - lastProgress) * 0.25f : frac;
+            Shapes.round(g, P, by, bw, 3, 1.5f, 0x22FFFFFF);
+            Shapes.round(g, P, by, Math.max(3, bw * lastProgress), 3, 1.5f, tint);
+            float kx = P + Math.max(1.5f, bw * lastProgress);
+            Shapes.circle(g, kx, by + 1.5f, 4.2f, (0x40 << 24) | (tint & 0xFFFFFF));
+            Shapes.circle(g, kx, by + 1.5f, 2.6f, 0xFFFFFFFF);
+            String a = tr == null ? "0:00" : clock(tr.progressNow()), z = tr == null ? "0:00" : clock(tr.durationMs());
+            Kit.draw(g, a, P, row - 3, 0.72f, 0xFFA9B0C7, Kit.MONO);
+            Kit.draw(g, z, w - P - Kit.width(z, Kit.MONO, 0.72f), row - 3, 0.72f, 0xFFA9B0C7, Kit.MONO);
+        }
+
+        // Controls: previous, a filled play / pause button, next.
         float[][] b = buttons();
         for (int i = 0; i < 3; i++) {
             float hv = HOVER[i].to(hovered == i ? 1 : 0), pr = PRESS[i].to(0);
-            float size = 7.5f * (1 + 0.12f * hv - 0.15f * pr);
-            if (hv > 0.01f) Shapes.circle(g, b[i][0], b[i][1], 6.5f, (Math.round(40 * hv) << 24) | 0xFFFFFF);
-            String icon = i == 0 ? "prev" : i == 2 ? "next" : (tr != null && tr.playing() ? "pause" : "play");
-            int col = Kit.lerpColour(0xFFC3C8DB, 0xFFFFFFFF, hv);
-            Kit.lineIcon(g, icon, b[i][0] - size / 2, b[i][1] - size / 2, size, col);
+            float k = 1 + 0.1f * hv - 0.14f * pr;
+            if (i == 1) {
+                float rr = 9 * k;
+                Shapes.circle(g, b[i][0], b[i][1], rr + 3, (Math.round(40 + 40 * hv) << 24) | (tint & 0xFFFFFF));
+                Shapes.circle(g, b[i][0], b[i][1], rr, 0xFFFFFFFF);
+                String icon = playing ? "pause" : "play";
+                float sz = 9 * k;
+                Kit.lineIcon(g, icon, b[i][0] - sz / 2 + (playing ? 0 : 0.6f), b[i][1] - sz / 2, sz, 0xFF0B0D16);
+            } else {
+                if (hv > 0.01f) Shapes.circle(g, b[i][0], b[i][1], 7.5f, (Math.round(36 * hv) << 24) | 0xFFFFFF);
+                float sz = 8.5f * k;
+                Kit.lineIcon(g, i == 0 ? "prev" : "next", b[i][0] - sz / 2, b[i][1] - sz / 2, sz, Kit.lerpColour(0xFFC3C8DB, 0xFFFFFFFF, hv));
+            }
         }
+    }
 
-        String title = tr == null ? "Not playing" : tr.title();
-        String artist = tr == null ? Spotify.status() : tr.playing() ? tr.artist() : "Paused · " + tr.artist();
-        float ty = P + 9;
-        g.pose().pushMatrix();
-        g.pose().translate(tx, ty);
-        g.pose().scale(1.12f, 1.12f);
-        Kit.text(g, Kit.fit(title, (int) (maxW / 1.12f), true), 0, 0, 0xFFFFFFFF, true, t.textShadow);
-        g.pose().popMatrix();
-        Kit.text(g, Kit.fit(artist, (int) maxW, false), tx, ty + 12, 0xFFC3C8DB, false, t.textShadow);
-
-        if (s.showProgress && (tr == null || tr.durationMs() > 0)) {
-            float by = ty + 12 + 8 + 5;
-            float frac = tr == null || tr.durationMs() <= 0 ? 0 : tr.progressNow() / (float) tr.durationMs();
-            // Glide the bar on seek / song change instead of jumping.
-            lastProgress = Math.abs(frac - lastProgress) > 0.02f ? lastProgress + (frac - lastProgress) * 0.25f : frac;
-            Shapes.round(g, tx, by, maxW, 2.5f, 1.25f, 0x24FFFFFF);
-            Shapes.round(g, tx, by, Math.max(2.5f, maxW * lastProgress), 2.5f, 1.25f, accent);
-            String a = tr == null ? "0:00" : clock(tr.progressNow()), z = tr == null ? "0:00" : clock(tr.durationMs());
-            Kit.textScaled(g, a, tx, by + 5, 0.7f, 0xFFA9B0C7, false);
-            float zw = Kit.width(z) * 0.7f;
-            Kit.textScaled(g, z, tx + maxW - zw, by + 5, 0.7f, 0xFFA9B0C7, false);
-        }
+    private static String fit(String s, float maxW, int face, float scale) {
+        if (Kit.width(s, face, scale) <= maxW) return s;
+        String out = s;
+        while (out.length() > 1 && Kit.width(out + "…", face, scale) > maxW) out = out.substring(0, out.length() - 1);
+        return out + "…";
     }
 
     private static String clock(long ms) {
@@ -134,7 +171,7 @@ public final class SpotifyWidget {
         float[] l = local(mx, my);
         if (l == null) return -1;
         float[][] b = buttons();
-        for (int i = 0; i < 3; i++) if (Math.hypot(l[0] - b[i][0], l[1] - b[i][1]) <= 7) return i;
+        for (int i = 0; i < 3; i++) if (Math.hypot(l[0] - b[i][0], l[1] - b[i][1]) <= (i == 1 ? 10 : 8)) return i;
         return -1;
     }
 

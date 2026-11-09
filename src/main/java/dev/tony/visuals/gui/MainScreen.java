@@ -107,6 +107,9 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Footer("Change the key in Options › Controls › Key Binds."));
 
         l.add(new Sheet.Header("HUD cards"));
+        l.add(new Sheet.Toggle("Frosted glass (blur behind)", () -> t.hudBlur, v -> t.hudBlur = v));
+        l.add(Sheet.Slider.ints("Blur strength", 0, 100, () -> t.blurStrength, v -> t.blurStrength = v, "%"));
+        l.add(new Sheet.Choice<>("Accent text", Theme.TextTint.values(), () -> t.textTint, v -> t.textTint = v));
         l.add(new Sheet.Colour("Background", () -> t.background, v -> t.background = v));
         l.add(Sheet.Slider.ints("Opacity", 0, 100, () -> t.widgetOpacity, v -> t.widgetOpacity = v, "%"));
         l.add(Sheet.Slider.ints("Corner radius", 0, 10, () -> t.rounding, v -> t.rounding = v, ""));
@@ -376,7 +379,6 @@ public class MainScreen extends SheetScreen {
                 rebuild();
             }).destructive());
         }
-        l.add(new Sheet.Toggle("Show on HUD", () -> c().widget("auction").enabled, v -> c().widget("auction").enabled = v));
         l.add(new Sheet.Slider("Countdown", 5f, 300f, 5f, () -> (float) au.seconds, v -> au.seconds = Math.round(v),
             v -> Math.round(v) + "s"));
         l.add(new Sheet.Toggle("Announce in public chat", () -> au.announce, v -> au.announce = v));
@@ -384,7 +386,6 @@ public class MainScreen extends SheetScreen {
         for (String item : new ArrayList<>(au.items)) {
             l.add(new Sheet.Action(item, () -> dev.tony.visuals.pay.Auction.active() ? "" : "Start", () -> {
                 if (dev.tony.visuals.pay.Auction.active()) return;
-                c().widget("auction").enabled = true;
                 Config.save();
                 dev.tony.visuals.pay.Auction.start(item);
                 onClose();
@@ -440,6 +441,14 @@ public class MainScreen extends SheetScreen {
             new TextEditScreen(this, "Minimum bet (e.g. 1M, 500K)", dev.tony.visuals.pay.Payments.money(gb.minimum), v -> {
                 double m = dev.tony.visuals.pay.Payments.parse(v);
                 if (m >= 0) gb.minimum = m;
+            }))).chevron());
+        l.add(new Sheet.Action("Maximum bet", () -> gb.maximum <= 0 ? "No max" : "$" + dev.tony.visuals.pay.Payments.money(gb.maximum), () -> minecraft.setScreen(
+            new TextEditScreen(this, "Maximum bet (e.g. 500M; empty = no max)", gb.maximum <= 0 ? "" : dev.tony.visuals.pay.Payments.money(gb.maximum), v -> {
+                if (v.isBlank()) gb.maximum = 0;
+                else {
+                    double m = dev.tony.visuals.pay.Payments.parse(v);
+                    if (m >= 0) gb.maximum = m;
+                }
             }))).chevron());
         l.add(new Sheet.Slider("Win pays", 1f, 5f, 0.1f, () -> gb.payout, v -> gb.payout = v,
             v -> String.format(java.util.Locale.ROOT, "%.1f×", v)));

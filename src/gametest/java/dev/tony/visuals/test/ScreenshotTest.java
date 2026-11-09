@@ -56,10 +56,20 @@ class MoneyScreen extends net.minecraft.client.gui.screens.Screen {
         g.pose().translate(0, a[1] + 6);
         int[] b = dev.tony.visuals.hud.MoneyWidgets.graphSize();
         dev.tony.visuals.hud.MoneyWidgets.drawGraph(g, b[0], b[1]);
-        g.pose().translate(b[0] + 8, 0);
-        int[] c = dev.tony.visuals.hud.MoneyWidgets.auctionSize();
-        dev.tony.visuals.hud.MoneyWidgets.drawAuction(g, c[0], c[1]);
         g.pose().popMatrix();
+        // HUD chips like the preview: FPS 240, XYZ, PING.
+        dev.tony.visuals.hud.Backdrop.capture();
+        float y = 6;
+        for (String id : new String[]{"fps", "ping", "cps", "clock"}) {
+            int[] sz = dev.tony.visuals.hud.Hud.size(font, id);
+            g.pose().pushMatrix();
+            g.pose().translate(width - sz[0] * 2 - 8, y);
+            g.pose().scale(2, 2);
+            dev.tony.visuals.hud.Hud.drawChip(g, id, sz[0], sz[1]);
+            g.pose().popMatrix();
+            y += sz[1] * 2 + 6;
+        }
+        dev.tony.visuals.hud.MoneyWidgets.drawAuctionOverlay(g, width, height);
     }
 }
 

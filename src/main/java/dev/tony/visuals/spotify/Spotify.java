@@ -78,6 +78,33 @@ public final class Spotify {
     }
     public static Identifier art() { return art; }
 
+    private static volatile int artColour = -1;
+
+    /** The cover's most vivid colour (0xRRGGBB), or -1 with no cover. */
+    public static int artColour() {
+        return art == null ? -1 : artColour;
+    }
+
+    /** Average of the colourful pixels, weighted by how colourful they are; then lifted so it reads as a glow. */
+    private static int vibrant(int[] px) {
+        double r = 0, g = 0, b = 0, wsum = 0;
+        int step = Math.max(1, px.length / 4096);
+        for (int i = 0; i < px.length; i += step) {
+            int c = px[i];
+            int cr = (c >> 16) & 255, cg = (c >> 8) & 255, cb = c & 255;
+            int mx = Math.max(cr, Math.max(cg, cb)), mn = Math.min(cr, Math.min(cg, cb));
+            double sat = mx == 0 ? 0 : (mx - mn) / (double) mx;
+            double w = 0.05 + sat * sat * (mx / 255.0);
+            r += cr * w; g += cg * w; b += cb * w; wsum += w;
+        }
+        if (wsum <= 0) return -1;
+        float fr = (float) (r / wsum / 255), fg = (float) (g / wsum / 255), fb = (float) (b / wsum / 255);
+        float mx = Math.max(fr, Math.max(fg, fb)), mn = Math.min(fr, Math.min(fg, fb)), d = mx - mn;
+        float h = d == 0 ? 0 : mx == fr ? ((fg - fb) / d) / 6f : mx == fg ? ((fb - fr) / d + 2) / 6f : ((fr - fg) / d + 4) / 6f;
+        float sat = mx == 0 ? 0 : d / mx;
+        return dev.tony.visuals.Theme.hsv(h, Math.min(1f, sat * 1.2f + 0.1f), Math.max(0.75f, mx));
+    }
+
     static void setTrack(Track t) {
         track = t;
         if (t == null) {
@@ -476,6 +503,7 @@ public final class Spotify {
         } finally {
             org.lwjgl.system.MemoryUtil.memFree(buf);
         }
+        artColour = vibrant(srcPx);
         {
             int size = 128;
             // Centre-crop to a square, then 4 x 4 supersampled bilinear scaling.

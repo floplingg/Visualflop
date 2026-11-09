@@ -45,10 +45,15 @@ public final class Hud {
         newFrame();
         if (mc.screen instanceof LayoutScreen) return;   // the layout editor draws its own copy
         Font font = mc.font;
+        Backdrop.capture();
         for (String id : Config.allWidgets()) {
             Config.Widget w = Config.get().widget(id);
-            if (w.enabled) draw(g, font, id, w, g.guiWidth(), g.guiHeight());
+            if (!w.enabled) continue;
+            // Lyrics only show while a song with lyrics is playing.
+            if (id.equals("lyrics") && !LyricsWidget.hasLyrics()) continue;
+            draw(g, font, id, w, g.guiWidth(), g.guiHeight());
         }
+        MoneyWidgets.drawAuctionOverlay(g, g.guiWidth(), g.guiHeight());
     }
 
     // ------------------------------------------------------------ layout
@@ -61,7 +66,6 @@ public final class Hud {
         if (id.equals("lyrics")) return LyricsWidget.size();
         if (id.equals("profit")) return MoneyWidgets.profitSize();
         if (id.equals("moneygraph")) return MoneyWidgets.graphSize();
-        if (id.equals("auction")) return MoneyWidgets.auctionSize();
         if (id.startsWith("text:")) {
             Config.CustomText ct = Config.get().text(id);
             String s = ct == null ? "" : fill(ct.text);
@@ -73,8 +77,8 @@ public final class Hud {
             return new int[]{Math.max(1, n) * 18 + 2 * t.padding - 2 + strip(t), 16 + 2 * t.padding + (n > 0 ? 9 : 0)};
         }
         String[] parts = text(id);
-        int w = Kit.width(parts[0], true) + (parts[0].isEmpty() ? 0 : 4) + Kit.width(parts[1]);
-        return new int[]{w + 2 * t.padding + 2 + strip(t), 8 + 2 * t.padding + 1};
+        float w = chipLabelW(parts[0]) + Kit.width(parts[1], Kit.MONO, 1);
+        return new int[]{(int) Math.ceil(w + 2 * padH(t) + strip(t)), 8 + 2 * padV(t)};
     }
 
     private static int strip(Theme t) {
@@ -101,7 +105,6 @@ public final class Hud {
             case "lyrics" -> LyricsWidget.draw(g, p.rawW(), p.rawH());
             case "profit" -> MoneyWidgets.drawProfit(g, p.rawW(), p.rawH());
             case "moneygraph" -> MoneyWidgets.drawGraph(g, p.rawW(), p.rawH());
-            case "auction" -> MoneyWidgets.drawAuction(g, p.rawW(), p.rawH());
             default -> {
                 if (id.startsWith("text:")) drawCustom(g, id, p.rawW(), p.rawH());
                 else drawText(g, font, id, p.rawW(), p.rawH());
@@ -114,13 +117,20 @@ public final class Hud {
     // ------------------------------------------------------------ shared card
 
     public static void card(GuiGraphics g, float x, float y, float w, float h) {
+        card(g, x, y, w, h, Config.theme().rounding);
+    }
+
+    /** Glass card from the preview: soft shadow, frosted blur of the game behind, dark tint, hairline edge. */
+    public static void card(GuiGraphics g, float x, float y, float w, float h, float radius) {
         Theme t = Config.theme();
-        float r = Math.min(t.rounding, Math.min(w, h) / 2);
+        float r = Math.min(radius, Math.min(w, h) / 2);
+        if (t.widgetOpacity > 0) Kit.shadow(g, x, y, w, h, r, 0.55f);
+        boolean blurred = t.hudBlur && t.widgetOpacity > 0 && Backdrop.draw(g, x, y, w, h, r);
         if (t.outline && t.outlineOpacity > 0) {
             int edge = t.outlineAccent ? t.accent() : 0xFFFFFF;
             Shapes.ring(g, x, y, w, h, r, 0.5f, Theme.argb(edge, t.outlineOpacity));
         }
-        if (t.widgetOpacity > 0) Shapes.round(g, x, y, w, h, r, Theme.argb(t.background, t.widgetOpacity));
+        if (t.widgetOpacity > 0) Shapes.round(g, x, y, w, h, r, Theme.argb(t.background, blurred ? Math.round(t.widgetOpacity * 0.55f) : t.widgetOpacity));
         if (t.accentStrip) Shapes.roundClip(g, x, y, w, h, r, x, y, x + 2.5f, y + h, Theme.opaque(t.accent()));
     }
 
@@ -138,12 +148,33 @@ public final class Hud {
         Theme t = Config.theme();
         card(g, 0, 0, w, h);
         String[] parts = text(id);
-        int x = t.padding + 1 + strip(t), y = t.padding + 1;
+        float x = padH(t) + strip(t), y = padV(t);
         if (!parts[0].isEmpty()) {
-            Kit.text(g, parts[0], x, y, Theme.opaque(t.accent()), true, t.textShadow);
-            x += Kit.width(parts[0], true) + 4;
+            // Small, wide-spaced label sitting on the number's baseline, like "FPS 240" in the preview.
+            Kit.tracked(g, parts[0], x, y + 2.2f, LABEL_SCALE, t.labelColour());
+            x += chipLabelW(parts[0]);
         }
-        Kit.text(g, parts[1], x, y, Theme.opaque(t.text), false, t.textShadow);
+        if (t.textShadow) Kit.draw(g, parts[1], x + 0.5f, y + 0.5f, 1, 0x80000000, Kit.MONO);
+        Kit.draw(g, parts[1], x, y, 1, t.valueColour(), Kit.MONO);
+    }
+
+    /** For the screenshot test. */
+    public static void drawChip(GuiGraphics g, String id, int w, int h) {
+        drawText(g, Minecraft.getInstance().font, id, w, h);
+    }
+
+    private static final float LABEL_SCALE = 0.72f;
+
+    private static float chipLabelW(String label) {
+        return label.isEmpty() ? 0 : Kit.trackedWidth(label, LABEL_SCALE) + 5;
+    }
+
+    static int padV(Theme t) {
+        return t.padding + 2;
+    }
+
+    static int padH(Theme t) {
+        return t.padding + 5;
     }
 
     private static void drawCustom(GuiGraphics g, String id, int w, int h) {

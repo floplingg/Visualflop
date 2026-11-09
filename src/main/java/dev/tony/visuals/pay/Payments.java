@@ -172,8 +172,9 @@ public final class Payments {
             if (!tag.isEmpty()) whole = number.substring(0, dot);
         }
         double bet = Double.parseDouble(whole) * mult;
-        lastMatch = player + " paid $" + m.group(2) + m.group(3) + (bet < cfg.minimum ? " (below your minimum)" : "");
-        if (bet < cfg.minimum) return false;
+        boolean over = cfg.maximum > 0 && bet > cfg.maximum;
+        lastMatch = player + " paid $" + m.group(2) + m.group(3) + (bet < cfg.minimum ? " (below your minimum)" : over ? " (above your maximum)" : "");
+        if (bet < cfg.minimum || over) return false;
         String shown = m.group(2) + m.group(3);
 
         Minecraft mc = Minecraft.getInstance();

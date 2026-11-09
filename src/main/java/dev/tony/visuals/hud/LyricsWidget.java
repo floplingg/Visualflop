@@ -19,6 +19,13 @@ public final class LyricsWidget {
     private static long lastFrame;
     private static float glow;
 
+    /** True while a song is playing and has lyrics; the card hides otherwise. */
+    public static boolean hasLyrics() {
+        Spotify.Track tr = Spotify.track();
+        Lyrics.follow(tr);   // keep looking them up even while hidden
+        return tr != null && tr.playing() && !Lyrics.lines().isEmpty();
+    }
+
     public static int[] size() {
         Config.Lyrics l = Config.get().lyrics;
         int p = Config.theme().padding + 2;

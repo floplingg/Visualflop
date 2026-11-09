@@ -79,6 +79,55 @@ public final class Kit {
         });
     }
 
+    // Faces from the preview: Manrope (regular / bold / extra bold) for words, JetBrains Mono for numbers.
+    public static final int REGULAR = 0, BOLD = 1, HEAVY = 2, MONO = 3;
+    private static final FontDescription UI_HEAVY = new FontDescription.Resource(Identifier.fromNamespaceAndPath("flopvisuals", "ui_heavy"));
+    private static final FontDescription UI_MONO = new FontDescription.Resource(Identifier.fromNamespaceAndPath("flopvisuals", "mono"));
+    private static final Map<String, Component> FACES = new HashMap<>();
+
+    public static Component face(String s, int face) {
+        if (face == REGULAR || face == BOLD) return c(s, face == BOLD);
+        boolean smooth = Config.theme().smoothFont;
+        if (FACES.size() > 1024) FACES.clear();
+        return FACES.computeIfAbsent(face + (smooth ? "" : "!") + "\u0001" + s, k -> {
+            Style st = Style.EMPTY;
+            if (smooth) st = st.withFont(face == HEAVY ? UI_HEAVY : UI_MONO);
+            else if (face == HEAVY) st = st.withBold(true);
+            return Component.literal(s).withStyle(st);
+        });
+    }
+
+    public static float width(String s, int face, float scale) {
+        return font().width(face(s, face)) * scale;
+    }
+
+    public static void draw(GuiGraphics g, String s, float x, float y, float scale, int colour, int face) {
+        g.pose().pushMatrix();
+        g.pose().translate(x, y);
+        if (scale != 1) g.pose().scale(scale, scale);
+        g.drawString(font(), face(s, face), 0, 0, colour, false);
+        g.pose().popMatrix();
+    }
+
+    /** Small uppercase label with wide letter spacing ("NOW PLAYING"), like the preview. */
+    public static void tracked(GuiGraphics g, String s, float x, float y, float scale, int colour) {
+        s = s.toUpperCase(java.util.Locale.ROOT);
+        float gap = 0.9f * scale;
+        float cx = x;
+        for (int i = 0; i < s.length(); i++) {
+            String ch = s.substring(i, i + 1);
+            draw(g, ch, cx, y, scale, colour, BOLD);
+            cx += width(ch, BOLD, scale) + gap;
+        }
+    }
+
+    public static float trackedWidth(String s, float scale) {
+        s = s.toUpperCase(java.util.Locale.ROOT);
+        float w = 0;
+        for (int i = 0; i < s.length(); i++) w += width(s.substring(i, i + 1), BOLD, scale) + 0.9f * scale;
+        return Math.max(0, w - 0.9f * scale);
+    }
+
     public static Font font() {
         return Minecraft.getInstance().font;
     }

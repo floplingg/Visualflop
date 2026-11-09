@@ -86,9 +86,9 @@ public final class Tracker {
         }
     }
 
-    /** "+(102.63M)" / "-(4.10M)". */
+    /** "+102.63M" / "-4.10M". */
     public static String label(double v) {
-        return (v < 0 ? "-" : "+") + "(" + compact(Math.abs(v)) + ")";
+        return (v < 0 ? "-" : "+") + compact(Math.abs(v));
     }
 
     /** 102.63M, 1.25B, 950.00K, 12 */

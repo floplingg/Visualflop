@@ -75,6 +75,8 @@ public final class Config {
         public boolean enabled = true;
         /** Payments below this are left alone. */
         public double minimum = 1_000_000;
+        /** Payments above this are left alone too (0 = no maximum). */
+        public double maximum = 0;
         /** What a win pays back, as a multiple of the bet (2 = double). */
         public float payout = 2f;
         public boolean stack = true;
@@ -225,7 +227,7 @@ public final class Config {
     // ------------------------------------------------------------ widget list
 
     public static final String[] WIDGETS = {
-        "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day", "spotify", "lyrics", "profit", "moneygraph", "auction",
+        "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day", "spotify", "lyrics", "profit", "moneygraph",
     };
 
     /** Your own text labels on the HUD. Each one is a widget with the id "text:<id>". */
@@ -274,7 +276,6 @@ public final class Config {
             case "lyrics" -> "Lyrics";
             case "profit" -> "Money gained / lost";
             case "moneygraph" -> "Money graph";
-            case "auction" -> "Auction";
             default -> id;
         };
     }
@@ -296,7 +297,6 @@ public final class Config {
         putDefault("lyrics", false, 0.5f, 0.86f);
         putDefault("profit", false, 0.005f, 0.26f);
         putDefault("moneygraph", false, 0.005f, 0.33f);
-        putDefault("auction", false, 0.995f, 0.3f);
     }
 
     private void putDefault(String id, boolean on, float x, float y) {

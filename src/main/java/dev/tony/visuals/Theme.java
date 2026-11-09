@@ -7,9 +7,9 @@ public final class Theme {
     public boolean chroma = false;
     public int chromaSpeed = 5;
 
-    public int background = 0x111114;
-    public int widgetOpacity = 62;
-    public int rounding = 7;
+    public int background = 0x0E101E;
+    public int widgetOpacity = 58;
+    public int rounding = 9;
     public boolean outline = true;
     public int outlineOpacity = 16;
     /** Outline in the accent colour instead of a soft white hairline. */
@@ -23,9 +23,24 @@ public final class Theme {
     /** Thin accent strip on the left of each widget. */
     public boolean accentStrip = false;
     public int text = 0xF2F2F7;
-    public int muted = 0x98989F;
+    public int muted = 0xA9B0C7;
     public boolean textShadow = false;
     public int padding = 4;
+    /** Frosted glass: blur the game behind HUD cards. */
+    public boolean hudBlur = true;
+    public int blurStrength = 70;
+    /** Which HUD text uses the accent colour. */
+    public TextTint textTint = TextTint.NONE;
+
+    public enum TextTint { NONE, LABELS, VALUES, BOTH }
+
+    public int labelColour() {
+        return 0xFF000000 | (textTint == TextTint.LABELS || textTint == TextTint.BOTH ? accent() : muted);
+    }
+
+    public int valueColour() {
+        return 0xFF000000 | (textTint == TextTint.VALUES || textTint == TextTint.BOTH ? accent() : text);
+    }
 
     /** Current accent, including chroma. */
     public int accent() {
@@ -56,6 +71,8 @@ public final class Theme {
         rounding = c(rounding, 0, 10);
         outlineOpacity = c(outlineOpacity, 0, 100);
         padding = c(padding, 2, 10);
+        blurStrength = c(blurStrength, 0, 100);
+        if (textTint == null) textTint = TextTint.NONE;
     }
 
     static int c(int v, int lo, int hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -75,6 +92,9 @@ public final class Theme {
         t.lightMenus = old.lightMenus;
         t.smoothFont = old.smoothFont;
         t.blurMenus = old.blurMenus;
+        t.hudBlur = old.hudBlur;
+        t.blurStrength = old.blurStrength;
+        t.textTint = old.textTint;
         switch (name) {
             case "Amber" -> { t.accentColor = 0xFFB020; t.background = 0x120C05; t.muted = 0xB09A80; }
             case "Sakura" -> { t.accentColor = 0xF9A8D4; t.background = 0x160B12; t.muted = 0xB399A8; }
