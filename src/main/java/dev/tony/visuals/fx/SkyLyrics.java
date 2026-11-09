@@ -81,6 +81,29 @@ public final class SkyLyrics {
     }
 
     public static void render(WorldRenderContext ctx) {
+        if (dev.tony.visuals.compat.Shaders.active()) return;   // drawn after the shader pack instead
+        draw(ctx.consumers());
+    }
+
+    private static boolean warned;
+
+    /** Registers the text pipelines at startup, like the other effects. */
+    public static void init() {
+        SkyText.init();
+    }
+
+    public static void draw(MultiBufferSource source) {
+        try {
+            drawLyrics(source);
+        } catch (Throwable e) {
+            if (!warned) {
+                warned = true;
+                org.slf4j.LoggerFactory.getLogger("flopvisuals").warn("Sky lyrics failed to draw", e);
+            }
+        }
+    }
+
+    private static void drawLyrics(MultiBufferSource source) {
         Config.Lyrics cfg = Config.get().lyrics;
         Minecraft mc = Minecraft.getInstance();
         if (!cfg.sky || mc.player == null || mc.options.hideGui) {
@@ -108,7 +131,6 @@ public final class SkyLyrics {
         // Ahead of you, level with your eyes plus a little lift; pitch is ignored.
         float x = (float) (-Math.sin(rad) * dist), z = (float) (Math.cos(rad) * dist), y = cfg.skyHeight;
 
-        MultiBufferSource source = ctx.consumers();
         if (source == null) return;
         float t = Math.min(1, (System.nanoTime() - lineChanged) / 1e9f / 0.35f);
         float in = cubicOut(t);

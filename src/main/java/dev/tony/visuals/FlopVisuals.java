@@ -46,6 +46,8 @@ public class FlopVisuals implements ClientModInitializer {
         TopoSky.init();
         GlassGround.init();
         dev.tony.visuals.fx.AuraFx.init();
+        dev.tony.visuals.fx.SkyLyrics.init();
+        dev.tony.visuals.hud.Backdrop.init();
         Wallpapers.init();
         Spotify.start();
         // The sky goes in before entities (and at the far plane), so players, mobs and nametags always draw over it.

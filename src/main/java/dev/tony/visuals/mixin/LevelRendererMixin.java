@@ -39,6 +39,7 @@ public class LevelRendererMixin {
             MultiBufferSource.BufferSource source = mc.renderBuffers().bufferSource();
             TopoSky.draw(source);
             dev.tony.visuals.fx.AuraFx.draw(source);
+            dev.tony.visuals.fx.SkyLyrics.draw(source);
             GlassGround.renderAfterShaders(source);
             source.endBatch();
         } finally {

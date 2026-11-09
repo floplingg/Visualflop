@@ -57,6 +57,8 @@ final class SkyText {
     static final RenderPipeline NORMAL = pipeline("sky_text", false);
     static final RenderPipeline THROUGH = pipeline("sky_text_through", true);
 
+    static void init() {}
+
     /** One rendered line: text in the top half of the image, glow in the bottom half. Sizes in image pixels. */
     record Line(Identifier id, int w, int h, int pad, float ascent, RenderType normal, RenderType through) {}
 
