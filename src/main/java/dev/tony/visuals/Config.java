@@ -106,6 +106,15 @@ public final class Config {
 
     public Auction auction = new Auction();
 
+    /** YouTube on the HUD. */
+    public static final class YouTube {
+        /** Last link opened. */
+        public String url = "";
+        public int volume = 80;
+    }
+
+    public YouTube youtube = new YouTube();
+
     public enum MenuPosition { CENTER, LEFT, RIGHT }
 
     /** How the Flop Visuals window itself looks. */
@@ -135,7 +144,25 @@ public final class Config {
         public boolean accentLine = true;
         /** When a song only has plain lyrics, show them with estimated timing. */
         public boolean approximate = true;
+        /** Sky lyrics: the sung line floats in the air ahead of you. */
+        public boolean sky = false;
+        public float skyDistance = 6f;
+        public float skyHeight = 1.2f;
+        public float skyScale = 1f;
+        public boolean skyNext = true;
+        public SkyFont skyFont = SkyFont.HEAVY;
+        /** Text colour: the accent, or skyColour. */
+        public boolean skyAccent = true;
+        public int skyColour = 0xFFFFFF;
+        /** Soft glow behind the words. */
+        public boolean skyGlow = true;
+        public boolean skyGlowAccent = true;
+        public int skyGlowColour = 0x7DD3FC;
+        public int skyGlowStrength = 60;
+        public float skyGlowSize = 1f;
     }
+
+    public enum SkyFont { HEAVY, BOLD, REGULAR, MONO, MINECRAFT }
 
     public enum HaloStyle { RING, CROWN, TWIN_RING, SUN, HORNS, STARLIGHT }
 
@@ -227,7 +254,7 @@ public final class Config {
     // ------------------------------------------------------------ widget list
 
     public static final String[] WIDGETS = {
-        "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day", "spotify", "lyrics", "profit", "moneygraph",
+        "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day", "spotify", "lyrics", "profit", "moneygraph", "youtube",
     };
 
     /** Your own text labels on the HUD. Each one is a widget with the id "text:<id>". */
@@ -276,6 +303,7 @@ public final class Config {
             case "lyrics" -> "Lyrics";
             case "profit" -> "Money gained / lost";
             case "moneygraph" -> "Money graph";
+            case "youtube" -> "YouTube";
             default -> id;
         };
     }
@@ -297,6 +325,7 @@ public final class Config {
         putDefault("lyrics", false, 0.5f, 0.86f);
         putDefault("profit", false, 0.005f, 0.26f);
         putDefault("moneygraph", false, 0.005f, 0.33f);
+        putDefault("youtube", false, 0.995f, 0.05f);
     }
 
     private void putDefault(String id, boolean on, float x, float y) {
@@ -370,6 +399,13 @@ public final class Config {
         if (gamble.current != null && gamble.current.history == null) gamble.current.history = new ArrayList<>();
         for (Session ss : gamble.sessions) if (ss.history == null) ss.history = new ArrayList<>();
         if (auction == null) auction = new Auction();
+        if (youtube == null) youtube = new YouTube();
+        youtube.volume = Math.max(0, Math.min(100, youtube.volume));
+        if (lyrics.skyFont == null) lyrics.skyFont = SkyFont.HEAVY;
+        lyrics.skyDistance = Math.max(3, Math.min(16, lyrics.skyDistance <= 0 ? 6 : lyrics.skyDistance));
+        lyrics.skyScale = Math.max(0.5f, Math.min(2.5f, lyrics.skyScale <= 0 ? 1 : lyrics.skyScale));
+        lyrics.skyGlowStrength = Math.max(0, Math.min(100, lyrics.skyGlowStrength));
+        lyrics.skyGlowSize = Math.max(0.3f, Math.min(3f, lyrics.skyGlowSize <= 0 ? 1 : lyrics.skyGlowSize));
         if (auction.items == null) auction.items = new ArrayList<>();
         auction.seconds = Math.max(5, Math.min(600, auction.seconds));
         gamble.payout = Math.max(1f, Math.min(10f, gamble.payout));

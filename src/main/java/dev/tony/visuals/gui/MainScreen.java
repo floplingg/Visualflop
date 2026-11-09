@@ -29,6 +29,7 @@ public class MainScreen extends SheetScreen {
         addPage("Glass Ground", "glass", 0x32ADE6, this::glass);
         addPage("Wallpaper", "wallpaper", 0xFF9F0A, this::wallpaper);
         addPage("Spotify", "music", 0x1DB954, this::spotify);
+        addPage("YouTube", "youtube", 0xFF3B3B, this::youtube);
         addPage("Gamble", "pay", 0xFFD34D, this::gamble);
         addPage("Auction", "gavel", 0xFF8A3D, this::auction);
         page = lastPage;
@@ -58,6 +59,7 @@ public class MainScreen extends SheetScreen {
         "A polished glass floor that mirrors blocks, players and mobs.",
         "Set your own backgrounds for the title screen and other menus.",
         "A now-playing card with album art and progress.",
+        "Paste a YouTube link and watch it on your HUD or fullscreen.",
         "DonutSMP bets: mark payments as won or lost right in chat, and track your profit.",
         "DonutSMP auctions: highest total payment before the countdown ends wins.",
     };
@@ -317,6 +319,32 @@ public class MainScreen extends SheetScreen {
             : "Off"));
         l.add(new Sheet.Toggle("Estimate timing for plain lyrics", () -> ly.approximate, v -> ly.approximate = v));
         l.add(new Sheet.Footer("Lyrics come from LRCLIB (lrclib.net) and NetEase Cloud Music. If they run early or late, nudge Timing."));
+        l.add(new Sheet.Header("Sky lyrics"));
+        l.add(new Sheet.Toggle("Lyrics in the sky", () -> ly.sky, v -> ly.sky = v));
+        l.add(new Sheet.Toggle("Show the next line", () -> ly.skyNext, v -> ly.skyNext = v));
+        l.add(new Sheet.Choice<>("Font", Config.SkyFont.values(), () -> ly.skyFont, v -> ly.skyFont = v));
+        l.add(new Sheet.Toggle("Use accent colour", () -> ly.skyAccent, v -> {
+            ly.skyAccent = v;
+            rebuild();
+        }));
+        if (!ly.skyAccent) l.add(new Sheet.Colour("Text colour", () -> ly.skyColour, v -> ly.skyColour = v));
+        l.add(new Sheet.Toggle("Glow", () -> ly.skyGlow, v -> {
+            ly.skyGlow = v;
+            rebuild();
+        }));
+        if (ly.skyGlow) {
+            l.add(Sheet.Slider.ints("Glow strength", 0, 100, () -> ly.skyGlowStrength, v -> ly.skyGlowStrength = v, "%"));
+            l.add(new Sheet.Slider("Glow size", 0.3f, 3f, 0.1f, () -> ly.skyGlowSize, v -> ly.skyGlowSize = v, v -> Math.round(v * 100) + "%"));
+            l.add(new Sheet.Toggle("Glow in accent colour", () -> ly.skyGlowAccent, v -> {
+                ly.skyGlowAccent = v;
+                rebuild();
+            }));
+            if (!ly.skyGlowAccent) l.add(new Sheet.Colour("Glow colour", () -> ly.skyGlowColour, v -> ly.skyGlowColour = v));
+        }
+        l.add(new Sheet.Slider("Distance", 3f, 16f, 0.5f, () -> ly.skyDistance, v -> ly.skyDistance = v, v -> String.format(java.util.Locale.ROOT, "%.1f blocks", v)));
+        l.add(new Sheet.Slider("Height", -1f, 4f, 0.1f, () -> ly.skyHeight, v -> ly.skyHeight = v, v -> String.format(java.util.Locale.ROOT, "%.1f", v)));
+        l.add(new Sheet.Slider("Size", 0.5f, 2.5f, 0.05f, () -> ly.skyScale, v -> ly.skyScale = v, v -> Math.round(v * 100) + "%"));
+        l.add(new Sheet.Footer("The sung line floats ahead of you. Turn and it glides after you a moment later (instantly if you turn fast); looking up or down doesn't move it."));
         l.add(new Sheet.Header("Controls"));
         l.add(new Sheet.Footer("Open chat (T) and click the buttons on the card, or set keys for play / pause, next and previous in Options → Controls → Flop Visuals."));
 
@@ -364,6 +392,38 @@ public class MainScreen extends SheetScreen {
 
     private static String mask(String id) {
         return id.length() <= 8 ? id : id.substring(0, 4) + "••••" + id.substring(id.length() - 4);
+    }
+
+    private List<Sheet.Item> youtube() {
+        Config.YouTube yt = c().youtube;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Video"));
+        l.add(new Sheet.Action("Paste a link", () -> dev.tony.visuals.youtube.YouTube.videoId() == null ? "" : "Change", () -> minecraft.setScreen(
+            new TextEditScreen(this, "YouTube link (youtube.com/watch?v=…, youtu.be/…, shorts)", "", v -> {
+                if (dev.tony.visuals.youtube.YouTube.open(v)) c().widget("youtube").enabled = true;
+            }))).accent().chevron());
+        l.add(new Sheet.Info("Now", () -> dev.tony.visuals.youtube.YouTube.videoId() == null ? "Nothing"
+            : dev.tony.visuals.youtube.YouTube.title().isEmpty() ? dev.tony.visuals.youtube.YouTube.status() : dev.tony.visuals.youtube.YouTube.title()));
+        l.add(new Sheet.Toggle("Show on HUD", () -> c().widget("youtube").enabled, v -> c().widget("youtube").enabled = v));
+        l.add(new Sheet.Action("Play / pause", () -> dev.tony.visuals.youtube.YouTube.videoId() == null ? "" : dev.tony.visuals.youtube.YouTube.paused() ? "Paused" : "Playing",
+            dev.tony.visuals.youtube.YouTube::togglePause));
+        l.add(new Sheet.Action("Fullscreen", () -> "", () -> {
+            if (dev.tony.visuals.youtube.YouTube.videoId() == null) return;
+            dev.tony.visuals.youtube.YouTube.toggleFullscreen();
+            dev.tony.visuals.hud.YouTubeWidget.poke();
+            onClose();
+        }));
+        l.add(Sheet.Slider.ints("Volume", 0, 100, () -> yt.volume, v -> yt.volume = v, "%"));
+        l.add(new Sheet.Action("Stop", () -> "", () -> {
+            dev.tony.visuals.youtube.YouTube.stop();
+            rebuild();
+        }).destructive());
+        l.add(new Sheet.Header("Video player"));
+        l.add(new Sheet.Info("MCEF Modern", () -> dev.tony.visuals.youtube.YouTube.available() ? "Installed" : "Not installed"));
+        l.add(new Sheet.Footer(dev.tony.visuals.youtube.YouTube.available()
+            ? "Videos play in YouTube's own player inside the game, with sound. The first video downloads the player once (about 100 MB). Open chat (T) to click pause and fullscreen on the card, or set keys in Controls."
+            : "To play videos, also install the free MCEF Modern mod (Modrinth, for 1.21.11). Without it the card shows the thumbnail, title and channel."));
+        return l;
     }
 
     private List<Sheet.Item> auction() {

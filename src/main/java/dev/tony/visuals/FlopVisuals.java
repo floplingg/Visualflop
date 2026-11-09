@@ -23,7 +23,7 @@ import org.lwjgl.glfw.GLFW;
 public class FlopVisuals implements ClientModInitializer {
     public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("flopvisuals", "main"));
     /** Shows up in Options > Controls > Key Binds under "Flop Visuals". */
-    public static KeyMapping menuKey, playPauseKey, nextKey, previousKey;
+    public static KeyMapping menuKey, playPauseKey, nextKey, previousKey, ytPauseKey, ytFullscreenKey;
 
     @Override
     public void onInitializeClient() {
@@ -36,7 +36,12 @@ public class FlopVisuals implements ClientModInitializer {
             new KeyMapping("key.flopvisuals.next", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
         previousKey = KeyBindingHelper.registerKeyBinding(
             new KeyMapping("key.flopvisuals.previous", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+        ytPauseKey = KeyBindingHelper.registerKeyBinding(
+            new KeyMapping("key.flopvisuals.ytpause", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+        ytFullscreenKey = KeyBindingHelper.registerKeyBinding(
+            new KeyMapping("key.flopvisuals.ytfullscreen", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
         dev.tony.visuals.hud.SpotifyWidget.registerClicks();
+        dev.tony.visuals.hud.YouTubeWidget.registerClicks();
         dev.tony.visuals.pay.Payments.init();
         TopoSky.init();
         GlassGround.init();
@@ -48,6 +53,7 @@ public class FlopVisuals implements ClientModInitializer {
         WorldRenderEvents.AFTER_ENTITIES.register(dev.tony.visuals.fx.AuraFx::render);   // before the glass, so it shows in the reflection
         WorldRenderEvents.AFTER_ENTITIES.register(GlassGround::render);
         WorldRenderEvents.END_MAIN.register(GlassGround::renderWater);
+        WorldRenderEvents.AFTER_ENTITIES.register(dev.tony.visuals.fx.SkyLyrics::render);
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
         HudElementRegistry.addLast(Identifier.parse("flopvisuals:hud"), Hud::render);
     }
@@ -60,6 +66,15 @@ public class FlopVisuals implements ClientModInitializer {
         while (playPauseKey.consumeClick()) dev.tony.visuals.spotify.Spotify.control("toggle");
         while (nextKey.consumeClick()) dev.tony.visuals.spotify.Spotify.control("next");
         while (previousKey.consumeClick()) dev.tony.visuals.spotify.Spotify.control("previous");
+        while (ytPauseKey.consumeClick()) {
+            dev.tony.visuals.youtube.YouTube.togglePause();
+            dev.tony.visuals.hud.YouTubeWidget.poke();
+        }
+        while (ytFullscreenKey.consumeClick()) {
+            dev.tony.visuals.youtube.YouTube.toggleFullscreen();
+            dev.tony.visuals.hud.YouTubeWidget.poke();
+        }
+        dev.tony.visuals.youtube.YouTube.tick();
 
         Stats.tick(mc);
         Trails.tick(mc);

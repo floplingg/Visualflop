@@ -39,6 +39,24 @@ class CardScreen extends net.minecraft.client.gui.screens.Screen {
     }
 }
 
+/** The YouTube card at 2x, for the screenshot. */
+class YouTubeScreen extends net.minecraft.client.gui.screens.Screen {
+    YouTubeScreen() {
+        super(net.minecraft.network.chat.Component.literal("yt"));
+    }
+
+    @Override
+    public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
+        super.render(g, mx, my, pt);
+        int[] s = dev.tony.visuals.hud.YouTubeWidget.size();
+        g.pose().pushMatrix();
+        g.pose().translate(10, 10);
+        g.pose().scale(1.6f, 1.6f);
+        dev.tony.visuals.hud.YouTubeWidget.draw(g, s[0], s[1]);
+        g.pose().popMatrix();
+    }
+}
+
 /** Money gained/lost, the money graph and the auction card, for the screenshot. */
 class MoneyScreen extends net.minecraft.client.gui.screens.Screen {
     MoneyScreen() {
@@ -169,12 +187,27 @@ public class ScreenshotTest implements FabricClientGameTest {
         context.setScreen(ChatViewScreen::new);
         context.waitTicks(10);
         context.takeScreenshot("18-auction-chat");
-        context.setScreen(() -> new MainScreen(null, 10));
-        context.waitTicks(20);
-        context.takeScreenshot("19-menu-gamble");
         context.setScreen(() -> new MainScreen(null, 11));
         context.waitTicks(20);
+        context.takeScreenshot("19-menu-gamble");
+        context.setScreen(() -> new MainScreen(null, 12));
+        context.waitTicks(20);
         context.takeScreenshot("19-menu-auction");
+        // YouTube: card with thumbnail + title (no MCEF in the test), then its page.
+        context.runOnClient(mc -> {
+            dev.tony.visuals.youtube.YouTube.open("https://youtu.be/dQw4w9WgXcQ");
+            Config.get().spotify.showArt = true;
+        });
+        context.waitTicks(100);
+        context.setScreen(YouTubeScreen::new);
+        context.waitTicks(10);
+        context.takeScreenshot("20-youtube-card");
+        context.setScreen(() -> new MainScreen(null, 10));
+        context.waitTicks(20);
+        context.takeScreenshot("21-menu-youtube");
+        context.setScreen(() -> new MainScreen(null, 9));
+        context.waitTicks(20);
+        context.takeScreenshot("22-menu-spotify-sky");
         context.setScreen(() -> null);
         // The animated wallpaper is slow on CI's software renderer and also shows behind the loading screen.
         Config.get().wallpaper.mode = Config.WallpaperMode.VANILLA;

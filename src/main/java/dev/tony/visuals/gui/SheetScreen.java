@@ -97,6 +97,7 @@ public class SheetScreen extends Screen {
             case "halo" -> "halo";
             case "pay" -> "pay";
             case "gavel" -> "gavel";
+            case "youtube" -> "youtube";
             default -> "hud";
         };
     }
@@ -244,6 +245,7 @@ public class SheetScreen extends Screen {
         scrollTarget = Math.max(0, Math.min(Math.max(0, contentH - ch), scrollTarget));
         float before = scroll;
         scroll = Kit.approach(scroll, scrollTarget, 18, dt);
+        frameDt = dt;
         scrollbarAlpha = Kit.approach(scrollbarAlpha, Math.abs(before - scroll) > 0.05f || dragging != null || draggingBar ? 1 : 0, scrollbarAlpha > 0.5f ? 3 : 12, dt);
 
         // Opens with a cubic-out rise and grow.
@@ -336,17 +338,34 @@ public class SheetScreen extends Screen {
         }
     }
 
-    /** {first row y, row height, swatch label y or -1}. */
+    private static final float SIDE_ROW = 22;
+    private float frameDt = 1 / 60f;
+    private float sideScroll, sideScrollTarget;
+    private boolean draggingSide;
+    private float sideGrab;
+
+    /** {first row y (scrolled), row height, swatch label y or -1, list top, list bottom}. Rows keep their size and scroll. */
     private float[] sideLayout() {
-        float y = py + 46;
-        int n = Math.max(1, pages.size());
-        float swatchTop = py + ph - 42;
-        float rh = (swatchTop - 8 - y) / n - 3;
-        if (rh < 14) {
-            swatchTop = -1;
-            rh = (py + ph - 10 - y) / n - 3;
-        }
-        return new float[]{y, Math.max(12, Math.min(22, rh)), swatchTop};
+        float top = py + 46;
+        float swatchTop = Config.get().menu.sidebarLabels && ph > 200 ? py + ph - 42 : -1;
+        float bottom = swatchTop >= 0 ? swatchTop - 8 : py + ph - 10;
+        return new float[]{top - sideScroll, SIDE_ROW, swatchTop, top, bottom};
+    }
+
+    private float sideContent() {
+        return pages.size() * (SIDE_ROW + 3) - 3;
+    }
+
+    private float sideMax(float[] sl) {
+        return Math.max(0, sideContent() - (sl[4] - sl[3]));
+    }
+
+    /** {x, y, w, h} of the sidebar scroll thumb, or null when everything fits. */
+    private float[] sideThumb(float[] sl) {
+        float view = sl[4] - sl[3], max = sideMax(sl);
+        if (max <= 0) return null;
+        float h = Math.max(16, view * view / sideContent());
+        return new float[]{px + sideW - 6, sl[3] + (view - h) * (sideScroll / max), 3, h};
     }
 
     private float swatchStep() {
@@ -369,8 +388,12 @@ public class SheetScreen extends Screen {
         }
 
         float[] sl = sideLayout();
+        sideScrollTarget = Math.max(0, Math.min(sideMax(sl), sideScrollTarget));
+        sideScroll = draggingSide ? sideScrollTarget : Kit.approach(sideScroll, sideScrollTarget, 18, frameDt);
+        sl = sideLayout();
         float y = sl[0], rh = sl[1], swatchTop = sl[2];
         float rx = px + 7, rw = sideW - 14, rr = Math.min(7, rh / 2f - 0.5f);
+        g.enableScissor((int) px, (int) Math.floor(sl[3]), (int) (px + sideW), (int) Math.ceil(sl[4]));
         // Selected-page highlight glides between rows.
         float sy = selY.to(y + page * (rh + 3));
         Shapes.round(g, rx, sy, rw, rh, rr, glass(0.10f));
@@ -385,6 +408,12 @@ public class SheetScreen extends Screen {
             Kit.lineIcon(g, lineIconFor(p.icon()), ix, y + (rh - icon) / 2, icon, col);
             if (labels) Kit.text(g, Kit.fit(p.name(), (int) (rw - icon - 20), true), ix + icon + 7, y + (rh - 8) / 2, col, true);
             y += rh + 3;
+        }
+        g.disableScissor();
+        float[] th = sideThumb(sl);
+        if (th != null) {
+            boolean hot = draggingSide || inside(mx, my, px, sl[3], sideW, sl[4] - sl[3]);
+            Shapes.round(g, th[0], th[1], th[2], th[3], 1.5f, glass(hot ? 0.35f : 0.18f));
         }
 
         if (swatchTop < 0 || !labels) return;
@@ -556,8 +585,15 @@ public class SheetScreen extends Screen {
             if (button == 0 && inside(mx, my, px, py, sideW, ph)) {
                 float[] sl = sideLayout();
                 float y = sl[0], rh = sl[1], swatchTop = sl[2];
+                float[] th = sideThumb(sl);
+                if (th != null && inside(mx, my, th[0] - 4, sl[3], th[2] + 6, sl[4] - sl[3])) {
+                    sideGrab = inside(mx, my, th[0] - 4, th[1], th[2] + 6, th[3]) ? (float) (my - th[1]) : th[3] / 2;
+                    draggingSide = true;
+                    dragSide(my);
+                    return true;
+                }
                 for (int i = 0; i < pages.size(); i++) {
-                    if (inside(mx, my, px + 7, y, sideW - 14, rh)) {
+                    if (my >= sl[3] && my < sl[4] && inside(mx, my, px + 7, y, sideW - 14, rh)) {
                         if (i != page) click();
                         showPage(i);
                         return true;
@@ -643,6 +679,10 @@ public class SheetScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (draggingSide) {
+            dragSide(event.y());
+            return true;
+        }
         if (draggingBar) {
             dragBar(event.y());
             return true;
@@ -656,6 +696,10 @@ public class SheetScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        if (draggingSide) {
+            draggingSide = false;
+            return true;
+        }
         if (draggingBar) {
             draggingBar = false;
             return true;
@@ -673,8 +717,18 @@ public class SheetScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontal, double vertical) {
-        scrollTarget -= (float) vertical * 28;
+        if (inside(mouseX, mouseY, px, py, sideW, ph)) sideScrollTarget -= (float) vertical * 28;
+        else scrollTarget -= (float) vertical * 28;
         return true;
+    }
+
+    private void dragSide(double my) {
+        float[] sl = sideLayout();
+        float[] th = sideThumb(sl);
+        if (th == null) return;
+        float k = (float) ((my - sideGrab - sl[3]) / Math.max(1, (sl[4] - sl[3]) - th[3]));
+        sideScrollTarget = Math.max(0, Math.min(1, k)) * sideMax(sl);
+        sideScroll = sideScrollTarget;
     }
 
     @Override

@@ -3,5 +3,7 @@
   "key.flopvisuals.playpause": "Spotify: play / pause",
   "key.flopvisuals.next": "Spotify: next song",
   "key.flopvisuals.previous": "Spotify: previous song",
-  "key.category.flopvisuals.main": "Flop Visuals"
+  "key.category.flopvisuals.main": "Flop Visuals",
+  "key.flopvisuals.ytpause": "YouTube: play / pause",
+  "key.flopvisuals.ytfullscreen": "YouTube: fullscreen"
 }

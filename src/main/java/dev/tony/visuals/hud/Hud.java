@@ -53,6 +53,7 @@ public final class Hud {
             if (id.equals("lyrics") && !LyricsWidget.hasLyrics()) continue;
             draw(g, font, id, w, g.guiWidth(), g.guiHeight());
         }
+        YouTubeWidget.drawFullscreen(g, g.guiWidth(), g.guiHeight());
         MoneyWidgets.drawAuctionOverlay(g, g.guiWidth(), g.guiHeight());
     }
 
@@ -66,6 +67,7 @@ public final class Hud {
         if (id.equals("lyrics")) return LyricsWidget.size();
         if (id.equals("profit")) return MoneyWidgets.profitSize();
         if (id.equals("moneygraph")) return MoneyWidgets.graphSize();
+        if (id.equals("youtube")) return YouTubeWidget.size();
         if (id.startsWith("text:")) {
             Config.CustomText ct = Config.get().text(id);
             String s = ct == null ? "" : fill(ct.text);
@@ -105,6 +107,7 @@ public final class Hud {
             case "lyrics" -> LyricsWidget.draw(g, p.rawW(), p.rawH());
             case "profit" -> MoneyWidgets.drawProfit(g, p.rawW(), p.rawH());
             case "moneygraph" -> MoneyWidgets.drawGraph(g, p.rawW(), p.rawH());
+            case "youtube" -> YouTubeWidget.draw(g, p.rawW(), p.rawH());
             default -> {
                 if (id.startsWith("text:")) drawCustom(g, id, p.rawW(), p.rawH());
                 else drawText(g, font, id, p.rawW(), p.rawH());
