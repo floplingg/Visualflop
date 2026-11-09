@@ -112,15 +112,21 @@ public final class SkyLyrics {
         if (source == null) return;
         float t = Math.min(1, (System.nanoTime() - lineChanged) / 1e9f / 0.35f);
         float in = cubicOut(t);
-        float scale = 0.035f * cfg.skyScale * dist / 6f;
         int accent = Config.theme().accent() & 0xFFFFFF;
         int rgb = cfg.skyAccent ? accent : cfg.skyColour & 0xFFFFFF;
         int glow = cfg.skyGlow ? (cfg.skyGlowAccent ? accent : cfg.skyGlowColour & 0xFFFFFF) : -1;
+        // Size scales with distance, so the words look the same size however far away you put them.
+        float pixel = 0.045f * dist * cfg.skyScale / SkyText.EM;
+        Matrix4f m = new Matrix4f().translate(x, y, z).rotate(Axis.YP.rotationDegrees(180 - yaw)).scale(pixel, -pixel, pixel);
+        float em = SkyText.EM;
 
         // Old line drifts up and fades; new line rises in.
-        if (in < 1 && !prevText.isEmpty()) draw(mc.font, source, cfg, prevText, x, y, z, yaw, scale, 14 * -in, 1 - in, rgb, glow);
-        if (!text.isEmpty()) draw(mc.font, source, cfg, text, x, y, z, yaw, scale, 10 * (1 - in), in, rgb, glow);
-        if (cfg.skyNext && !next.isEmpty()) draw(mc.font, source, cfg, next, x, y, z, yaw, scale * 0.62f, 26 + 8 * (1 - in), 0.5f * in, 0xFFFFFF, -1);
+        if (in < 1 && !prevText.isEmpty()) line(mc.font, source, cfg, prevText, m, -0.9f * em * in, 1 - in, rgb, glow);
+        if (!text.isEmpty()) line(mc.font, source, cfg, text, m, 0.6f * em * (1 - in), in, rgb, glow);
+        if (cfg.skyNext && !next.isEmpty()) {
+            Matrix4f n = new Matrix4f(m).translate(0, em * (1.25f + 0.4f * (1 - in)), 0).scale(0.6f);
+            line(mc.font, source, cfg, next, n, 0, 0.5f * in, 0xFFFFFF, -1);
+        }
     }
 
     private static Component styled(String s, Config.SkyFont f) {
@@ -133,34 +139,30 @@ public final class SkyLyrics {
         };
     }
 
-    // Glow: soft copies of the words in a ring behind them.
-    private static final int GLOW_TAPS = 12;
-
-    private static void draw(Font font, MultiBufferSource source, Config.Lyrics cfg, String s, float x, float y, float z, float yaw,
-                             float scale, float dy, float alpha, int rgb, int glow) {
+    private static void line(Font font, MultiBufferSource source, Config.Lyrics cfg, String s, Matrix4f m, float dy,
+                             float alpha, int rgb, int glow) {
         if (alpha <= 0.02f) return;
-        Component c = styled(s, cfg.skyFont);
-        Matrix4f m = new Matrix4f()
-            .translate(x, y, z)
-            .rotate(Axis.YP.rotationDegrees(180 - yaw))
-            .scale(scale, -scale, scale);
+        SkyText.Line l = SkyText.get(s, cfg.skyFont, cfg.skyGlowSize);
+        float glowA = glow >= 0 ? alpha * cfg.skyGlowStrength / 100f : 0;
+        if (l != null) {
+            SkyText.draw(source, l, m, dy, rgb, alpha, glow, glowA);
+            return;
+        }
+        // Minecraft's own font (chosen, or for letters the smooth fonts don't have, like Chinese or Korean).
+        Component c = styled(s, cfg.skyFont == Config.SkyFont.MINECRAFT ? Config.SkyFont.MINECRAFT : cfg.skyFont);
+        float k = SkyText.EM / 9f;
+        Matrix4f fm = new Matrix4f(m).translate(0, dy, 0).scale(k);
         float w = font.width(c);
-        if (glow >= 0 && cfg.skyGlowStrength > 0) {
-            float strength = cfg.skyGlowStrength / 100f;
-            for (int ring = 1; ring <= 2; ring++) {
-                float rad = 1.1f * ring * cfg.skyGlowSize;
-                int a = Math.max(5, Math.round(alpha * strength * (ring == 1 ? 46 : 22)));
-                for (int i = 0; i < GLOW_TAPS; i++) {
-                    double ang = (i + (ring == 2 ? 0.5 : 0)) * Math.PI * 2 / GLOW_TAPS;
-                    // A hair behind the words so they never fight for the same depth.
-                    Matrix4f gm = new Matrix4f(m).translate((float) Math.cos(ang) * rad, (float) Math.sin(ang) * rad, 0.4f + ring * 0.2f);
-                    font.drawInBatch(c, -w / 2f, dy, (a << 24) | glow, false, gm, source, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT);
-                }
+        int a = Math.max(5, Math.round(alpha * 255));
+        if (glow >= 0 && glowA > 0) {
+            int ga = Math.max(5, Math.round(glowA * 60));
+            for (int i = 0; i < 8; i++) {
+                double ang = i * Math.PI / 4;
+                Matrix4f gm = new Matrix4f(fm).translate((float) Math.cos(ang) * 0.6f * cfg.skyGlowSize, (float) Math.sin(ang) * 0.6f * cfg.skyGlowSize, 0);
+                font.drawInBatch(c, -w / 2f, -4.5f, (ga << 24) | glow, false, gm, source, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT);
             }
         }
-        int a = Math.max(5, Math.round(alpha * 255));
-        // Faint through walls, full strength in the open (like name tags).
-        font.drawInBatch(c, -w / 2f, dy, (Math.max(5, a / 4) << 24) | rgb, false, m, source, Font.DisplayMode.SEE_THROUGH, 0, LightTexture.FULL_BRIGHT);
-        font.drawInBatch(c, -w / 2f, dy, (a << 24) | rgb, false, m, source, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT);
+        font.drawInBatch(c, -w / 2f, -4.5f, (Math.max(5, a / 4) << 24) | rgb, false, fm, source, Font.DisplayMode.SEE_THROUGH, 0, LightTexture.FULL_BRIGHT);
+        font.drawInBatch(c, -w / 2f, -4.5f, (a << 24) | rgb, false, fm, source, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT);
     }
 }

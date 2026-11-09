@@ -188,7 +188,7 @@ public final class YouTube {
     // ------------------------------------------------------------ the browser (render thread)
 
     /**
-     * Keeps the browser alive and sized to {w, h} (GUI units). Returns the video picture, or null if there isn't one
+     * Keeps the browser alive and sized to {w, h} real screen pixels (the page renders 1:1, so this decides sharpness). Returns the video picture, or null if there isn't one
      * (yet). Call every frame the video is on screen.
      */
     public static GpuTextureView frame(int w, int h) {
@@ -228,7 +228,8 @@ public final class YouTube {
             }
             Class<?> bc = Class.forName("net.dimaskama.mcef.api.MCEFBrowser");
             if (w != bw || h != bh) {
-                bc.getMethod("resize", int.class, int.class).invoke(browser, Math.max(16, w), Math.max(9, h));
+                bc.getMethod("resize", int.class, int.class).invoke(browser, Math.max(16, Math.min(3840, w)), Math.max(9, Math.min(2160, h)));
+                nextInject = 0;
                 bw = w;
                 bh = h;
             }
@@ -262,11 +263,30 @@ public final class YouTube {
             + "v.classList.add('fv');if(v.parentElement!==document.body){document.body.appendChild(v);}"
             + "if(!document.getElementById('fv-shield')){var d=document.createElement('div');d.id='fv-shield';document.body.appendChild(d);}"
             + "v.volume=" + (vol / 100.0) + ";v.muted=false;"
+            + qualityJs()
             + "var b=document.querySelector('.ytp-skip-ad-button,.ytp-ad-skip-button,.ytp-ad-skip-button-modern');if(b)b.click();"
             + (paused ? "if(!v.paused)v.pause();" : "if(v.paused&&!v.ended){var p=v.play();if(p&&p.catch)p.catch(function(){});}")
             + "})();";
         Class<?> cc = Class.forName("org.cef.browser.CefBrowser");
         cc.getMethod("executeJavaScript", String.class, String.class, int.class).invoke(cef, js, "flopvisuals", 0);
+    }
+
+    /** Asks YouTube's player for a quality: the best it has, or a cap. Only changes it when it differs. */
+    private static String qualityJs() {
+        String cap = switch (Config.get().youtube.quality) {
+            case BEST -> "highres";
+            case P1080 -> "hd1080";
+            case P720 -> "hd720";
+            case P480 -> "large";
+            case AUTO -> null;
+        };
+        if (cap == null) return "";
+        return "try{var mp=document.getElementById('movie_player');if(mp&&mp.getAvailableQualityLevels){"
+            + "var order=['highres','hd2880','hd2160','hd1440','hd1080','hd720','large','medium','small','tiny'];"
+            + "var lv=mp.getAvailableQualityLevels()||[];var cap=order.indexOf('" + cap + "');var pick=null;"
+            + "for(var i=0;i<order.length;i++){if(i>=cap&&lv.indexOf(order[i])>=0){pick=order[i];break;}}"
+            + "if(pick&&mp.getPlaybackQuality&&mp.getPlaybackQuality()!==pick){"
+            + "if(mp.setPlaybackQualityRange)mp.setPlaybackQualityRange(pick,pick);if(mp.setPlaybackQuality)mp.setPlaybackQuality(pick);}}}catch(e){}";
     }
 
     private static void closeBrowser() {

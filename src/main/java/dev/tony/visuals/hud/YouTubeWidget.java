@@ -61,7 +61,9 @@ public final class YouTubeWidget {
         int vx = P, vy = P;
         // Video area.
         Shapes.round(g, vx, vy, VW, VH, 9, 0xFF000000);
-        GpuTextureView view = !YouTube.fullscreen() && YouTube.videoId() != null ? YouTube.frame(VW, VH) : null;
+        // Render the page at the card's real size in screen pixels, so the video is sharp.
+        float k = (float) Minecraft.getInstance().getWindow().getGuiScale() * Math.max(0.1f, Math.abs(g.pose().m00));
+        GpuTextureView view = !YouTube.fullscreen() && YouTube.videoId() != null ? YouTube.frame(Math.round(VW * k), Math.round(VH * k)) : null;
         if (view != null) {
             blitView(g, view, vx, vy, VW, VH);
         } else {
@@ -124,7 +126,8 @@ public final class YouTubeWidget {
             return;
         }
         g.fill(0, 0, sw, sh, 0xFF000000);
-        GpuTextureView view = YouTube.frame(sw, sh);
+        var win = Minecraft.getInstance().getWindow();
+        GpuTextureView view = YouTube.frame(win.getWidth(), win.getHeight());
         if (view != null) {
             blitView(g, view, 0, 0, sw, sh);
         } else {

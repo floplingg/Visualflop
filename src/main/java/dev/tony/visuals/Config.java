@@ -111,6 +111,22 @@ public final class Config {
         /** Last link opened. */
         public String url = "";
         public int volume = 80;
+        public VideoQuality quality = VideoQuality.BEST;
+    }
+
+    public enum VideoQuality {
+        BEST("Best"), P1080("1080p"), P720("720p"), P480("480p"), AUTO("Auto");
+
+        private final String label;
+
+        VideoQuality(String label) {
+            this.label = label;
+        }
+
+        @Override
+        public String toString() {
+            return label;
+        }
     }
 
     public YouTube youtube = new YouTube();
@@ -146,7 +162,9 @@ public final class Config {
         public boolean approximate = true;
         /** Sky lyrics: the sung line floats in the air ahead of you. */
         public boolean sky = false;
-        public float skyDistance = 6f;
+        public float skyDistance = 3.5f;
+        /** Set once the distance has moved to the new, closer default. */
+        public boolean skyCloser = false;
         public float skyHeight = 1.2f;
         public float skyScale = 1f;
         public boolean skyNext = true;
@@ -401,8 +419,13 @@ public final class Config {
         if (auction == null) auction = new Auction();
         if (youtube == null) youtube = new YouTube();
         youtube.volume = Math.max(0, Math.min(100, youtube.volume));
+        if (youtube.quality == null) youtube.quality = VideoQuality.BEST;
         if (lyrics.skyFont == null) lyrics.skyFont = SkyFont.HEAVY;
-        lyrics.skyDistance = Math.max(3, Math.min(16, lyrics.skyDistance <= 0 ? 6 : lyrics.skyDistance));
+        if (!lyrics.skyCloser) {
+            if (lyrics.skyDistance == 6f) lyrics.skyDistance = 3.5f;
+            lyrics.skyCloser = true;
+        }
+        lyrics.skyDistance = Math.max(1.5f, Math.min(16, lyrics.skyDistance <= 0 ? 3.5f : lyrics.skyDistance));
         lyrics.skyScale = Math.max(0.5f, Math.min(2.5f, lyrics.skyScale <= 0 ? 1 : lyrics.skyScale));
         lyrics.skyGlowStrength = Math.max(0, Math.min(100, lyrics.skyGlowStrength));
         lyrics.skyGlowSize = Math.max(0.3f, Math.min(3f, lyrics.skyGlowSize <= 0 ? 1 : lyrics.skyGlowSize));

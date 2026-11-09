@@ -94,6 +94,7 @@ public final class Sheet {
         int index() { return get.get().ordinal(); }
         void pick(int i) { set.accept(values[Math.max(0, Math.min(values.length - 1, i))]); }
         String name(int i) {
+            if (!values[i].toString().equals(values[i].name())) return values[i].toString();
             String s = values[i].name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
             return Character.toUpperCase(s.charAt(0)) + s.substring(1);
         }

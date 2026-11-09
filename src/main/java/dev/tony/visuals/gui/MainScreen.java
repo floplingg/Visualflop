@@ -341,7 +341,7 @@ public class MainScreen extends SheetScreen {
             }));
             if (!ly.skyGlowAccent) l.add(new Sheet.Colour("Glow colour", () -> ly.skyGlowColour, v -> ly.skyGlowColour = v));
         }
-        l.add(new Sheet.Slider("Distance", 3f, 16f, 0.5f, () -> ly.skyDistance, v -> ly.skyDistance = v, v -> String.format(java.util.Locale.ROOT, "%.1f blocks", v)));
+        l.add(new Sheet.Slider("Distance", 1.5f, 16f, 0.5f, () -> ly.skyDistance, v -> ly.skyDistance = v, v -> String.format(java.util.Locale.ROOT, "%.1f blocks", v)));
         l.add(new Sheet.Slider("Height", -1f, 4f, 0.1f, () -> ly.skyHeight, v -> ly.skyHeight = v, v -> String.format(java.util.Locale.ROOT, "%.1f", v)));
         l.add(new Sheet.Slider("Size", 0.5f, 2.5f, 0.05f, () -> ly.skyScale, v -> ly.skyScale = v, v -> Math.round(v * 100) + "%"));
         l.add(new Sheet.Footer("The sung line floats ahead of you. Turn and it glides after you a moment later (instantly if you turn fast); looking up or down doesn't move it."));
@@ -414,6 +414,7 @@ public class MainScreen extends SheetScreen {
             onClose();
         }));
         l.add(Sheet.Slider.ints("Volume", 0, 100, () -> yt.volume, v -> yt.volume = v, "%"));
+        l.add(new Sheet.Choice<>("Quality", Config.VideoQuality.values(), () -> yt.quality, v -> yt.quality = v));
         l.add(new Sheet.Action("Stop", () -> "", () -> {
             dev.tony.visuals.youtube.YouTube.stop();
             rebuild();
