@@ -1,0 +1,62 @@
+name: Build emoji font
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  emoji:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Twemoji (graphics CC-BY 4.0) into Minecraft bitmap-font sheets
+        run: |
+          set -e
+          pip install -q pillow
+          git clone -q --depth 1 --filter=blob:none --sparse https://github.com/jdecked/twemoji.git /tmp/tw
+          git -C /tmp/tw sparse-checkout set assets/72x72
+          cp /tmp/tw/LICENSE-GRAPHICS src/main/resources/assets/flopvisuals/font/twemoji-license.txt 2>/dev/null || curl -fsSL -o src/main/resources/assets/flopvisuals/font/twemoji-license.txt https://creativecommons.org/licenses/by/4.0/legalcode.txt
+          python - <<'PY'
+          import os, re, json
+          from PIL import Image
+          src = '/tmp/tw/assets/72x72'
+          out_tex = 'src/main/resources/assets/flopvisuals/textures/font'
+          out_font = 'src/main/resources/assets/flopvisuals/font'
+          os.makedirs(out_tex, exist_ok=True)
+          cps = []
+          for f in os.listdir(src):
+              m = re.fullmatch(r'([0-9a-f]+)\.png', f)
+              if not m: continue
+              cp = int(m.group(1), 16)
+              if cp < 0x2000 or 0x1F1E6 <= cp <= 0x1F1FF or cp in (0x2122, 0x2139): continue
+              cps.append(cp)
+          cps.sort()
+          CELL, COLS, ROWS = 64, 32, 32
+          per = COLS * ROWS
+          providers = []
+          for sheet in range(0, (len(cps) + per - 1) // per):
+              chunk = cps[sheet * per:(sheet + 1) * per]
+              rows = (len(chunk) + COLS - 1) // COLS
+              img = Image.new('RGBA', (COLS * CELL, rows * CELL), (0, 0, 0, 0))
+              chars = []
+              for r in range(rows):
+                  line = ''
+                  for c in range(COLS):
+                      i = r * COLS + c
+                      if i < len(chunk):
+                          cp = chunk[i]
+                          e = Image.open(os.path.join(src, '%x.png' % cp)).convert('RGBA').resize((CELL - 4, CELL - 4), Image.LANCZOS)
+                          img.paste(e, (c * CELL + 2, r * CELL + 2))
+                          line += chr(cp)
+                      else:
+                          line += '\u0000'
+                  chars.append(line)
+              img.save(os.path.join(out_tex, 'emoji_%d.png' % sheet), optimize=True)
+              providers.append({'type': 'bitmap', 'file': 'flopvisuals:font/emoji_%d.png' % sheet, 'height': 8, 'ascent': 7, 'chars': chars})
+          json.dump({'providers': providers}, open(os.path.join(out_font, 'emoji.json'), 'w'))
+          print(len(cps), 'emoji in', len(providers), 'sheets')
+          PY
+          ls -la src/main/resources/assets/flopvisuals/textures/font
+      - name: Commit
+        run: |
+          git config user.name floplingg && git config user.email floplingg@users.noreply.github.com
+          git add src/main/resources/assets/flopvisuals
+          git commit -m "Twemoji emoji font" && git push
