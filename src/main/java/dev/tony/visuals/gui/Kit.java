@@ -66,6 +66,33 @@ public final class Kit {
     private static final FontDescription UI_BOLD = new FontDescription.Resource(Identifier.fromNamespaceAndPath("flopvisuals", "ui_bold"));
     private static final Map<String, Component> REG_CACHE = new HashMap<>(), BOLD_CACHE = new HashMap<>();
 
+    /**
+     * Emoji clean-up for the emoji font, which has one picture per emoji: drops variation selectors, skin tones,
+     * keycap marks and tag characters, and keeps only the first part of joined emoji (a family shows as one person).
+     */
+    public static String clean(String s) {
+        if (s == null) return "";
+        boolean plain = true;
+        for (int i = 0; i < s.length() && plain; i++) {
+            char ch = s.charAt(i);
+            if (Character.isSurrogate(ch) || ch == 0x200D || ch == 0xFE0F || ch == 0xFE0E || ch == 0x20E3) plain = false;
+        }
+        if (plain) return s;
+        StringBuilder out = new StringBuilder(s.length());
+        int[] cps = s.codePoints().toArray();
+        for (int i = 0; i < cps.length; i++) {
+            int cp = cps[i];
+            if (cp == 0x200D) {
+                i++;   // skip the joined part too
+                while (i + 1 < cps.length && (cps[i + 1] == 0xFE0F || (cps[i + 1] >= 0x1F3FB && cps[i + 1] <= 0x1F3FF))) i++;
+                continue;
+            }
+            if (cp == 0xFE0F || cp == 0xFE0E || cp == 0x20E3 || (cp >= 0x1F3FB && cp <= 0x1F3FF) || (cp >= 0xE0020 && cp <= 0xE007F)) continue;
+            out.appendCodePoint(cp);
+        }
+        return out.toString();
+    }
+
     public static Component c(String s, boolean bold) {
         boolean smooth = Config.theme().smoothFont;
         Map<String, Component> cache = bold ? BOLD_CACHE : REG_CACHE;
@@ -75,7 +102,7 @@ public final class Kit {
             Style st = Style.EMPTY;
             if (smooth) st = st.withFont(bold ? UI_BOLD : UI);
             else if (bold) st = st.withBold(true);
-            return Component.literal(s).withStyle(st);
+            return Component.literal(clean(s)).withStyle(st);
         });
     }
 
@@ -93,7 +120,7 @@ public final class Kit {
             Style st = Style.EMPTY;
             if (smooth) st = st.withFont(face == HEAVY ? UI_HEAVY : UI_MONO);
             else if (face == HEAVY) st = st.withBold(true);
-            return Component.literal(s).withStyle(st);
+            return Component.literal(clean(s)).withStyle(st);
         });
     }
 

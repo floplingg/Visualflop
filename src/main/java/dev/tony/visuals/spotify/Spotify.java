@@ -110,6 +110,9 @@ public final class Spotify {
         if (t == null) {
             art = null;
             artFor = "";
+            // Forget which song we were on, so the cover comes back when it resumes (from the cache, or looked up again).
+            wantedArt = "";
+            artKey = "";
         }
     }
 
@@ -125,60 +128,156 @@ public final class Spotify {
 
     static void setArt(byte[] bytes) {
         String key = wantedArt;
+        if (key.isEmpty()) return;
         NET.execute(() -> {
             try {
                 if (key.equals(wantedArt)) {
-                    uploadArt(bytes);
+                    uploadArt(bytes, key);
                     artKey = key;
                 }
             } catch (Throwable e) {
-                LOG.warn("Cover from Windows couldn't be read", e);
+                LOG.warn("Cover from Windows couldn't be read; looking it up online instead", e);
+                lookupCover(key, 0);
             }
         });
     }
 
+    /** Covers already loaded this session, by song, so going back to a song shows its cover instantly. */
+    private static final java.util.LinkedHashMap<String, Identifier> COVERS = new java.util.LinkedHashMap<>(32, 0.75f, true);
+    private static final Map<String, Integer> COVER_COLOURS = new java.util.HashMap<>();
+
     private static volatile String wantedArt = "", artKey = "";
 
     /**
-     * Called when the song changes (Windows reader). Clears the old cover, and if Windows hasn't sent the new one
-     * within about 2 seconds, looks it up in Apple's iTunes catalogue (free, no account).
+     * Called when the song changes (Windows reader). Shows the cover straight from the cache if we've had it before;
+     * otherwise waits briefly for Windows to send it, then looks it up online: Apple Music (several countries,
+     * picked by the title's language), then Deezer, retrying a few times if the network hiccups.
      */
     static void songChanged(String title, String artist) {
         String key = title + "\u0001" + artist;
         if (key.equals(wantedArt)) return;
         wantedArt = key;
-        art = null;
-        NET.schedule(() -> {
-            if (!key.equals(wantedArt) || key.equals(artKey)) return;
-            try {
-                String term = java.net.URLEncoder.encode(title.replaceAll("\\s*[\\(\\[].*?[\\)\\]]", "") + " " + artist.split(",| & ")[0], StandardCharsets.UTF_8);
-                HttpRequest req = HttpRequest.newBuilder(URI.create("https://itunes.apple.com/search?media=music&entity=song&limit=5&term=" + term))
-                    .timeout(Duration.ofSeconds(8)).GET().build();
-                HttpResponse<String> res = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
-                if (res.statusCode() != 200) return;
-                JsonObject root = JsonParser.parseString(res.body()).getAsJsonObject();
-                if (!root.has("results") || root.getAsJsonArray("results").isEmpty()) return;
-                String url = null;
-                String want = artist.toLowerCase(java.util.Locale.ROOT);
-                for (var e : root.getAsJsonArray("results")) {
-                    JsonObject o = e.getAsJsonObject();
-                    if (!o.has("artworkUrl100")) continue;
-                    String a = o.has("artistName") ? o.get("artistName").getAsString().toLowerCase(java.util.Locale.ROOT) : "";
-                    if (url == null || want.contains(a) || a.contains(want)) {
-                        url = o.get("artworkUrl100").getAsString().replace("100x100bb", "600x600bb");
-                        if (want.contains(a) || a.contains(want)) break;
-                    }
-                }
-                if (url == null) return;
-                HttpResponse<byte[]> img = HTTP.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8)).GET().build(),
-                    HttpResponse.BodyHandlers.ofByteArray());
-                if (img.statusCode() != 200 || !key.equals(wantedArt) || key.equals(artKey)) return;
-                uploadArt(img.body());
-                artKey = key;
-            } catch (Throwable e) {
-                LOG.warn("Cover lookup on iTunes failed", e);
+        Identifier cached;
+        synchronized (COVERS) {
+            cached = COVERS.get(key);
+        }
+        if (cached != null) {
+            synchronized (COVERS) {
+                artColour = COVER_COLOURS.getOrDefault(key, -1);
             }
-        }, 2200, TimeUnit.MILLISECONDS);
+            art = cached;
+            artKey = key;
+            return;
+        }
+        art = null;
+        NET.schedule(() -> lookupCover(key, 0), 1500, TimeUnit.MILLISECONDS);
+    }
+
+    private static void lookupCover(String key, int attempt) {
+        if (!key.equals(wantedArt) || key.equals(artKey)) return;
+        String[] parts = key.split("\u0001", 2);
+        String title = parts[0], artist = parts.length > 1 ? parts[1] : "";
+        try {
+            String url = itunesCover(title, artist);
+            if (url == null) url = deezerCover(title, artist);
+            if (url != null) {
+                HttpResponse<byte[]> img = HTTP.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(10)).GET().build(),
+                    HttpResponse.BodyHandlers.ofByteArray());
+                if (img.statusCode() == 200 && key.equals(wantedArt) && !key.equals(artKey)) {
+                    uploadArt(img.body(), key);
+                    artKey = key;
+                    return;
+                }
+            }
+        } catch (Throwable e) {
+            LOG.warn("Cover lookup failed (try " + (attempt + 1) + ")", e);
+        }
+        // Not found or offline for a moment: try again a bit later.
+        if (attempt < 3) NET.schedule(() -> lookupCover(key, attempt + 1), 4000L * (attempt + 1), TimeUnit.MILLISECONDS);
+    }
+
+    /** "Song (feat. X) - Remastered 2011" -> "Song". */
+    private static String cleanTitle(String t) {
+        return t.replaceAll("\\s*[\\(\\[].*?[\\)\\]]", "").replaceAll("(?i)\\s+-\\s+.*(remaster|version|edit|mix|live|mono|stereo).*$", "").trim();
+    }
+
+    private static String firstArtist(String a) {
+        return a.split(",| & | x | feat\\.? | ft\\.? ", 2)[0].trim();
+    }
+
+    private static String norm(String s) {
+        return java.text.Normalizer.normalize(s.toLowerCase(java.util.Locale.ROOT), java.text.Normalizer.Form.NFKC).replaceAll("[^\\p{L}\\p{N}]", "");
+    }
+
+    /** How well a result matches: 3 = title and artist, 2 = title, 1 = artist. */
+    private static int score(String wantTitle, String wantArtist, String title, String artist) {
+        String t = norm(cleanTitle(title)), wt = norm(cleanTitle(wantTitle)), a = norm(artist), wa = norm(firstArtist(wantArtist));
+        boolean tm = !wt.isEmpty() && (t.equals(wt) || t.contains(wt) || wt.contains(t) && !t.isEmpty());
+        boolean am = !wa.isEmpty() && (a.contains(wa) || wa.contains(a) && !a.isEmpty());
+        return (tm ? 2 : 0) + (am ? 1 : 0);
+    }
+
+    private static String itunesCover(String title, String artist) throws Exception {
+        String term = java.net.URLEncoder.encode(cleanTitle(title) + " " + firstArtist(artist), StandardCharsets.UTF_8);
+        // The US store first, then the one that matches the title's language.
+        java.util.List<String> countries = new java.util.ArrayList<>(java.util.List.of("us"));
+        if (title.codePoints().anyMatch(c -> Character.UnicodeScript.of(c) == Character.UnicodeScript.HANGUL)) countries.add("kr");
+        if (title.codePoints().anyMatch(c -> Character.UnicodeScript.of(c) == Character.UnicodeScript.HIRAGANA
+            || Character.UnicodeScript.of(c) == Character.UnicodeScript.KATAKANA)) countries.add("jp");
+        if (title.codePoints().anyMatch(c -> Character.UnicodeScript.of(c) == Character.UnicodeScript.HAN)) {
+            countries.add("tw");
+            countries.add("cn");
+        }
+        String fallback = null;
+        for (String country : countries) {
+            HttpRequest req = HttpRequest.newBuilder(URI.create("https://itunes.apple.com/search?media=music&entity=song&limit=10&country=" + country + "&term=" + term))
+                .timeout(Duration.ofSeconds(8)).GET().build();
+            HttpResponse<String> res = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
+            if (res.statusCode() != 200) continue;
+            JsonObject root = JsonParser.parseString(res.body()).getAsJsonObject();
+            if (!root.has("results")) continue;
+            int best = 0;
+            String url = null;
+            for (var e : root.getAsJsonArray("results")) {
+                JsonObject o = e.getAsJsonObject();
+                if (!o.has("artworkUrl100")) continue;
+                int sc = score(title, artist, o.has("trackName") ? o.get("trackName").getAsString() : "",
+                    o.has("artistName") ? o.get("artistName").getAsString() : "");
+                String u = o.get("artworkUrl100").getAsString().replace("100x100bb", "600x600bb");
+                if (sc > best) {
+                    best = sc;
+                    url = u;
+                }
+                if (fallback == null && sc >= 1) fallback = u;
+            }
+            if (best >= 2) return url;
+        }
+        return fallback;
+    }
+
+    private static String deezerCover(String title, String artist) throws Exception {
+        String q = java.net.URLEncoder.encode(cleanTitle(title) + " " + firstArtist(artist), StandardCharsets.UTF_8);
+        HttpResponse<String> res = HTTP.send(HttpRequest.newBuilder(URI.create("https://api.deezer.com/search?limit=10&q=" + q))
+            .timeout(Duration.ofSeconds(8)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        if (res.statusCode() != 200) return null;
+        JsonObject root = JsonParser.parseString(res.body()).getAsJsonObject();
+        if (!root.has("data")) return null;
+        String url = null;
+        int best = 0;
+        for (var e : root.getAsJsonArray("data")) {
+            JsonObject o = e.getAsJsonObject();
+            if (!o.has("album")) continue;
+            JsonObject album = o.getAsJsonObject("album");
+            String u = album.has("cover_xl") && !album.get("cover_xl").isJsonNull() ? album.get("cover_xl").getAsString() : null;
+            if (u == null) continue;
+            int sc = score(title, artist, o.has("title") ? o.get("title").getAsString() : "",
+                o.has("artist") ? o.getAsJsonObject("artist").get("name").getAsString() : "");
+            if (sc > best) {
+                best = sc;
+                url = u;
+            }
+        }
+        return best >= 1 ? url : null;
     }
 
     /** Play/pause ("toggle"), "next" or "previous". The card updates straight away, then catches up with the player. */
@@ -472,7 +571,7 @@ public final class Spotify {
         try {
             HttpResponse<byte[]> res = HTTP.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(10)).GET().build(),
                 HttpResponse.BodyHandlers.ofByteArray());
-            uploadArt(res.body());
+            uploadArt(res.body(), url);
         } catch (Throwable t) {
             art = null;   // no ImageIO, network hiccup: just show the placeholder
         }
@@ -483,7 +582,9 @@ public final class Spotify {
      * Decodes a JPEG or PNG cover with stb (bundled with Minecraft, no Java desktop imaging needed), scales it to
      * 128 x 128 with smooth supersampling, rounds the corners and uploads it.
      */
-    private static void uploadArt(byte[] bytes) throws java.io.IOException {
+    private static int artCounter;
+
+    private static void uploadArt(byte[] bytes, String key) throws java.io.IOException {
         int sw, sh;
         int[] srcPx;
         java.nio.ByteBuffer buf = org.lwjgl.system.MemoryUtil.memAlloc(bytes.length);
@@ -503,7 +604,7 @@ public final class Spotify {
         } finally {
             org.lwjgl.system.MemoryUtil.memFree(buf);
         }
-        artColour = vibrant(srcPx);
+        int vib = vibrant(srcPx);
         {
             int size = 128;
             // Centre-crop to a square, then 4 x 4 supersampled bilinear scaling.
@@ -539,7 +640,7 @@ public final class Spotify {
                 }
             }
             Minecraft.getInstance().execute(() -> {
-                Identifier id = Identifier.fromNamespaceAndPath("flopvisuals", "spotify/art");
+                Identifier id = Identifier.fromNamespaceAndPath("flopvisuals", "spotify/art_" + (artCounter++));
                 DynamicTexture tex = new DynamicTexture(() -> "flopvisuals spotify art", img) {
                     {
                         this.sampler = com.mojang.blaze3d.systems.RenderSystem.getSamplerCache()
@@ -547,7 +648,23 @@ public final class Spotify {
                     }
                 };
                 Minecraft.getInstance().getTextureManager().register(id, tex);
-                art = id;
+                synchronized (COVERS) {
+                    COVERS.put(key, id);
+                    while (COVERS.size() > 30) {
+                        var it = COVERS.entrySet().iterator();
+                        Identifier old = it.next().getValue();
+                        it.remove();
+                        if (!old.equals(art)) Minecraft.getInstance().getTextureManager().release(old);
+                    }
+                }
+                // Only show it if it's still the song playing (the Web API passes its image URL as the key).
+                synchronized (COVERS) {
+                    COVER_COLOURS.put(key, vib);
+                }
+                if (key.equals(wantedArt) || key.equals(artFor)) {
+                    artColour = vib;
+                    art = id;
+                }
             });
         }
     }

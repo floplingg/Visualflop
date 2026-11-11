@@ -48,17 +48,29 @@ class SkyTextScreen extends net.minecraft.client.gui.screens.Screen {
     @Override
     public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
         super.render(g, mx, my, pt);
-        Object[] p = dev.tony.visuals.fx.SkyLyrics.preview("Come chat shit, I won't show no mercy");
-        if (p == null) return;
-        net.minecraft.resources.Identifier id = (net.minecraft.resources.Identifier) p[0];
-        int w = (int) p[1], h = (int) p[2];
-        float k = (width - 20f) / w;
-        g.pose().pushMatrix();
-        g.pose().translate(10, height / 2f - h * k / 2);
-        g.pose().scale(k, k);
-        g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, id, 0, 0, 0f, h, w, h, w, h, w, h * 2, 0xCC7DD3FC);
-        g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, id, 0, 0, 0f, 0f, w, h, w, h, w, h * 2, 0xFF7DD3FC);
-        g.pose().popMatrix();
+        String[] lines = {"Come chat shit, I won't show no mercy \uD83D\uDE02", "\uC0AC\uB791\uD574 \uD83D\uDD25 \u3042\u308A\u304C\u3068\u3046 \u6211\u7231\u4F60 \u2764\uFE0F"};
+        float y = height / 4f;
+        for (String line : lines) {
+            Object[] p = dev.tony.visuals.fx.SkyLyrics.preview(line);
+            if (p == null) {
+                g.drawString(font, "no smooth font for: " + line, 10, (int) y, 0xFFFF5555);
+                y += height / 2f;
+                continue;
+            }
+            net.minecraft.resources.Identifier id = (net.minecraft.resources.Identifier) p[0];
+            int w = (int) p[1], h = (int) p[2];
+            float k = Math.min((width - 20f) / w, height / 2.6f / h);
+            g.pose().pushMatrix();
+            g.pose().translate(10, y - h * k / 2);
+            g.pose().scale(k, k);
+            g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, id, 0, 0, 0f, h, w, h, w, h, w, h * 3, 0xCC7DD3FC);
+            g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, id, 0, 0, 0f, 0f, w, h, w, h, w, h * 3, 0xFF7DD3FC);
+            g.blit(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, id, 0, 0, 0f, 2 * h, w, h, w, h, w, h * 3, 0xFFFFFFFF);
+            g.pose().popMatrix();
+            y += height / 2f;
+        }
+        // HUD font: emoji + Korean through the menu font.
+        dev.tony.visuals.gui.Kit.draw(g, "HUD: Blinding Lights \uD83D\uDE0E \uC0AC\uB791\uD574 \u2764\uFE0F", 10, height - 30, 2f, 0xFFFFFFFF, dev.tony.visuals.gui.Kit.HEAVY);
     }
 }
 
@@ -161,6 +173,12 @@ public class ScreenshotTest implements FabricClientGameTest {
         context.runOnClient(mc -> dev.tony.visuals.spotify.Spotify.testInject("Blinding Lights", "The Weeknd", null));
         context.waitTicks(160);
         context.takeScreenshot("13-spotify-card-itunes");
+        context.runOnClient(mc -> dev.tony.visuals.spotify.Spotify.testInject("\uC0AC\uAC74\uC758 \uC9C0\uD3C9\uC120", "\uC724\uD558", null));
+        context.waitTicks(160);
+        context.takeScreenshot("13b-spotify-card-korean");
+        context.runOnClient(mc -> dev.tony.visuals.spotify.Spotify.testInject("Blinding Lights \uD83D\uDE0E", "The Weeknd", null));
+        context.waitTicks(20);
+        context.takeScreenshot("13c-spotify-card-cached-emoji");
         // Gamble: payments in chat.
         context.runOnClient(mc -> {
             dev.tony.visuals.pay.Tracker.start();
