@@ -87,16 +87,18 @@ public final class Payments {
         final int id;
         final String player;
         final String shown;      // amount as DonutSMP wrote it, e.g. "5.1M"
-        final double bet;        // bet without the .1 / .2 marker, e.g. 5,000,000
+        final double bet;        // bet without the Paper / BJ marker, e.g. 5,000,000 (used for the minimum / maximum)
+        final double win;        // what a win is doubled from: the full amount for Paper / BJ (5.1M pays 10.2M), else the bet
         final String tag;        // "Paper", "BJ" or ""
         int count = 1;
         GuiMessage line;
 
-        Entry(int id, String player, String shown, double bet, String tag) {
+        Entry(int id, String player, String shown, double bet, double win, String tag) {
             this.id = id;
             this.player = player;
             this.shown = shown;
             this.bet = bet;
+            this.win = win;
             this.tag = tag;
         }
     }
@@ -167,8 +169,9 @@ public final class Payments {
         int dot = number.indexOf('.');
         if (dot >= 0) {
             String decimals = number.substring(dot + 1);
-            if (decimals.equals("1")) tag = "Paper";
-            else if (decimals.equals("2")) tag = "BJ";
+            // The single decimal that marks the game (set on the Gamble page; .1 Paper and .2 BJ by default).
+            if (decimals.equals(String.valueOf(cfg.paperTag))) tag = "Paper";
+            else if (decimals.equals(String.valueOf(cfg.bjTag))) tag = "BJ";
             if (!tag.isEmpty()) whole = number.substring(0, dot);
         }
         double bet = Double.parseDouble(whole) * mult;
@@ -186,7 +189,10 @@ public final class Payments {
             open.line = add(open, build(open));
             return true;
         }
-        Entry e = new Entry(nextId++, player, shown, bet, cfg.tags ? tag : "");
+        boolean tagged = cfg.tags && !tag.isEmpty();
+        // A Paper / BJ win pays double the whole amount, marker included: 5.1M [Paper] pays 10.2M.
+        double win = tagged ? Double.parseDouble(number) * mult : bet;
+        Entry e = new Entry(nextId++, player, shown, bet, win, tagged ? tag : "");
         ENTRIES.put(e.id, e);
         OPEN.put(key, e);
         e.line = add(e, build(e));
@@ -212,7 +218,7 @@ public final class Payments {
         if (e.count > 1) c.append(text("[" + e.count + "] ", ChatFormatting.YELLOW, ChatFormatting.BOLD));
         c.append(text("$" + e.shown, ChatFormatting.GREEN));
         if (!e.tag.isEmpty()) c.append(text(" [" + e.tag + "]", e.tag.equals("BJ") ? ChatFormatting.AQUA : ChatFormatting.GOLD));
-        double pay = e.bet * Config.get().gamble.payout;
+        double pay = e.win * Config.get().gamble.payout;
         String winHover = e.count > 1 ? "They won some: pick how many" : "They won: pay $" + money(pay);
         c.append(Component.literal(" "));
         c.append(Component.literal("[✔]").withStyle(button(e.id, "win", winHover).withColor(ChatFormatting.GREEN).withBold(true)));
@@ -231,7 +237,7 @@ public final class Payments {
         if (!e.tag.isEmpty()) s.append(" [").append(e.tag).append("]");
         MutableComponent c = Component.literal(s.toString()).withStyle(col);
         if (won) {
-            double pay = e.bet * Config.get().gamble.payout * wins;
+            double pay = e.win * Config.get().gamble.payout * wins;
             String how = e.count > 1 ? " [" + wins + "/" + e.count + " won]" : "";
             c.append(Component.literal(how + " [Pay $" + money(pay) + "]").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
         }
@@ -280,7 +286,7 @@ public final class Payments {
             settle(e, 0);
         } else if (e.count > 1) {
             Minecraft mc = Minecraft.getInstance();
-            mc.setScreen(new WinsScreen(mc.screen, e.player, e.count, e.bet * Config.get().gamble.payout, wins -> settle(e, wins)));
+            mc.setScreen(new WinsScreen(mc.screen, e.player, e.count, e.win * Config.get().gamble.payout, wins -> settle(e, wins)));
         } else {
             settle(e, 1);
         }

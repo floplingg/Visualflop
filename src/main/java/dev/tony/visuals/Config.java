@@ -75,6 +75,9 @@ public final class Config {
         public boolean enabled = true;
         /** Payments below this are left alone. */
         public double minimum = 1_000_000;
+        /** The decimal that marks a game: 5.1M = Paper, 5.2M = BJ by default (1 to 9). */
+        public int paperTag = 1;
+        public int bjTag = 2;
         /** Payments above this are left alone too (0 = no maximum). */
         public double maximum = 0;
         /** What a win pays back, as a multiple of the bet (2 = double). */
@@ -414,6 +417,8 @@ public final class Config {
         if (menu == null) menu = new Menu();
         if (gamble == null) gamble = new Gamble();
         if (gamble.sessions == null) gamble.sessions = new ArrayList<>();
+        gamble.paperTag = Math.max(1, Math.min(9, gamble.paperTag == 0 ? 1 : gamble.paperTag));
+        gamble.bjTag = Math.max(1, Math.min(9, gamble.bjTag == 0 ? 2 : gamble.bjTag));
         if (gamble.current != null && gamble.current.history == null) gamble.current.history = new ArrayList<>();
         for (Session ss : gamble.sessions) if (ss.history == null) ss.history = new ArrayList<>();
         if (auction == null) auction = new Auction();
