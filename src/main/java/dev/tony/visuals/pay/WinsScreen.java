@@ -3,7 +3,7 @@ package dev.tony.visuals.pay;
 import dev.tony.visuals.gui.Ease;
 import dev.tony.visuals.gui.Kit;
 import dev.tony.visuals.gui.Shapes;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -66,7 +66,7 @@ public class WinsScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float pt) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
         Kit.refresh();
         float o = open.to(1);
         g.fill(0, 0, width, height, ((int) (0x66 * o) << 24) | 0x05060C);

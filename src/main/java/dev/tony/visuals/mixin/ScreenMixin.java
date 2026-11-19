@@ -1,7 +1,7 @@
 package dev.tony.visuals.mixin;
 
 import dev.tony.visuals.wallpaper.Wallpapers;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Screen.class)
 public class ScreenMixin {
     @Inject(method = "renderPanorama", at = @At("HEAD"), cancellable = true)
-    private void flopvisuals$wallpaper(GuiGraphics g, float partialTick, CallbackInfo ci) {
+    private void flopvisuals$wallpaper(GuiGraphicsExtractor g, float partialTick, CallbackInfo ci) {
         Screen self = (Screen) (Object) this;
         if (Wallpapers.draw(g, self.width, self.height)) ci.cancel();
     }

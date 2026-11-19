@@ -1,11 +1,12 @@
 package dev.tony.visuals.gui;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
+
 
 import java.util.function.Consumer;
 
@@ -42,7 +43,7 @@ public class TextEditScreen extends Screen {
 
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
-        if (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER) {
+        if (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER) {
             save();
             return true;
         }
@@ -50,8 +51,8 @@ public class TextEditScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float pt) {
-        super.render(g, mx, my, pt);
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float pt) {
+        super.extractRenderState(g, mx, my, pt);
         Kit.refresh();
         Kit.textCenter(g, getTitle().getString(), width / 2f, height / 2f - 34, 0xFFFFFFFF, true);
         Kit.textCenter(g, "Tip: {fps} {coords} {ping} {clock} {biome} {speed} {direction} {cps} {day} show live values",

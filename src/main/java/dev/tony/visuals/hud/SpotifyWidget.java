@@ -9,7 +9,7 @@ import dev.tony.visuals.spotify.Spotify;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
@@ -59,7 +59,7 @@ public final class SpotifyWidget {
         return 0xFF000000 | (Math.max(0, Math.min(255, r)) << 16) | (Math.max(0, Math.min(255, g)) << 8) | Math.max(0, Math.min(255, b));
     }
 
-    public static void draw(GuiGraphics g, int w, int h) {
+    public static void draw(GuiGraphicsExtractor g, int w, int h) {
         Theme t = Config.theme();
         Config.Spotify s = Config.get().spotify;
         Spotify.Track tr = Spotify.track();

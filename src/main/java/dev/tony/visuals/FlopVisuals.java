@@ -16,9 +16,9 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
-import org.lwjgl.glfw.GLFW;
+
 
 public class FlopVisuals implements ClientModInitializer {
     public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("flopvisuals", "main"));
@@ -28,18 +28,18 @@ public class FlopVisuals implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         Config.load();
-        menuKey = KeyBindingHelper.registerKeyBinding(
-            new KeyMapping("key.flopvisuals.menu", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_V, CATEGORY));
-        playPauseKey = KeyBindingHelper.registerKeyBinding(
-            new KeyMapping("key.flopvisuals.playpause", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
-        nextKey = KeyBindingHelper.registerKeyBinding(
-            new KeyMapping("key.flopvisuals.next", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
-        previousKey = KeyBindingHelper.registerKeyBinding(
-            new KeyMapping("key.flopvisuals.previous", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
-        ytPauseKey = KeyBindingHelper.registerKeyBinding(
-            new KeyMapping("key.flopvisuals.ytpause", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
-        ytFullscreenKey = KeyBindingHelper.registerKeyBinding(
-            new KeyMapping("key.flopvisuals.ytfullscreen", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+        menuKey = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping("key.flopvisuals.menu", InputConstants.Type.KEYSYM, InputConstants.KEY_V, CATEGORY));
+        playPauseKey = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping("key.flopvisuals.playpause", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
+        nextKey = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping("key.flopvisuals.next", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
+        previousKey = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping("key.flopvisuals.previous", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
+        ytPauseKey = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping("key.flopvisuals.ytpause", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
+        ytFullscreenKey = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping("key.flopvisuals.ytfullscreen", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
         dev.tony.visuals.hud.SpotifyWidget.registerClicks();
         dev.tony.visuals.hud.YouTubeWidget.registerClicks();
         dev.tony.visuals.pay.Payments.init();

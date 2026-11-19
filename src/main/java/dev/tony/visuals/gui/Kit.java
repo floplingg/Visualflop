@@ -4,7 +4,7 @@ import dev.tony.visuals.Config;
 import dev.tony.visuals.Theme;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
@@ -128,16 +128,16 @@ public final class Kit {
         return font().width(face(s, face)) * scale;
     }
 
-    public static void draw(GuiGraphics g, String s, float x, float y, float scale, int colour, int face) {
+    public static void draw(GuiGraphicsExtractor g, String s, float x, float y, float scale, int colour, int face) {
         g.pose().pushMatrix();
         g.pose().translate(x, y);
         if (scale != 1) g.pose().scale(scale, scale);
-        g.drawString(font(), face(s, face), 0, 0, colour, false);
+        g.text(font(), face(s, face), 0, 0, colour, false);
         g.pose().popMatrix();
     }
 
     /** Small uppercase label with wide letter spacing ("NOW PLAYING"), like the preview. */
-    public static void tracked(GuiGraphics g, String s, float x, float y, float scale, int colour) {
+    public static void tracked(GuiGraphicsExtractor g, String s, float x, float y, float scale, int colour) {
         s = s.toUpperCase(java.util.Locale.ROOT);
         float gap = 0.9f * scale;
         float cx = x;
@@ -167,35 +167,35 @@ public final class Kit {
         return width(s, false);
     }
 
-    public static void text(GuiGraphics g, String s, float x, float y, int colour, boolean bold) {
+    public static void text(GuiGraphicsExtractor g, String s, float x, float y, int colour, boolean bold) {
         text(g, s, x, y, colour, bold, false);
     }
 
-    public static void text(GuiGraphics g, String s, float x, float y, int colour, boolean bold, boolean shadow) {
+    public static void text(GuiGraphicsExtractor g, String s, float x, float y, int colour, boolean bold, boolean shadow) {
         int ix = Math.round(x), iy = Math.round(y);
         if (Math.abs(ix - x) < 0.01f && Math.abs(iy - y) < 0.01f) {
-            g.drawString(font(), c(s, bold), ix, iy, colour, shadow);
+            g.text(font(), c(s, bold), ix, iy, colour, shadow);
             return;
         }
         g.pose().pushMatrix();
         g.pose().translate(x, y);
-        g.drawString(font(), c(s, bold), 0, 0, colour, shadow);
+        g.text(font(), c(s, bold), 0, 0, colour, shadow);
         g.pose().popMatrix();
     }
 
-    public static void textScaled(GuiGraphics g, String s, float x, float y, float scale, int colour, boolean bold) {
+    public static void textScaled(GuiGraphicsExtractor g, String s, float x, float y, float scale, int colour, boolean bold) {
         g.pose().pushMatrix();
         g.pose().translate(x, y);
         g.pose().scale(scale, scale);
-        g.drawString(font(), c(s, bold), 0, 0, colour, false);
+        g.text(font(), c(s, bold), 0, 0, colour, false);
         g.pose().popMatrix();
     }
 
-    public static void textRight(GuiGraphics g, String s, float right, float y, int colour, boolean bold) {
+    public static void textRight(GuiGraphicsExtractor g, String s, float right, float y, int colour, boolean bold) {
         text(g, s, right - width(s, bold), y, colour, bold);
     }
 
-    public static void textCenter(GuiGraphics g, String s, float cx, float y, int colour, boolean bold) {
+    public static void textCenter(GuiGraphicsExtractor g, String s, float cx, float y, int colour, boolean bold) {
         text(g, s, cx - width(s, bold) / 2f, y, colour, bold);
     }
 
@@ -210,7 +210,7 @@ public final class Kit {
     // ------------------------------------------------------------ shapes
 
     /** Soft drop shadow under a rounded box. */
-    public static void shadow(GuiGraphics g, float x, float y, float w, float h, float r, float strength) {
+    public static void shadow(GuiGraphicsExtractor g, float x, float y, float w, float h, float r, float strength) {
         for (int i = 6; i >= 1; i--) {
             int a = Math.round(255 * strength * 0.05f * (1 - i / 7f));
             if (a <= 0) continue;
@@ -218,7 +218,7 @@ public final class Kit {
         }
     }
 
-    public static void hairline(GuiGraphics g, float x, float y, float w, int colour) {
+    public static void hairline(GuiGraphicsExtractor g, float x, float y, float w, int colour) {
         Shapes.round(g, x, y, w, 0.5f, 0, colour);
     }
 
@@ -231,7 +231,7 @@ public final class Kit {
     }
 
     /** iOS switch, 26 x 15. t = 0 off .. 1 on (animated). */
-    public static void toggle(GuiGraphics g, float x, float y, float t) {
+    public static void toggle(GuiGraphicsExtractor g, float x, float y, float t) {
         float w = 26, h = 15;
         Shapes.round(g, x, y, w, h, h / 2, lerpColour(SWITCH_OFF, ACCENT, t));
         float kx = x + 1.5f + t * (w - h);
@@ -239,13 +239,13 @@ public final class Kit {
         Shapes.circle(g, kx + 6f, y + h / 2, 6f, 0xFFFFFFFF);
     }
 
-    private static void shadowKnob(GuiGraphics g, float cx, float cy, float r) {
+    private static void shadowKnob(GuiGraphicsExtractor g, float cx, float cy, float r) {
         Shapes.circle(g, cx, cy + 0.8f, r + 0.9f, 0x22000000);
         Shapes.circle(g, cx, cy + 0.4f, r + 0.4f, 0x1A000000);
     }
 
     /** Thin slider track with a round white knob. t = 0..1. */
-    public static void slider(GuiGraphics g, float x, float y, float w, float t, int fill, boolean active) {
+    public static void slider(GuiGraphicsExtractor g, float x, float y, float w, float t, int fill, boolean active) {
         t = Math.max(0, Math.min(1, t));
         Shapes.round(g, x, y - 1.5f, w, 3, 1.5f, TRACK);
         Shapes.round(g, x, y - 1.5f, Math.max(3, w * t), 3, 1.5f, fill);
@@ -255,7 +255,7 @@ public final class Kit {
     }
 
     /** iOS-settings style icon tile: coloured squircle with a white symbol. */
-    public static void icon(GuiGraphics g, String icon, float x, float y, float size, int colour) {
+    public static void icon(GuiGraphicsExtractor g, String icon, float x, float y, float size, int colour) {
         Shapes.round(g, x, y, size, size, size * 0.26f, 0xFF000000 | colour);
         float pad = size * 0.18f;
         Identifier tex = Identifier.fromNamespaceAndPath("flopvisuals", "textures/gui/icon/" + icon + ".png");
@@ -267,7 +267,7 @@ public final class Kit {
     }
 
     /** Thin line icon from the preview (tinted with {@code colour}). */
-    public static void lineIcon(GuiGraphics g, String icon, float x, float y, float size, int colour) {
+    public static void lineIcon(GuiGraphicsExtractor g, String icon, float x, float y, float size, int colour) {
         Identifier tex = Identifier.fromNamespaceAndPath("flopvisuals", "textures/gui/line/line_" + icon + ".png");
         g.pose().pushMatrix();
         g.pose().translate(x, y);
@@ -277,7 +277,7 @@ public final class Kit {
     }
 
     /** Pill button. Returns nothing; hit testing is done by the caller. */
-    public static void pill(GuiGraphics g, float x, float y, float w, float h, String label, boolean primary, float hover) {
+    public static void pill(GuiGraphicsExtractor g, float x, float y, float w, float h, String label, boolean primary, float hover) {
         int fill = primary ? ACCENT : (dark ? 0xFF3A3A3C : 0xFFE5E5EA);
         if (hover > 0) fill = lerpColour(fill, primary ? 0xFFFFFFFF : (dark ? 0xFF48484A : 0xFFD8D8DD), hover * (primary ? 0.15f : 1f));
         Shapes.round(g, x, y, w, h, h / 2, fill);

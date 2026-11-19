@@ -9,7 +9,7 @@ import dev.tony.visuals.gui.Shapes;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -38,7 +38,7 @@ public final class Hud {
 
     // ------------------------------------------------------------ entry point
 
-    public static void render(GuiGraphics g, DeltaTracker delta) {
+    public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options.hideGui) return;
         Stats.frame(mc);
@@ -95,7 +95,7 @@ public final class Hud {
         return new Placement(x, y, sw, sh, raw[0], raw[1]);
     }
 
-    public static Placement draw(GuiGraphics g, Font font, String id, Config.Widget w, int screenW, int screenH) {
+    public static Placement draw(GuiGraphicsExtractor g, Font font, String id, Config.Widget w, int screenW, int screenH) {
         Placement p = place(font, id, w, screenW, screenH);
         g.pose().pushMatrix();
         g.pose().translate(p.x(), p.y());
@@ -119,12 +119,12 @@ public final class Hud {
 
     // ------------------------------------------------------------ shared card
 
-    public static void card(GuiGraphics g, float x, float y, float w, float h) {
+    public static void card(GuiGraphicsExtractor g, float x, float y, float w, float h) {
         card(g, x, y, w, h, Config.theme().rounding);
     }
 
     /** Glass card from the preview: soft shadow, frosted blur of the game behind, dark tint, hairline edge. */
-    public static void card(GuiGraphics g, float x, float y, float w, float h, float radius) {
+    public static void card(GuiGraphicsExtractor g, float x, float y, float w, float h, float radius) {
         Theme t = Config.theme();
         float r = Math.min(radius, Math.min(w, h) / 2);
         if (t.widgetOpacity > 0) Kit.shadow(g, x, y, w, h, r, 0.55f);
@@ -147,7 +147,7 @@ public final class Hud {
 
     // ------------------------------------------------------------ text widgets
 
-    private static void drawText(GuiGraphics g, Font font, String id, int w, int h) {
+    private static void drawText(GuiGraphicsExtractor g, Font font, String id, int w, int h) {
         Theme t = Config.theme();
         card(g, 0, 0, w, h);
         String[] parts = text(id);
@@ -162,7 +162,7 @@ public final class Hud {
     }
 
     /** For the screenshot test. */
-    public static void drawChip(GuiGraphics g, String id, int w, int h) {
+    public static void drawChip(GuiGraphicsExtractor g, String id, int w, int h) {
         drawText(g, Minecraft.getInstance().font, id, w, h);
     }
 
@@ -180,7 +180,7 @@ public final class Hud {
         return t.padding + 5;
     }
 
-    private static void drawCustom(GuiGraphics g, String id, int w, int h) {
+    private static void drawCustom(GuiGraphicsExtractor g, String id, int w, int h) {
         Theme t = Config.theme();
         Config.CustomText ct = Config.get().text(id);
         if (ct == null) return;
@@ -283,7 +283,7 @@ public final class Hud {
         return out;
     }
 
-    private static void drawArmor(GuiGraphics g, Font font, int w, int h) {
+    private static void drawArmor(GuiGraphicsExtractor g, Font font, int w, int h) {
         Theme t = Config.theme();
         card(g, 0, 0, w, h);
         List<ItemStack> items = armorItems();

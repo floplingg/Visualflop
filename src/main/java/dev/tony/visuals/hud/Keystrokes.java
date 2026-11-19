@@ -7,7 +7,7 @@ import dev.tony.visuals.gui.Shapes;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /** W A S D, mouse buttons with CPS and the space bar, with smooth press fades in the accent colour. */
 public final class Keystrokes {
@@ -30,7 +30,7 @@ public final class Keystrokes {
     private static int mouseH(int s) { return Math.round(s * 0.85f); }
     private static int spaceH(int s) { return Math.max(8, Math.round(s * 0.5f)); }
 
-    public static void draw(GuiGraphics g, Font font) {
+    public static void draw(GuiGraphicsExtractor g, Font font) {
         Minecraft mc = Minecraft.getInstance();
         Config.Keystrokes k = Config.get().keystrokes;
         Theme t = Config.theme();
@@ -73,7 +73,7 @@ public final class Keystrokes {
         }
     }
 
-    private static void key(GuiGraphics g, Font font, Theme t, Config.Keystrokes k,
+    private static void key(GuiGraphicsExtractor g, Font font, Theme t, Config.Keystrokes k,
                             float x, float y, float w, float h, String text, float glow) {
         float r = Math.min(t.rounding, Math.min(w, h) / 2);
         if (k.background) {

@@ -1,7 +1,7 @@
 package dev.tony.visuals.gui;
 
 import dev.tony.visuals.Config;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -217,10 +217,10 @@ public class SheetScreen extends Screen {
     // ------------------------------------------------------------ drawing
 
     @Override
-    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         Kit.refresh();
         if (minecraft.level == null) {
-            super.renderBackground(g, mouseX, mouseY, partialTick);
+            super.extractBackground(g, mouseX, mouseY, partialTick);
             return;
         }
         if (Config.get().menu.blurWorld) renderBlurredBackground(g);
@@ -229,7 +229,7 @@ public class SheetScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         Kit.refresh();
         long now = System.nanoTime();
         float dt = lastFrame == 0 ? 0 : Math.min(0.1f, (now - lastFrame) / 1e9f);
@@ -283,7 +283,7 @@ public class SheetScreen extends Screen {
             Shapes.round(g, t[0] + (t[2] - w) / 2, th[1], w, th[3], w / 2, (a << 24) | (Kit.dark ? 0xFFFFFF : 0x000000));
         }
         g.pose().popMatrix();
-        super.render(g, mouseX, mouseY, partialTick);
+        super.extractRenderState(g, mouseX, mouseY, partialTick);
     }
 
     /** Scroll track {x, y, w, h} on the right edge of the content. */
@@ -318,7 +318,7 @@ public class SheetScreen extends Screen {
         return new float[]{px + pw - w - 16, py + 14, w, 18};
     }
 
-    private void drawHeader(GuiGraphics g, int mx, int my) {
+    private void drawHeader(GuiGraphicsExtractor g, int mx, int my) {
         String title = pages.isEmpty() ? getTitle().getString() : pages.get(page).name();
         float tx = cx + 2;
         if (multi()) {
@@ -373,7 +373,7 @@ public class SheetScreen extends Screen {
         return Math.min(22, (sideW - 30) / (SWATCHES.length - 1f));
     }
 
-    private void drawSidebar(GuiGraphics g, int mx, int my, float r) {
+    private void drawSidebar(GuiGraphicsExtractor g, int mx, int my, float r) {
         Shapes.roundClip(g, px, py, pw, ph, r, px, py, px + sideW, py + ph, glass(0.03f));
         Shapes.round(g, px + sideW - 0.5f, py, 0.5f, ph, 0, glass(0.07f));
         boolean labels = Config.get().menu.sidebarLabels;
@@ -440,7 +440,7 @@ public class SheetScreen extends Screen {
         }
     }
 
-    private void drawItems(GuiGraphics g, float x, float top, int mx, int my, float dt, float pageT) {
+    private void drawItems(GuiGraphicsExtractor g, float x, float top, int mx, int my, float dt, float pageT) {
         for (Sheet.Item it : items) {
             float y = top + it.y;
             if (y > cy + ch + 40 || y + it.h < cy - 40) continue;
@@ -457,7 +457,7 @@ public class SheetScreen extends Screen {
     }
 
     /** The preview's switch: accent track with a soft glow, white knob. */
-    private void drawToggle(GuiGraphics g, float x, float y, float t) {
+    private void drawToggle(GuiGraphicsExtractor g, float x, float y, float t) {
         float w = 27, h = 16;
         if (t > 0.01f) Shapes.round(g, x - 3, y - 3, w + 6, h + 6, (h + 6) / 2f, (Math.round(70 * t) << 24) | (Kit.ACCENT & 0xFFFFFF));
         Shapes.round(g, x, y, w, h, h / 2f, Kit.lerpColour(glass(0.16f), 0xFF000000 | (Kit.ACCENT & 0xFFFFFF), t));
@@ -466,7 +466,7 @@ public class SheetScreen extends Screen {
         Shapes.circle(g, kx + ks / 2, y + h / 2, ks / 2, 0xFFFFFFFF);
     }
 
-    private void drawItem(GuiGraphics g, Sheet.Item it, float x, float y, float w, int mx, int my) {
+    private void drawItem(GuiGraphicsExtractor g, Sheet.Item it, float x, float y, float w, int mx, int my) {
         float ty = y + (it.h - 8) / 2f;
         float right = x + w - 12;
         if (it instanceof Sheet.Header h) {

@@ -1,10 +1,10 @@
 package dev.tony.visuals.wallpaper;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.NativeImage;
 import dev.tony.visuals.Config;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
@@ -76,7 +76,7 @@ public final class Wallpapers {
     }
 
     /** Draws the wallpaper. Returns false to fall back to the vanilla panorama. */
-    public static boolean draw(GuiGraphics g, int w, int h) {
+    public static boolean draw(GuiGraphicsExtractor g, int w, int h) {
         Config.Wallpaper cfg = Config.get().wallpaper;
         switch (cfg.mode) {
             case VANILLA -> { return false; }
@@ -89,7 +89,7 @@ public final class Wallpapers {
         return true;
     }
 
-    private static void drawTopo(GuiGraphics g, int w, int h, int style) {
+    private static void drawTopo(GuiGraphicsExtractor g, int w, int h, int style) {
         Config.SkyStyle look = Config.SkyStyle.values()[Math.max(0, Math.min(Config.SkyStyle.values().length - 1, style))];
         int accent = dev.tony.visuals.sky.SkyStyles.colour(look, Config.get().wallpaper.colour) & 0xFFFFFF;
         if (accentTex == null) {
@@ -157,7 +157,7 @@ public final class Wallpapers {
                 DynamicTexture tex = new DynamicTexture(() -> "flopvisuals wallpaper " + name, ready) {
                     {
                         this.sampler = com.mojang.blaze3d.systems.RenderSystem.getSamplerCache()
-                            .getClampToEdge(com.mojang.blaze3d.textures.FilterMode.LINEAR);
+                            .getClampToEdge(com.mojang.renderpearl.api.textures.FilterMode.LINEAR);
                     }
                 };
                 Minecraft.getInstance().getTextureManager().register(IMAGE_TEX, tex);
@@ -182,7 +182,7 @@ public final class Wallpapers {
         return NativeImage.read(out.toByteArray());
     }
 
-    private static boolean drawImage(GuiGraphics g, int w, int h, String name) {
+    private static boolean drawImage(GuiGraphicsExtractor g, int w, int h, String name) {
         if (!load(name)) return false;
         // Cover: fill the screen, crop the overflow, keep the centre.
         float scale = Math.max(w / (float) imgW, h / (float) imgH);

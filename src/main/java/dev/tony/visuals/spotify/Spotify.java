@@ -644,7 +644,7 @@ public final class Spotify {
                 DynamicTexture tex = new DynamicTexture(() -> "flopvisuals spotify art", img) {
                     {
                         this.sampler = com.mojang.blaze3d.systems.RenderSystem.getSamplerCache()
-                            .getClampToEdge(com.mojang.blaze3d.textures.FilterMode.LINEAR);
+                            .getClampToEdge(com.mojang.renderpearl.api.textures.FilterMode.LINEAR);
                     }
                 };
                 Minecraft.getInstance().getTextureManager().register(id, tex);

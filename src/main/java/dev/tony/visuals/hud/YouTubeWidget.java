@@ -1,8 +1,8 @@
 package dev.tony.visuals.hud;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import dev.tony.visuals.Config;
 import dev.tony.visuals.Theme;
 import dev.tony.visuals.gui.Ease;
@@ -12,9 +12,9 @@ import dev.tony.visuals.youtube.YouTube;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.render.TextureSetup;
-import net.minecraft.client.gui.render.state.BlitRenderState;
+import net.minecraft.client.renderer.state.gui.BlitRenderState;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
@@ -49,13 +49,13 @@ public final class YouTubeWidget {
         return new float[][]{{W - P - 30, rowY()}, {W - P - 9, rowY()}};
     }
 
-    public static void blitView(GuiGraphics g, GpuTextureView view, int x, int y, int w, int h) {
+    public static void blitView(GuiGraphicsExtractor g, GpuTextureView view, int x, int y, int w, int h) {
         g.guiRenderState.submitGuiElement(new BlitRenderState(RenderPipelines.GUI_TEXTURED,
             TextureSetup.singleTexture(view, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR)),
             new Matrix3x2f(g.pose()), x, y, x + w, y + h, 0f, 1f, 0f, 1f, 0xFFFFFFFF, g.scissorStack.peek()));
     }
 
-    public static void draw(GuiGraphics g, int w, int h) {
+    public static void draw(GuiGraphicsExtractor g, int w, int h) {
         Theme t = Config.theme();
         Hud.card(g, 0, 0, w, h, 14);
         int vx = P, vy = P;
@@ -120,7 +120,7 @@ public final class YouTubeWidget {
         return new float[][]{{p[0] + 19, p[1] + p[3] / 2}, {p[0] + p[2] - 17, p[1] + p[3] / 2}};
     }
 
-    public static void drawFullscreen(GuiGraphics g, int sw, int sh) {
+    public static void drawFullscreen(GuiGraphicsExtractor g, int sw, int sh) {
         if (!YouTube.fullscreen()) {
             CONTROLS.snap(0);
             return;

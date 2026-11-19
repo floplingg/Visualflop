@@ -14,8 +14,8 @@ class ChatViewScreen extends net.minecraft.client.gui.screens.Screen {
     }
 
     @Override
-    public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
-        super.render(g, mx, my, pt);
+    public void render(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
+        super.extractRenderState(g, mx, my, pt);
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
         mc.gui.getChat().render(g, font, mc.gui.getGuiTicks(), mx, my, true, false);
     }
@@ -28,8 +28,8 @@ class CardScreen extends net.minecraft.client.gui.screens.Screen {
     }
 
     @Override
-    public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
-        super.render(g, mx, my, pt);
+    public void render(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
+        super.extractRenderState(g, mx, my, pt);
         int[] size = dev.tony.visuals.hud.SpotifyWidget.size();
         g.pose().pushMatrix();
         g.pose().translate(20, 20);
@@ -46,14 +46,14 @@ class SkyTextScreen extends net.minecraft.client.gui.screens.Screen {
     }
 
     @Override
-    public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
-        super.render(g, mx, my, pt);
+    public void render(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
+        super.extractRenderState(g, mx, my, pt);
         String[] lines = {"Come chat shit, I won't show no mercy \uD83D\uDE02", "\uC0AC\uB791\uD574 \uD83D\uDD25 \u3042\u308A\u304C\u3068\u3046 \u6211\u7231\u4F60 \u2764\uFE0F"};
         float y = height / 4f;
         for (String line : lines) {
             Object[] p = dev.tony.visuals.fx.SkyLyrics.preview(line);
             if (p == null) {
-                g.drawString(font, "no smooth font for: " + line, 10, (int) y, 0xFFFF5555);
+                g.text(font, "no smooth font for: " + line, 10, (int) y, 0xFFFF5555);
                 y += height / 2f;
                 continue;
             }
@@ -81,8 +81,8 @@ class YouTubeScreen extends net.minecraft.client.gui.screens.Screen {
     }
 
     @Override
-    public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
-        super.render(g, mx, my, pt);
+    public void render(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
+        super.extractRenderState(g, mx, my, pt);
         int[] s = dev.tony.visuals.hud.YouTubeWidget.size();
         g.pose().pushMatrix();
         g.pose().translate(10, 10);
@@ -99,8 +99,8 @@ class MoneyScreen extends net.minecraft.client.gui.screens.Screen {
     }
 
     @Override
-    public void render(net.minecraft.client.gui.GuiGraphics g, int mx, int my, float pt) {
-        super.render(g, mx, my, pt);
+    public void render(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
+        super.extractRenderState(g, mx, my, pt);
         g.pose().pushMatrix();
         g.pose().translate(20, 20);
         g.pose().scale(2, 2);

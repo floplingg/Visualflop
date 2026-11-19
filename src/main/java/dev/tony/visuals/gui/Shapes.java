@@ -2,7 +2,7 @@ package dev.tony.visuals.gui;
 
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
@@ -22,7 +22,7 @@ public final class Shapes {
 
     private static final Map<Long, Identifier> TEXTURES = new HashMap<>();
 
-    private static float pixelScale(GuiGraphics g) {
+    private static float pixelScale(GuiGraphicsExtractor g) {
         float gui = (float) Minecraft.getInstance().getWindow().getGuiScale();
         float pose = Math.abs(g.pose().m00);
         return Math.max(0.25f, gui * (pose == 0 ? 1 : pose));
@@ -30,16 +30,16 @@ public final class Shapes {
 
     // ------------------------------------------------------------ public shapes
 
-    public static void round(GuiGraphics g, float x, float y, float w, float h, float r, int colour) {
+    public static void round(GuiGraphicsExtractor g, float x, float y, float w, float h, float r, int colour) {
         roundClip(g, x, y, w, h, r, -1e9f, -1e9f, 1e9f, 1e9f, colour);
     }
 
-    public static void circle(GuiGraphics g, float cx, float cy, float radius, int colour) {
+    public static void circle(GuiGraphicsExtractor g, float cx, float cy, float radius, int colour) {
         round(g, cx - radius, cy - radius, radius * 2, radius * 2, radius, colour);
     }
 
     /** The part of a rounded box inside a clip rectangle (for accent strips and bars). */
-    public static void roundClip(GuiGraphics g, float x, float y, float w, float h, float r,
+    public static void roundClip(GuiGraphicsExtractor g, float x, float y, float w, float h, float r,
                                  float cx1, float cy1, float cx2, float cy2, int colour) {
         if (w <= 0 || h <= 0 || (colour >>> 24) == 0) return;
         float k = pixelScale(g);
@@ -64,7 +64,7 @@ public final class Shapes {
     }
 
     /** Outline of thickness t drawn just outside the box. */
-    public static void ring(GuiGraphics g, float x, float y, float w, float h, float r, float t, int colour) {
+    public static void ring(GuiGraphicsExtractor g, float x, float y, float w, float h, float r, float t, int colour) {
         if (t <= 0 || (colour >>> 24) == 0) return;
         float k = pixelScale(g);
         int T = Math.max(1, Math.round(t * k));
@@ -95,14 +95,14 @@ public final class Shapes {
     private record Clip(int x1, int y1, int x2, int y2) {
         static final Clip NONE = new Clip(Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE);
 
-        void fill(GuiGraphics g, int ax, int ay, int bx, int by, int colour) {
+        void fill(GuiGraphicsExtractor g, int ax, int ay, int bx, int by, int colour) {
             ax = Math.max(ax, x1); ay = Math.max(ay, y1);
             bx = Math.min(bx, x2); by = Math.min(by, y2);
             if (bx > ax && by > ay) g.fill(ax, ay, bx, by, colour);
         }
 
         /** Textured R x R corner piece, cut to the clip. (u, v) is the corner's spot in the 2R texture. */
-        void blit(GuiGraphics g, Identifier tex, int ax, int ay, int size, int u, int v, int texSize, int colour) {
+        void blit(GuiGraphicsExtractor g, Identifier tex, int ax, int ay, int size, int u, int v, int texSize, int colour) {
             int bx = ax + size, by = ay + size;
             int cx = Math.max(ax, x1), cy = Math.max(ay, y1);
             int dx = Math.min(bx, x2), dy = Math.min(by, y2);
@@ -111,7 +111,7 @@ public final class Shapes {
         }
     }
 
-    private static void corners(GuiGraphics g, Identifier tex, int X, int Y, int W, int H, int R, Clip clip, int colour) {
+    private static void corners(GuiGraphicsExtractor g, Identifier tex, int X, int Y, int W, int H, int R, Clip clip, int colour) {
         int size = R * 2;
         clip.blit(g, tex, X, Y, R, 0, 0, size, colour);
         clip.blit(g, tex, X + W - R, Y, R, R, 0, size, colour);

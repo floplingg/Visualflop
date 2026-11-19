@@ -144,7 +144,7 @@ public final class Sheet {
 
     /** Custom-drawn row (colour previews, swatch grids...). */
     public static final class Custom extends Item {
-        public interface Painter { void paint(net.minecraft.client.gui.GuiGraphics g, float x, float y, float w, float h, int mouseX, int mouseY); }
+        public interface Painter { void paint(net.minecraft.client.gui.GuiGraphicsExtractor g, float x, float y, float w, float h, int mouseX, int mouseY); }
         public interface Clicker { boolean click(float x, float y, float w, float h, double mx, double my); }
         final float height;
         final Painter painter;

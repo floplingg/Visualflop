@@ -3,7 +3,7 @@ package dev.tony.visuals.youtube;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.textures.GpuTextureView;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
 import dev.tony.visuals.Config;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
@@ -177,7 +177,7 @@ public final class YouTube {
             DynamicTexture tex = new DynamicTexture(() -> "flopvisuals youtube thumbnail", done) {
                 {
                     this.sampler = com.mojang.blaze3d.systems.RenderSystem.getSamplerCache()
-                        .getClampToEdge(com.mojang.blaze3d.textures.FilterMode.LINEAR);
+                        .getClampToEdge(com.mojang.renderpearl.api.textures.FilterMode.LINEAR);
                 }
             };
             Minecraft.getInstance().getTextureManager().register(id, tex);

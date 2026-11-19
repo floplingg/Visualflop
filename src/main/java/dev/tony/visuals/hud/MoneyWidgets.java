@@ -9,7 +9,7 @@ import dev.tony.visuals.pay.Auction;
 import dev.tony.visuals.pay.Payments;
 import dev.tony.visuals.pay.Tracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import java.util.List;
 
@@ -41,7 +41,7 @@ public final class MoneyWidgets {
         return new int[]{(int) Math.ceil(w + 2 * Hud.padH(t)), 8 + 2 * Hud.padV(t)};
     }
 
-    public static void drawProfit(GuiGraphics g, int w, int h) {
+    public static void drawProfit(GuiGraphicsExtractor g, int w, int h) {
         Theme t = Config.theme();
         Hud.card(g, 0, 0, w, h);
         double p = Tracker.profit();
@@ -69,7 +69,7 @@ public final class MoneyWidgets {
         return new int[]{GW, GH};
     }
 
-    public static void drawGraph(GuiGraphics g, int w, int h) {
+    public static void drawGraph(GuiGraphicsExtractor g, int w, int h) {
         Theme t = Config.theme();
         Hud.card(g, 0, 0, w, h, 12);
         double p = Tracker.profit();
@@ -145,7 +145,7 @@ public final class MoneyWidgets {
     private static final int AW = 260, AH = 150;
 
     /** Shows by itself while an auction runs (and for a few seconds after, with the winner). About 30% of the screen. */
-    public static void drawAuctionOverlay(GuiGraphics g, int sw, int sh) {
+    public static void drawAuctionOverlay(GuiGraphicsExtractor g, int sw, int sh) {
         boolean on = Auction.active() || Auction.result() != null;
         float o = SHOW.to(on ? 1 : 0);
         if (o < 0.01f) return;
@@ -162,7 +162,7 @@ public final class MoneyWidgets {
         return (Math.round((argb >>> 24) * o) << 24) | (argb & 0xFFFFFF);
     }
 
-    private static void drawAuction(GuiGraphics g, int w, int h, float o) {
+    private static void drawAuction(GuiGraphicsExtractor g, int w, int h, float o) {
         Theme t = Config.theme();
         int accent = 0xFF000000 | (t.accent() & 0xFFFFFF);
         Kit.shadow(g, 0, 0, w, h, 18, 1.2f * o);
@@ -238,7 +238,7 @@ public final class MoneyWidgets {
         }
     }
 
-    private static void centre(GuiGraphics g, String s, int w, float y, float scale, int colour, int face) {
+    private static void centre(GuiGraphicsExtractor g, String s, int w, float y, float scale, int colour, int face) {
         Kit.draw(g, s, w / 2f - Kit.width(s, face, scale) / 2, y, scale, colour, face);
     }
 }

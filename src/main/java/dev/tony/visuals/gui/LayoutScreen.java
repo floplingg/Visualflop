@@ -3,12 +3,12 @@ package dev.tony.visuals.gui;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.tony.visuals.Config;
 import dev.tony.visuals.hud.Hud;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+
 
 /**
  * Drag any widget to move it, scroll over it to resize, right-click to hide it.
@@ -32,7 +32,7 @@ public class LayoutScreen extends Screen {
 
     private static boolean shift() {
         var win = net.minecraft.client.Minecraft.getInstance().getWindow();
-        return InputConstants.isKeyDown(win, GLFW.GLFW_KEY_LEFT_SHIFT) || InputConstants.isKeyDown(win, GLFW.GLFW_KEY_RIGHT_SHIFT);
+        return InputConstants.isKeyDown(InputConstants.KEY_LSHIFT) || InputConstants.isKeyDown(InputConstants.KEY_RSHIFT);
     }
 
     private Hud.Placement placement(String id) {
@@ -48,7 +48,7 @@ public class LayoutScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         Kit.refresh();
         g.fill(0, 0, width, height, 0x40000000);
         int grid = (Kit.ACCENT & 0xFFFFFF) | 0x10000000;
@@ -60,13 +60,13 @@ public class LayoutScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
+    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float partialTick) {
         Kit.refresh();
         Hud.newFrame();
         long now = System.nanoTime();
         float dt = lastFrame == 0 ? 0 : Math.min(0.1f, (now - lastFrame) / 1e9f);
         lastFrame = now;
-        super.render(g, mouseX, mouseY, partialTick);
+        super.extractRenderState(g, mouseX, mouseY, partialTick);
         String hover = dragging != null ? dragging : widgetAt(mouseX, mouseY);
         for (String id : Config.allWidgets()) {
             Config.Widget w = Config.get().widget(id);
@@ -208,10 +208,10 @@ public class LayoutScreen extends Screen {
         if (selected == null) return super.keyPressed(event);
         int step = shift() ? 10 : 1, dx = 0, dy = 0;
         switch (event.key()) {
-            case GLFW.GLFW_KEY_LEFT -> dx = -step;
-            case GLFW.GLFW_KEY_RIGHT -> dx = step;
-            case GLFW.GLFW_KEY_UP -> dy = -step;
-            case GLFW.GLFW_KEY_DOWN -> dy = step;
+            case InputConstants.KEY_LEFT -> dx = -step;
+            case InputConstants.KEY_RIGHT -> dx = step;
+            case InputConstants.KEY_UP -> dy = -step;
+            case InputConstants.KEY_DOWN -> dy = step;
             default -> { return super.keyPressed(event); }
         }
         Hud.Placement p = placement(selected);

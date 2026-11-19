@@ -5,7 +5,7 @@ import dev.tony.visuals.Theme;
 import dev.tony.visuals.gui.Kit;
 import dev.tony.visuals.spotify.Lyrics;
 import dev.tony.visuals.spotify.Spotify;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 import java.util.List;
 
@@ -32,7 +32,7 @@ public final class LyricsWidget {
         return new int[]{l.width, (2 * l.context + 1) * LINE + 2 * p};
     }
 
-    public static void draw(GuiGraphics g, int w, int h) {
+    public static void draw(GuiGraphicsExtractor g, int w, int h) {
         Theme t = Config.theme();
         Config.Lyrics cfg = Config.get().lyrics;
         Hud.card(g, 0, 0, w, h);
@@ -85,7 +85,7 @@ public final class LyricsWidget {
         }
     }
 
-    private static void line(GuiGraphics g, String text, int w, int p, float y, int colour, boolean bold, boolean center, boolean shadow) {
+    private static void line(GuiGraphicsExtractor g, String text, int w, int p, float y, int colour, boolean bold, boolean center, boolean shadow) {
         int max = w - 2 * p;
         String s = text;
         float scale = 1;

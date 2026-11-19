@@ -1,19 +1,19 @@
 package dev.tony.visuals.hud;
 
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.platform.DepthTestFunction;
-import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.systems.GpuDevice;
+import com.mojang.renderpearl.api.pipeline.BlendFunction;
+import com.mojang.renderpearl.api.device.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
-import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.TextureFormat;
+import com.mojang.renderpearl.api.textures.FilterMode;
+import com.mojang.renderpearl.api.textures.GpuTexture;
+import com.mojang.renderpearl.api.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.renderpearl.api.vertex.VertexFormat;
 import dev.tony.visuals.Config;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.resources.Identifier;
@@ -92,7 +92,7 @@ public final class Backdrop {
      * Blurred game behind a rounded box. Returns false when there's nothing to blur (then draw a plain card).
      * The shader reads the box's size from the texture coordinates and the corner radius (in pixels) from red.
      */
-    public static boolean draw(GuiGraphics g, float x, float y, float w, float h, float r) {
+    public static boolean draw(GuiGraphicsExtractor g, float x, float y, float w, float h, float r) {
         if (!ready || w <= 0 || h <= 0) return false;
         float gui = (float) Minecraft.getInstance().getWindow().getGuiScale();
         float pose = Math.abs(g.pose().m00);

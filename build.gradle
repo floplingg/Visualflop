@@ -20,7 +20,7 @@ processResources {
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(25)
 }
-tasks.withType(JavaCompile).configureEach { it.options.release = 25 }
+tasks.withType(JavaCompile).configureEach { it.options.release = 25; it.options.compilerArgs += ["-Xmaxerrs", "2000"] }
 
 // Automated in-game screenshot test (runs on GitHub with a virtual display).
 fabricApi {
