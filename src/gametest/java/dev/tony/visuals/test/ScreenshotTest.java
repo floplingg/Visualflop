@@ -182,7 +182,11 @@ public class ScreenshotTest implements FabricClientGameTest {
         // Gamble: payments in chat.
         context.runOnClient(mc -> {
             dev.tony.visuals.pay.Tracker.start();
-            String[] msgs = {"Steve paid you $5M.", "Steve paid you $5M.", "Steve paid you $5M.", "Alex paid you $2.1M.",
+            Config.GameTag ff = new Config.GameTag();
+            ff.name = "50/50";
+            ff.digit = 4;
+            Config.get().gamble.customTags.add(ff);
+            String[] msgs = {"Jay paid you $4.4M.", "Steve paid you $5M.", "Steve paid you $5M.", "Steve paid you $5M.", "Alex paid you $2.1M.",
                 "Bob paid you $500K.", "Kim paid you $3.2M.", "Lee paid you $1,500,000.",
                 "G4PP13 paid you $ 1.1M", "G4PP13 paid you $ 1.2M", "G4PP13 paid you $ 1M", "G4PP13 paid you $ 1M", "You paid Shade2511 $ 10.2M", "Max paid you $ 40M",
                 "You paid Max $ 25M"};
@@ -191,7 +195,8 @@ public class ScreenshotTest implements FabricClientGameTest {
                 org.slf4j.LoggerFactory.getLogger("flopvisuals-test").info("payment '{}' handled={}", m, took);
                 if (!took) mc.gui.getChat().addMessage(net.minecraft.network.chat.Component.literal(m));
             }
-            dev.tony.visuals.pay.Payments.click(net.minecraft.resources.Identifier.fromNamespaceAndPath("flopvisuals", "pay/3/win"));
+            dev.tony.visuals.pay.Payments.click(net.minecraft.resources.Identifier.fromNamespaceAndPath("flopvisuals", "pay/4/win"));
+            dev.tony.visuals.pay.Payments.click(net.minecraft.resources.Identifier.fromNamespaceAndPath("flopvisuals", "pay/1/win"));
             dev.tony.visuals.pay.Payments.click(net.minecraft.resources.Identifier.fromNamespaceAndPath("flopvisuals", "pay/2/lose"));
             for (var line : ((dev.tony.visuals.mixin.ChatComponentAccessor) mc.gui.getChat()).flopvisuals$allMessages()) {
                 org.slf4j.LoggerFactory.getLogger("flopvisuals-test").info("chat: {}", line.content().getString());

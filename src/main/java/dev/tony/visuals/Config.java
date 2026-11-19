@@ -78,6 +78,8 @@ public final class Config {
         /** The decimal that marks a game: 5.1M = Paper, 5.2M = BJ by default (1 to 9). */
         public int paperTag = 1;
         public int bjTag = 2;
+        /** Your own games on top of Paper and BJ, e.g. ".4 = 50/50". */
+        public List<GameTag> customTags = new ArrayList<>();
         /** Payments above this are left alone too (0 = no maximum). */
         public double maximum = 0;
         /** What a win pays back, as a multiple of the bet (2 = double). */
@@ -88,6 +90,13 @@ public final class Config {
         public Session current;
         /** Finished sessions, newest last. */
         public List<Session> sessions = new ArrayList<>();
+    }
+
+    /** A game you add yourself: amounts ending in .digit get the [name] tag. */
+    public static final class GameTag {
+        public String name = "50/50";
+        public int digit = 4;
+        public boolean enabled = true;
     }
 
     /** One gambling session: from Start to End, what you gained or lost. */
@@ -419,6 +428,9 @@ public final class Config {
         if (gamble.sessions == null) gamble.sessions = new ArrayList<>();
         gamble.paperTag = Math.max(1, Math.min(9, gamble.paperTag == 0 ? 1 : gamble.paperTag));
         gamble.bjTag = Math.max(1, Math.min(9, gamble.bjTag == 0 ? 2 : gamble.bjTag));
+        if (gamble.customTags == null) gamble.customTags = new ArrayList<>();
+        gamble.customTags.removeIf(g -> g == null || g.name == null || g.name.isBlank());
+        for (GameTag g : gamble.customTags) g.digit = Math.max(1, Math.min(9, g.digit));
         if (gamble.current != null && gamble.current.history == null) gamble.current.history = new ArrayList<>();
         for (Session ss : gamble.sessions) if (ss.history == null) ss.history = new ArrayList<>();
         if (auction == null) auction = new Auction();

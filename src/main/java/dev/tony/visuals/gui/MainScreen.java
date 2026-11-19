@@ -514,13 +514,42 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Slider("Win pays", 1f, 5f, 0.1f, () -> gb.payout, v -> gb.payout = v,
             v -> String.format(java.util.Locale.ROOT, "%.1f×", v)));
         l.add(new Sheet.Toggle("Stack repeat payments", () -> gb.stack, v -> gb.stack = v));
-        l.add(new Sheet.Toggle("[Paper] and [BJ] tags", () -> gb.tags, v -> {
+        l.add(new Sheet.Toggle("Game tags ([Paper], [BJ]…)", () -> gb.tags, v -> {
             gb.tags = v;
             rebuild();
         }));
         if (gb.tags) {
             l.add(new Sheet.Slider("Paper ends in", 1f, 9f, 1f, () -> (float) gb.paperTag, v -> gb.paperTag = Math.round(v), v -> "." + Math.round(v)));
             l.add(new Sheet.Slider("BJ ends in", 1f, 9f, 1f, () -> (float) gb.bjTag, v -> gb.bjTag = Math.round(v), v -> "." + Math.round(v)));
+            l.add(new Sheet.Header("Your own games"));
+            for (Config.GameTag tg : new ArrayList<>(gb.customTags)) {
+                l.add(new Sheet.Toggle("[" + tg.name + "]", () -> tg.enabled, v -> tg.enabled = v));
+                l.add(new Sheet.Slider("   Ends in", 1f, 9f, 1f, () -> (float) tg.digit, v -> tg.digit = Math.round(v),
+                    v -> Math.round(v) == gb.paperTag ? "." + Math.round(v) + " (used by Paper)"
+                        : Math.round(v) == gb.bjTag ? "." + Math.round(v) + " (used by BJ)" : "." + Math.round(v)));
+                l.add(new Sheet.Action("   Rename", () -> "", () -> minecraft.setScreen(new TextEditScreen(this, "Game name", tg.name, v -> {
+                    if (!v.isBlank()) tg.name = v.trim();
+                }))));
+                l.add(new Sheet.Action("   Remove", () -> "", () -> {
+                    gb.customTags.remove(tg);
+                    Config.save();
+                    rebuild();
+                }).destructive());
+            }
+            l.add(new Sheet.Action("Add a game", () -> "", () -> minecraft.setScreen(new TextEditScreen(this, "Game name (e.g. 50/50, Dice, Coinflip)", "", v -> {
+                if (v.isBlank()) return;
+                Config.GameTag tg = new Config.GameTag();
+                tg.name = v.trim();
+                // First decimal nobody uses yet.
+                tg.digit = 0;
+                for (int d = 3; d <= 9 && tg.digit == 0; d++) {
+                    final int dd = d;
+                    if (d != gb.paperTag && d != gb.bjTag && gb.customTags.stream().noneMatch(x -> x.digit == dd)) tg.digit = d;
+                }
+                if (tg.digit == 0) tg.digit = 9;
+                gb.customTags.add(tg);
+                Config.save();
+            }))).accent());
         }
         l.add(new Sheet.Header("Check it"));
         l.add(new Sheet.Action("Send a test payment to my chat", () -> "", () -> {
@@ -530,7 +559,7 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Info("Last payment found", () -> dev.tony.visuals.pay.Payments.lastMatch().isEmpty() ? "none yet" : dev.tony.visuals.pay.Payments.lastMatch()));
         l.add(new Sheet.Info("Last server message", dev.tony.visuals.pay.Payments::recent));
         l.add(new Sheet.Footer("If a real payment doesn't get buttons, take a screenshot of this page right after it arrives so the exact wording can be matched."));
-        l.add(new Sheet.Footer("When someone pays you at least the minimum, the chat line gets [✔] and [✖]. Open chat (T) and click: ✔ = they won (turns lime and shows what to pay back), ✖ = they lost (turns red). Amounts ending in .1 are tagged [Paper] and .2 [BJ] (change the decimals above); a Paper or BJ win pays double the whole amount, so 5.1M pays 10.2M. The same person paying the same amount again stacks: \"Name paid you [5] $5M\"; clicking ✔ on a stack lets you pick how many they won."));
+        l.add(new Sheet.Footer("When someone pays you at least the minimum, the chat line gets [✔] and [✖]. Open chat (T) and click: ✔ = they won (turns lime and shows what to pay back), ✖ = they lost (turns red). Amounts ending in .1 are tagged [Paper] and .2 [BJ] (change the decimals above, or add your own games like .4 = 50/50); a tagged win pays double the whole amount, so 5.1M pays 10.2M. The same person paying the same amount again stacks: \"Name paid you [5] $5M\"; clicking ✔ on a stack lets you pick how many they won."));
         return l;
     }
 }

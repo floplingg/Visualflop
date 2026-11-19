@@ -172,6 +172,15 @@ public final class Payments {
             // The single decimal that marks the game (set on the Gamble page; .1 Paper and .2 BJ by default).
             if (decimals.equals(String.valueOf(cfg.paperTag))) tag = "Paper";
             else if (decimals.equals(String.valueOf(cfg.bjTag))) tag = "BJ";
+            else {
+                // Your own games (Paper and BJ win if a decimal is used twice).
+                for (Config.GameTag g : cfg.customTags) {
+                    if (g.enabled && decimals.equals(String.valueOf(g.digit))) {
+                        tag = g.name.trim();
+                        break;
+                    }
+                }
+            }
             if (!tag.isEmpty()) whole = number.substring(0, dot);
         }
         double bet = Double.parseDouble(whole) * mult;
@@ -217,7 +226,7 @@ public final class Payments {
         c.append(text(e.player, ChatFormatting.WHITE)).append(text(" paid you ", ChatFormatting.GRAY));
         if (e.count > 1) c.append(text("[" + e.count + "] ", ChatFormatting.YELLOW, ChatFormatting.BOLD));
         c.append(text("$" + e.shown, ChatFormatting.GREEN));
-        if (!e.tag.isEmpty()) c.append(text(" [" + e.tag + "]", e.tag.equals("BJ") ? ChatFormatting.AQUA : ChatFormatting.GOLD));
+        if (!e.tag.isEmpty()) c.append(text(" [" + e.tag + "]", e.tag.equals("BJ") ? ChatFormatting.AQUA : e.tag.equals("Paper") ? ChatFormatting.GOLD : ChatFormatting.LIGHT_PURPLE));
         double pay = e.win * Config.get().gamble.payout;
         String winHover = e.count > 1 ? "They won some: pick how many" : "They won: pay $" + money(pay);
         c.append(Component.literal(" "));
