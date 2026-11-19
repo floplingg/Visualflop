@@ -44,5 +44,5 @@ jobs:
           done < probe-classes.txt > api.txt
           wc -l api.txt
           git config user.name ci && git config user.email ci@users.noreply.github.com
-          mkdir -p /tmp/out && cp api.txt /tmp/out/ && cd /tmp/out && git init -q -b probe-out && git add -A && git commit -qm probe
+          mkdir -p /tmp/out && cp api.txt /tmp/out/ && cd /tmp/out && git init -q -b probe-out && git add -A && git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm probe
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" probe-out
