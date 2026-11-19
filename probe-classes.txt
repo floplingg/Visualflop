@@ -1,3 +1,1 @@
-fapi:aw
-priv:net.minecraft.client.renderer.rendertype.RenderType
-code:net.minecraft.client.renderer.rendertype.RenderTypes
+priv:net.minecraft.client.renderer.RenderPipelines
