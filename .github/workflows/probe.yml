@@ -26,12 +26,12 @@ jobs:
           import json,sys
           for l in json.load(sys.stdin)['libraries']:
               a=l.get('downloads',{}).get('artifact')
-              if a and ('blaze3d' in a['path'] or 'joml' in a['path']): print(a['url'])")
+              if a: print(a['url'])")
           for l in $libs; do curl -fsSL -o "lib_$(basename $l)" "$l"; done
           CP="client.jar:$(ls lib_*.jar 2>/dev/null | tr '\n' ':')"
           while read -r c; do
             [ -z "$c" ] && continue
             case "$c" in \#*) continue;; esac
-            if [[ "$c" == find:* ]]; then echo "== find ${c#find:}"; unzip -l client.jar | grep -i "${c#find:}" | awk '{print $4}' | head -40; continue; fi
+            if [[ "$c" == find:* ]]; then echo "== find ${c#find:}"; for j in client.jar lib_*.jar; do unzip -l "$j" 2>/dev/null | awk '{print $4}' | grep -i "${c#find:}" | grep -v '\$' | sed "s|^|$j: |" | head -12; done; continue; fi
             echo "== $c"; javap -public -cp "$CP" "$c" 2>&1 | head -150
           done < probe-classes.txt
