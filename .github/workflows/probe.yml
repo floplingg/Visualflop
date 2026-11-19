@@ -1,26 +1,37 @@
-name: Probe API
-on: workflow_dispatch
+name: Probe 26.3
+on:
+  push:
+    branches: [mc-26.3]
+    paths: ['probe-classes.txt', '.github/workflows/probe.yml']
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
-        with: { distribution: temurin, java-version: 21 }
-      - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x gradlew && ./gradlew compileJava --stacktrace -q || true
-      - name: javap
+        with: { distribution: temurin, java-version: 25 }
+      - name: Versions
         run: |
-          MC=$(find . ~/.gradle -path '*minecraft*' -name '*.jar' 2>/dev/null | grep -iE 'merged|client' | grep -v sources | grep -iv 'common' | xargs ls -S 2>/dev/null | head -1)
-          echo "MC=$MC"
-          CP="$MC:$(find ~/.gradle -name 'fabric-*.jar' | grep -v sources | tr '\n' ':')$(find ~/.gradle -name 'joml*.jar' | head -1)"
-          for c in net.minecraft.client.gui.screens.Screen net.minecraft.client.gui.screens.TitleScreen net.minecraft.client.gui.GuiGraphics net.minecraft.network.chat.Style net.minecraft.network.chat.FontDescription 'net.minecraft.network.chat.FontDescription$Resource' net.minecraft.client.renderer.PanoramaRenderer net.minecraft.world.level.levelgen.Heightmap 'net.minecraft.world.level.levelgen.Heightmap$Types' net.minecraft.client.gui.Font com.mojang.blaze3d.platform.NativeImage net.minecraft.client.renderer.texture.DynamicTexture; do
-            echo "=================== $c"; javap -cp "$CP" -p "$c" 2>&1 | grep -vE "lambda|method_[0-9]" | head -160
-          done
-          unzip -p "$MC" assets/minecraft/shaders/core/position_tex_color.fsh > /dev/null
-          for f in assets/minecraft/font/default.json assets/minecraft/font/include/default.json assets/minecraft/shaders/core/panorama.fsh assets/minecraft/shaders/core/panorama.vsh assets/minecraft/shaders/core/gui.vsh assets/minecraft/shaders/core/gui.fsh; do echo "----- $f"; unzip -p "$MC" "$f" | head -60; done
-          unzip -l "$MC" | grep -E "shaders/core/" | head -80
-          exit 0
-          echo "=================== shader files"
-          unzip -l "$MC" | grep -oE "assets/minecraft/(shaders|atlases)/[^ ]+" | head -200
-          for f in assets/minecraft/shaders/core/position_tex_color.vsh assets/minecraft/shaders/core/position_tex_color.fsh assets/minecraft/shaders/core/sky.vsh assets/minecraft/shaders/core/sky.fsh assets/minecraft/shaders/include/dynamictransforms.glsl assets/minecraft/shaders/include/projection.glsl assets/minecraft/shaders/include/globals.glsl assets/minecraft/atlases/particles.json assets/minecraft/shaders/core/particle.vsh; do echo "----- $f"; unzip -p "$MC" "$f"; done
+          echo "== fabric-api for 26.3"; curl -fsSL https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml | grep -o "<version>[^<]*+26.3[^<]*</version>" | tail -3
+          echo "== loom"; curl -fsSL https://maven.fabricmc.net/net/fabricmc/fabric-loom/maven-metadata.xml | grep -o "<version>1\.1[7-9][^<]*</version>" | tail -4
+          echo "== loader"; curl -fsSL https://maven.fabricmc.net/net/fabricmc/fabric-loader/maven-metadata.xml | grep -o "<release>[^<]*"
+          echo "== game versions"; curl -fsSL https://meta.fabricmc.net/v2/versions/game | python3 -c "import json,sys; print([v['version'] for v in json.load(sys.stdin)[:6]])"
+          echo "== mcef-modern 26.3"; curl -fsSL 'https://api.modrinth.com/v2/project/mcef-modern/version?game_versions=%5B%2226.3%22%5D' | python3 -c "import json,sys; [print(v['version_number'], v['date_published'][:10]) for v in json.load(sys.stdin)]"
+      - name: Signatures
+        run: |
+          url=$(curl -fsSL https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | python3 -c "import json,sys; d=json.load(sys.stdin); print([v['url'] for v in d['versions'] if v['id']=='26.3'][0])")
+          jar=$(curl -fsSL "$url" | python3 -c "import json,sys; print(json.load(sys.stdin)['downloads']['client']['url'])")
+          curl -fsSL -o client.jar "$jar"
+          libs=$(curl -fsSL "$url" | python3 -c "
+          import json,sys
+          for l in json.load(sys.stdin)['libraries']:
+              a=l.get('downloads',{}).get('artifact')
+              if a and ('blaze3d' in a['path'] or 'joml' in a['path']): print(a['url'])")
+          for l in $libs; do curl -fsSL -o "lib_$(basename $l)" "$l"; done
+          CP="client.jar:$(ls lib_*.jar 2>/dev/null | tr '\n' ':')"
+          while read -r c; do
+            [ -z "$c" ] && continue
+            case "$c" in \#*) continue;; esac
+            if [[ "$c" == find:* ]]; then echo "== find ${c#find:}"; unzip -l client.jar | grep -i "${c#find:}" | awk '{print $4}' | head -40; continue; fi
+            echo "== $c"; javap -public -cp "$CP" "$c" 2>&1 | head -150
+          done < probe-classes.txt
