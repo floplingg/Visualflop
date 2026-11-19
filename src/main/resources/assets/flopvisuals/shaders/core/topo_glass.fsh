@@ -1,9 +1,10 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
-#moj_import <minecraft:dynamictransforms.glsl>
-#moj_import <minecraft:projection.glsl>
-#moj_import <flopvisuals:topo.glsl>
-#moj_import <flopvisuals:styles.glsl>
+#include <minecraft:dynamictransforms.glsl>
+#include <minecraft:projection.glsl>
+#include <flopvisuals:topo.glsl>
+#include <flopvisuals:styles.glsl>
 
 // Glass ground.
 //  - Real reflections: marches the reflected ray through a copy of the frame drawn so far (colour + depth),
@@ -13,19 +14,21 @@
 uniform sampler2D SceneColor;
 uniform sampler2D SceneDepth;
 
-in vec3 viewPos;
-in vec3 worldPos;
-in vec2 params;
-in vec4 tint;
-in vec3 normal;
-flat in int flags;
+layout(location = 0) in vec3 viewPos;
+layout(location = 1) in vec3 worldPos;
+layout(location = 2) in vec2 params;
+layout(location = 3) in vec4 tint;
+layout(location = 4) in vec3 normal;
+layout(location = 5) flat in int flags;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 float sceneViewZ(vec2 uv) {
     float d = texture(SceneDepth, uv).r;
-    if (d >= 0.99999) return -1e6;   // sky: infinitely far
-    float ndc = d * 2.0 - 1.0;
+    // Reversed depth (26.3): far = 0 and depth is already in 0..1 clip space; the classic layout is the opposite.
+    bool reversed = ProjMat[2][2] >= 0.0;
+    if (reversed ? d <= 1.0e-6 : d >= 0.99999) return -1e6;   // sky: infinitely far
+    float ndc = reversed ? d : d * 2.0 - 1.0;
     return -ProjMat[3][2] / (ndc + ProjMat[2][2]);
 }
 

@@ -1,11 +1,12 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
 // Glowing shapes for orbs, trails, halos and the aura. The whole part of U picks the shape (two units each),
 // the rest is the position inside the quad. Drawn additively, so overlaps glow brighter.
-in vec2 texCoord;
-in vec4 vertexColor;
+layout(location = 0) in vec2 texCoord;
+layout(location = 1) in vec4 vertexColor;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main() {
     int shape = int(floor(texCoord.x * 0.5));

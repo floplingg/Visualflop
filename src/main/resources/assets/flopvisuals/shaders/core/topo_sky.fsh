@@ -1,16 +1,17 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
-#moj_import <flopvisuals:topo.glsl>
-#moj_import <flopvisuals:styles.glsl>
+#include <flopvisuals:topo.glsl>
+#include <flopvisuals:styles.glsl>
 
 // Flop Visuals animated sky: topographic lines, galaxy, aether, nocturne or amethyst.
-in vec3 skyDir;
-in vec2 params;
-in vec4 tint;
-in vec3 camPos;
-flat in int style;
+layout(location = 0) in vec3 skyDir;
+layout(location = 1) in vec2 params;
+layout(location = 2) in vec4 tint;
+layout(location = 3) in vec3 camPos;
+layout(location = 4) flat in int style;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main() {
     vec3 d = normalize(skyDir);

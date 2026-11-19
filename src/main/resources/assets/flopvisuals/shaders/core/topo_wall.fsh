@@ -1,16 +1,17 @@
 #version 330
+#extension GL_ARB_separate_shader_objects : require
 
-#moj_import <flopvisuals:topo.glsl>
-#moj_import <flopvisuals:styles.glsl>
+#include <flopvisuals:topo.glsl>
+#include <flopvisuals:styles.glsl>
 
 // Animated menu wallpaper in any sky look. Colour and look come from a 2x1 texture,
 // time from the vertex colour (24-bit counter in 1/100 s steps).
 uniform sampler2D Sampler0;
 
-in vec2 texCoord0;
-in vec4 vertexColor;
+layout(location = 0) in vec2 texCoord0;
+layout(location = 1) in vec4 vertexColor;
 
-out vec4 fragColor;
+layout(location = 0) out vec4 fragColor;
 
 void main() {
     vec3 accent = texelFetch(Sampler0, ivec2(0, 0), 0).rgb;
