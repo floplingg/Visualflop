@@ -1,4 +1,1 @@
-fapi:find:gametest/v1/context/Test
-fapi:net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext
-fapi:net.fabricmc.fabric.api.client.gametest.v1.context.TestClientLevelContext
-fapi:net.fabricmc.fabric.api.client.gametest.v1.context.TestClientWorldContext
+fapi:find:gametest
