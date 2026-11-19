@@ -13,12 +13,12 @@ jobs:
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: 25 }
       - uses: gradle/actions/setup-gradle@v4
-      - run: sudo apt-get update -q && sudo apt-get install -yq xvfb libgl1-mesa-dri mesa-utils fonts-noto-cjk
+      - run: sudo apt-get update -q && sudo apt-get install -yq xvfb libgl1-mesa-dri mesa-utils mesa-vulkan-drivers libvulkan1 vulkan-tools fonts-noto-cjk
       - name: Run client game test
         run: |
           chmod +x gradlew
           export LP_NUM_THREADS=4
-          xvfb-run -a -s "-screen 0 960x540x24" timeout 600 ./gradlew runClientGameTest --stacktrace || true
+          xvfb-run -a -s "-screen 0 960x540x24 +extension GLX +render -noreset" timeout 600 ./gradlew runClientGameTest --stacktrace || true
       - name: Logs
         if: always()
         run: |
