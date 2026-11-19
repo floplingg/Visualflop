@@ -279,7 +279,7 @@ public class ScreenshotTest implements FabricClientGameTest {
         Config.get().glass.enabled = false;
         try (TestSingleplayerContext world = context.worldBuilder()
                 .create()) {
-            world.getClientLevel().waitForChunksRender();
+            context.waitTicks(200); // let chunks load and render
             Config.get().sky.enabled = sky;
             Config.get().glass.enabled = glass;
             world.getServer().runCommand("time set noon");
