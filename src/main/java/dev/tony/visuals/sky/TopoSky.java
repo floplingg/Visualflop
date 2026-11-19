@@ -1,21 +1,17 @@
 package dev.tony.visuals.sky;
 
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.renderpearl.api.pipeline.BlendFunction;
 import com.mojang.renderpearl.api.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DepthTestFunction;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.renderpearl.api.vertex.VertexFormat;
 import dev.tony.visuals.Config;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
+import dev.tony.visuals.render.Pipes;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.material.FogType;
 import org.joml.Vector4f;
@@ -31,22 +27,17 @@ public final class TopoSky {
     private static final int LAT = 20, LON = 40;
     private static final long START = System.nanoTime();
 
-    public static final RenderPipeline PIPELINE = RenderPipelines.register(
-        RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
-            .withLocation(Identifier.fromNamespaceAndPath("flopvisuals", "pipeline/topo_sky"))
-            .withVertexShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_sky"))
-            .withFragmentShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_sky"))
-            .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.QUADS)
-            .withBlend(BlendFunction.TRANSLUCENT)
-            .withDepthWrite(false)
-            .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
-            .withCull(false)
+    // Drawn at the far plane (the shader pins it there), so it only fills pixels nothing else has drawn on.
+    public static final RenderPipeline PIPELINE = Pipes.register(
+        Pipes.world("topo_sky", "topo_sky", DefaultVertexFormat.ENTITY)
+            .withColorTargetState(Pipes.blend(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(Pipes.depthTest(false))
             .build());
 
     private static RenderType type;
 
     private static RenderType type() {
-        if (type == null) type = RenderType.create("flopvisuals_topo_sky", RenderSetup.builder(PIPELINE).createRenderSetup());
+        if (type == null) type = Pipes.type("flopvisuals_topo_sky", PIPELINE);
         return type;
     }
 
@@ -58,12 +49,12 @@ public final class TopoSky {
         return s.enabled && level != null && (s.allDimensions || level.dimension() == Level.OVERWORLD);
     }
 
-    public static void render(WorldRenderContext ctx) {
-        if (dev.tony.visuals.compat.Shaders.active()) return;   // drawn after the shader pack instead
-        draw(ctx.consumers());
+    public static void render(LevelRenderContext ctx) {
+        if (!activeIn(Minecraft.getInstance().level)) return;
+        ctx.submitNodeCollector().submitCustomGeometry(ctx.poseStack(), type(), TopoSky::draw);
     }
 
-    public static void draw(MultiBufferSource source) {
+    private static void draw(PoseStack.Pose pose, VertexConsumer vc) {
         Minecraft mc = Minecraft.getInstance();
         if (!activeIn(mc.level)) return;
         Config.Sky s = Config.get().sky;
@@ -73,7 +64,7 @@ public final class TopoSky {
         int a = Math.round(s.opacity * 2.55f);
         float style = SkyStyles.skyStyle() * 0.1f;
         float time = time(), packed = packed();
-        float radius = Math.max(64f, mc.gameRenderer.getDepthFar() * 0.5f);
+        float radius = Math.max(64f, mc.options.getEffectiveRenderDistance() * 16 * 0.5f);
 
         // Camera position for the world-anchored ceiling: whole blocks (wrapped) + 7-bit fractions + y in 1/8 blocks.
         net.minecraft.world.phys.Vec3 cam = mc.gameRenderer.mainCamera().position();
@@ -83,7 +74,6 @@ public final class TopoSky {
         int cy = (int) Math.max(-32000, Math.min(32000, Math.round(cam.y * 8)));
         int frac = (fx << 7) | fz;
 
-        VertexConsumer vc = source.getBuffer(type());
         for (int i = 0; i < LAT; i++) {
             double t0 = Math.PI * i / LAT - Math.PI / 2, t1 = Math.PI * (i + 1) / LAT - Math.PI / 2;
             float y0 = (float) Math.sin(t0) * radius, y1 = (float) Math.sin(t1) * radius;
@@ -92,20 +82,13 @@ public final class TopoSky {
                 double p0 = Math.PI * 2 * j / LON, p1 = Math.PI * 2 * (j + 1) / LON;
                 float cos0 = (float) Math.cos(p0), sin0 = (float) Math.sin(p0);
                 float cos1 = (float) Math.cos(p1), sin1 = (float) Math.sin(p1);
-                vc.addVertex(c0 * cos0, y0, c0 * sin0).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
-                vc.addVertex(c0 * cos1, y0, c0 * sin1).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
-                vc.addVertex(c1 * cos1, y1, c1 * sin1).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
-                vc.addVertex(c1 * cos0, y1, c1 * sin0).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
+                vc.addVertex(pose, c0 * cos0, y0, c0 * sin0).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
+                vc.addVertex(pose, c0 * cos1, y0, c0 * sin1).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
+                vc.addVertex(pose, c1 * cos1, y1, c1 * sin1).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
+                vc.addVertex(pose, c1 * cos0, y1, c1 * sin0).setColor(r, g, b, a).setUv(time, packed).setUv1(cx, cz).setUv2(cy, frac).setNormal(style, 0.9f, 0);
             }
         }
-        if (source instanceof MultiBufferSource.BufferSource bs) bs.endBatch(type());
-        if (!logged) {
-            logged = true;
-            org.slf4j.LoggerFactory.getLogger("flopvisuals").info("Sky drawing (buffer source: {})", source.getClass().getName());
-        }
     }
-
-    private static boolean logged;
 
     private static double animClock;
     private static long animLast;

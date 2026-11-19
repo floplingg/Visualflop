@@ -1,20 +1,15 @@
 package dev.tony.visuals.hud;
 
-import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.blaze3d.pipeline.RenderTarget;
-import com.mojang.blaze3d.platform.DepthTestFunction;
-import com.mojang.renderpearl.api.pipeline.BlendFunction;
-import com.mojang.renderpearl.api.device.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.renderpearl.api.device.GpuDevice;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.renderpearl.api.textures.FilterMode;
 import com.mojang.renderpearl.api.textures.GpuTexture;
-import com.mojang.renderpearl.api.textures.TextureFormat;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.renderpearl.api.vertex.VertexFormat;
 import dev.tony.visuals.Config;
+import dev.tony.visuals.render.Pipes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.resources.Identifier;
 
@@ -27,30 +22,20 @@ public final class Backdrop {
 
     private static final Identifier ID = Identifier.fromNamespaceAndPath("flopvisuals", "hud/backdrop");
 
-    public static final RenderPipeline PIPELINE = RenderPipelines.register(
-        RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
-            .withLocation(Identifier.fromNamespaceAndPath("flopvisuals", "pipeline/gui_blur"))
-            .withVertexShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/gui_blur"))
-            .withFragmentShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/gui_blur"))
-            .withSampler("Sampler0")
-            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
-            .withBlend(BlendFunction.TRANSLUCENT)
-            .withDepthWrite(false)
-            .withDepthTestFunction(DepthTestFunction.NO_DEPTH_TEST)
-            .withCull(false)
-            .build());
+    public static final RenderPipeline PIPELINE = Pipes.register(Pipes.guiTextured("gui_blur", "gui_blur").build());
 
     static final class Copy extends AbstractTexture {
         Copy() {
             this.sampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR);
         }
 
-        void ensure(int w, int h) {
-            if (texture != null && !texture.isClosed() && texture.getWidth(0) == w && texture.getHeight(0) == h) return;
+        void ensure(int w, int h, com.mojang.renderpearl.api.GpuFormat format) {
+            if (texture != null && !texture.isClosed() && texture.getWidth(0) == w && texture.getHeight(0) == h
+                && texture.getFormat() == format) return;
             close();
             GpuDevice device = RenderSystem.getDevice();
             texture = device.createTexture(() -> "Flop Visuals HUD backdrop", GpuTexture.USAGE_COPY_DST | GpuTexture.USAGE_TEXTURE_BINDING,
-                TextureFormat.RGBA8, w, h, 1, 1);
+                format, w, h, 1, 1);
             textureView = device.createTextureView(texture);
         }
     }
@@ -60,28 +45,38 @@ public final class Backdrop {
 
     public static void init() {}
 
-    /** Copies the game picture for this frame's cards. Call before drawing the HUD. */
+    /**
+     * Copies the game picture for this frame's cards. Runs at the end of the world pass (the HUD is built before the
+     * world is drawn in 26.3, but drawn after it, so the copy is in place when the cards are drawn).
+     */
     public static void capture() {
-        ready = false;
-        if (failed || !Config.theme().hudBlur) return;
+        if (failed || !Config.theme().hudBlur) {
+            ready = false;
+            return;
+        }
         try {
             Minecraft mc = Minecraft.getInstance();
             if (copy == null) {
                 copy = new Copy();
-                copy.ensure(1, 1);
+                copy.ensure(1, 1, com.mojang.renderpearl.api.GpuFormat.RGBA8_UNORM);
                 mc.getTextureManager().register(ID, copy);
             }
-            RenderTarget main = mc.getMainRenderTarget();
+            RenderTarget main = mc.gameRenderer.mainRenderTarget();
             GpuTexture c = main.getColorTexture();
             if (c == null) return;
             int w = c.getWidth(0), h = c.getHeight(0);
-            copy.ensure(w, h);
+            copy.ensure(w, h, c.getFormat());
             RenderSystem.getDevice().createCommandEncoder().copyTextureToTexture(c, copy.getTexture(), 0, 0, 0, 0, 0, w, h);
             ready = true;
         } catch (Throwable e) {
             failed = true;
             org.slf4j.LoggerFactory.getLogger("flopvisuals").warn("HUD blur turned off: couldn't copy the frame", e);
         }
+    }
+
+    /** No world: nothing to blur. */
+    public static void reset() {
+        ready = false;
     }
 
     public static boolean ready() {

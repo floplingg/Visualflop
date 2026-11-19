@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 /** Swaps the title-screen panorama (used by every menu outside a world) for the Flop Visuals wallpaper. */
 @Mixin(Screen.class)
 public class ScreenMixin {
-    @Inject(method = "renderPanorama", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "extractPanorama", at = @At("HEAD"), cancellable = true)
     private void flopvisuals$wallpaper(GuiGraphicsExtractor g, float partialTick, CallbackInfo ci) {
         Screen self = (Screen) (Object) this;
         if (Wallpapers.draw(g, self.width, self.height)) ci.cancel();

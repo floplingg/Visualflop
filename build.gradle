@@ -34,6 +34,7 @@ fabricApi {
 
 // Enough memory for the in-game screenshot test (world generation stalled on garbage collection).
 loom {
+    accessWidenerPath = file("src/main/resources/flopvisuals.accesswidener")
     runs {
         configureEach {
             vmArgs "-Xmx4G", "-Xms2G", "-XX:+UseG1GC"

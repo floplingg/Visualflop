@@ -1,19 +1,18 @@
 package dev.tony.visuals.glass;
 
-import com.mojang.renderpearl.api.pipeline.BlendFunction;
-import com.mojang.renderpearl.api.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.renderpearl.api.vertex.VertexFormat;
+import com.mojang.renderpearl.api.pipeline.BlendFunction;
+import com.mojang.renderpearl.api.pipeline.CompareOp;
+import com.mojang.renderpearl.api.pipeline.DepthStencilState;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import dev.tony.visuals.Config;
+import dev.tony.visuals.render.Pipes;
 import dev.tony.visuals.sky.TopoSky;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
@@ -24,6 +23,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
+
 
 /**
  * Glass ground: a glossy layer on the ground around you that mirrors the topographic sky.
@@ -36,19 +36,12 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 public final class GlassGround {
     private GlassGround() {}
 
-    public static final RenderPipeline PIPELINE = RenderPipelines.register(
-        RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
-            .withLocation(Identifier.fromNamespaceAndPath("flopvisuals", "pipeline/topo_glass"))
-            .withVertexShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_glass"))
-            .withFragmentShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_glass"))
-            .withSampler("SceneColor")
-            .withSampler("SceneDepth")
-            .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.QUADS)
-            .withBlend(BlendFunction.TRANSLUCENT)
-            .withDepthWrite(false)
-            .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
-            .withDepthBias(-1f, -2f)
-            .withCull(false)
+    // Reversed depth in 26.3: "in front or equal" passes, and a positive bias pulls the glass towards you.
+    public static final RenderPipeline PIPELINE = Pipes.register(
+        Pipes.world("topo_glass", "topo_glass", DefaultVertexFormat.ENTITY)
+            .withBindGroupLayout(Pipes.samplers("SceneColor", "SceneDepth"))
+            .withColorTargetState(Pipes.blend(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(new DepthStencilState(CompareOp.GREATER_THAN_OR_EQUAL, false, 1f, 2f))
             .build());
 
     private static final int F = 9;   // floats per face
@@ -68,7 +61,7 @@ public final class GlassGround {
     private static RenderType type() {
         if (type == null) {
             SceneCopy.ensureRegistered();
-            type = RenderType.create("flopvisuals_topo_glass", RenderSetup.builder(PIPELINE)
+            type = RenderType.create("flopvisuals_topo_glass", net.minecraft.client.renderer.rendertype.RenderSetup.builder(PIPELINE)
                 .withTexture("SceneColor", SceneCopy.COLOUR, SceneCopy::linear)
                 .withTexture("SceneDepth", SceneCopy.DEPTH, SceneCopy::nearest)
                 .createRenderSetup());
@@ -76,23 +69,18 @@ public final class GlassGround {
         return type;
     }
 
-    public static void render(WorldRenderContext ctx) {
-        if (dev.tony.visuals.compat.Shaders.active()) return;   // drawn after the shader pack instead
+    /** Copy the frame once solid blocks and mobs are drawn, so the glass (drawn in the translucent pass) can reflect them. */
+    public static void capture() {
         if (active()) SceneCopy.capture();
-        draw(ctx.consumers(), false);
     }
 
-    /** Water surfaces are drawn after Minecraft's translucent water, otherwise the water covers them. */
-    public static void renderWater(WorldRenderContext ctx) {
-        if (dev.tony.visuals.compat.Shaders.active()) return;
-        if (Config.get().glass.water) draw(ctx.consumers(), true);
-    }
-
-    /** With a shader pack: everything at once, on top of the pack's finished image. */
-    public static void renderAfterShaders(MultiBufferSource source) {
-        if (active()) SceneCopy.capture();
-        draw(source, false);
-        if (Config.get().glass.water) draw(source, true);
+    /** Submitted with the world's geometry: the glass ground, then water surfaces. */
+    public static void render(LevelRenderContext ctx) {
+        if (!Config.get().glass.enabled || Minecraft.getInstance().level == null) return;
+        ctx.submitNodeCollector().submitCustomGeometry(ctx.poseStack(), type(), (pose, vc) -> draw(vc, pose, false));
+        if (Config.get().glass.water) {
+            ctx.submitNodeCollector().submitCustomGeometry(ctx.poseStack(), type(), (pose, vc) -> draw(vc, pose, true));
+        }
     }
 
     private static boolean active() {
@@ -102,7 +90,7 @@ public final class GlassGround {
             && (Config.get().sky.allDimensions || mc.level.dimension() == net.minecraft.world.level.Level.OVERWORLD);
     }
 
-    private static void draw(MultiBufferSource source, boolean waterPass) {
+    private static void draw(VertexConsumer vc, PoseStack.Pose pose, boolean waterPass) {
         Minecraft mc = Minecraft.getInstance();
         Config.Glass gc = Config.get().glass;
         ClientLevel level = mc.level;
@@ -131,8 +119,7 @@ public final class GlassGround {
         float time = TopoSky.time(), packed = TopoSky.packed();
         final float e = 0.003f;
 
-        VertexConsumer vc = source.getBuffer(type());
-        Emitter em = new Emitter(vc, cam, ar, ag, ab, strength, radius, time, packed, flags);
+        Emitter em = new Emitter(vc, pose, cam, ar, ag, ab, strength, radius, time, packed, flags);
         for (int i = 0; i < count; i++) {
             int o = i * F;
             int kind = (int) faces[o];
@@ -177,7 +164,6 @@ public final class GlassGround {
                 }
             }
         }
-        if (source instanceof MultiBufferSource.BufferSource bs) bs.endBatch(type());
         if (!logged && !waterPass) {
             logged = true;
             org.slf4j.LoggerFactory.getLogger("flopvisuals").info("Glass ground drawing {} faces", count);
@@ -188,7 +174,7 @@ public final class GlassGround {
      * Writes one vertex. The sky colour goes in the vertex colour, the light shade in the length of the normal,
      * the style / water / reflection flags in the second light coordinate. Distance from you fades it out smoothly.
      */
-    private record Emitter(VertexConsumer vc, Vec3 cam, float r, float g, float b, float strength, float radius,
+    private record Emitter(VertexConsumer vc, PoseStack.Pose pose, Vec3 cam, float r, float g, float b, float strength, float radius,
                            float time, float packed, int flags) {
         void v(float x, float y, float z, float shade, float nx, float ny, float nz) {
             v(x, y, z, shade, nx, ny, nz, 0);
@@ -200,7 +186,7 @@ public final class GlassGround {
             float fade = 1f - smooth(0.55f, 1f, d);
             int a = Math.round(255 * strength * fade);
             float k = Math.max(0.1f, Math.min(1f, shade));
-            vc.addVertex((float) (x - cam.x), (float) (y - cam.y), (float) (z - cam.z))
+            vc.addVertex(pose, (float) (x - cam.x), (float) (y - cam.y), (float) (z - cam.z))
                 .setColor(Math.round(r * 255), Math.round(g * 255), Math.round(b * 255), Math.max(0, a))
                 .setUv(time, packed)
                 .setUv1(Math.round(x) - anchorX, Math.round(z) - anchorZ)

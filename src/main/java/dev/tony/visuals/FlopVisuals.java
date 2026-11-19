@@ -10,7 +10,7 @@ import dev.tony.visuals.sky.TopoSky;
 import dev.tony.visuals.glass.GlassGround;
 import dev.tony.visuals.spotify.Spotify;
 import dev.tony.visuals.wallpaper.Wallpapers;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -50,12 +50,17 @@ public class FlopVisuals implements ClientModInitializer {
         dev.tony.visuals.hud.Backdrop.init();
         Wallpapers.init();
         Spotify.start();
-        // The sky goes in before entities (and at the far plane), so players, mobs and nametags always draw over it.
-        WorldRenderEvents.BEFORE_ENTITIES.register(TopoSky::render);
-        WorldRenderEvents.AFTER_ENTITIES.register(dev.tony.visuals.fx.AuraFx::render);   // before the glass, so it shows in the reflection
-        WorldRenderEvents.AFTER_ENTITIES.register(GlassGround::render);
-        WorldRenderEvents.END_MAIN.register(GlassGround::renderWater);
-        WorldRenderEvents.AFTER_ENTITIES.register(dev.tony.visuals.fx.SkyLyrics::render);
+        // 26.3: world effects are submitted with the rest of the world's geometry each frame.
+        // The sky sits at the far plane, so it only fills pixels nothing else covered.
+        LevelRenderEvents.COLLECT_SUBMITS.register(ctx -> {
+            TopoSky.render(ctx);
+            dev.tony.visuals.fx.AuraFx.render(ctx);
+            GlassGround.render(ctx);
+            dev.tony.visuals.fx.SkyLyrics.render(ctx);
+        });
+        // Frame copies: for the glass reflections (after solid blocks and mobs) and the HUD blur (whole world).
+        LevelRenderEvents.AFTER_SOLID_FEATURES.register(ctx -> GlassGround.capture());
+        LevelRenderEvents.END_MAIN.register(ctx -> dev.tony.visuals.hud.Backdrop.capture());
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
         HudElementRegistry.addLast(Identifier.parse("flopvisuals:hud"), Hud::render);
     }

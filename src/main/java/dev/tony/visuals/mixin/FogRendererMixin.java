@@ -2,20 +2,22 @@ package dev.tony.visuals.mixin;
 
 import dev.tony.visuals.sky.TopoSky;
 import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.fog.FogData;
 import net.minecraft.client.renderer.fog.FogRenderer;
-import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Blends the distance fog toward the sky's horizon colour so far terrain melts into the custom sky. */
+/** Pulls the distance fog towards the custom sky's horizon colour. */
 @Mixin(FogRenderer.class)
 public class FogRendererMixin {
-    @Inject(method = "computeFogColor", at = @At("RETURN"))
-    private void flopvisuals$tintFog(Camera camera, float partialTick, ClientLevel level, int renderDistance,
-                                     float darken, CallbackInfoReturnable<Vector4f> cir) {
-        TopoSky.tintFog(camera, level, cir.getReturnValue());
+    @Inject(method = "setupFog", at = @At("RETURN"))
+    private void flopvisuals$tintFog(Camera camera, int renderDistance, DeltaTracker delta, float darken, ClientLevel level,
+                                     CallbackInfoReturnable<FogData> cir) {
+        FogData data = cir.getReturnValue();
+        if (data != null) TopoSky.tintFog(camera, level, data.color);
     }
 }

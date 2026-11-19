@@ -5,12 +5,13 @@ import dev.tony.visuals.Config;
 import dev.tony.visuals.gui.Kit;
 import dev.tony.visuals.spotify.Lyrics;
 import dev.tony.visuals.spotify.Spotify;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.util.LightCoordsUtil;
-import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import org.joml.Matrix4f;
 
@@ -80,19 +81,14 @@ public final class SkyLyrics {
         return shown;
     }
 
-    public static void render(WorldRenderContext ctx) {
-        if (dev.tony.visuals.compat.Shaders.active()) return;   // drawn after the shader pack instead
-        draw(ctx.consumers());
+    /** Where the words go this frame: the world's submit list and a pose stack for it. */
+    record Out(SubmitNodeCollector nodes, PoseStack poses) {}
+
+    public static void render(LevelRenderContext ctx) {
+        draw(new Out(ctx.submitNodeCollector(), ctx.poseStack()));
     }
 
-    private static boolean warned;
-
-    /** Registers the text pipelines at startup, like the other effects. */
-    public static void init() {
-        SkyText.init();
-    }
-
-    public static void draw(MultiBufferSource source) {
+    public static void draw(Out source) {
         try {
             drawLyrics(source);
         } catch (Throwable e) {
@@ -103,7 +99,7 @@ public final class SkyLyrics {
         }
     }
 
-    private static void drawLyrics(MultiBufferSource source) {
+    private static void drawLyrics(Out source) {
         Config.Lyrics cfg = Config.get().lyrics;
         Minecraft mc = Minecraft.getInstance();
         if (!cfg.sky || mc.player == null || mc.gui.hud.isHidden()) {
@@ -167,13 +163,13 @@ public final class SkyLyrics {
         };
     }
 
-    private static void line(Font font, MultiBufferSource source, Config.Lyrics cfg, String s, Matrix4f m, float dy,
+    private static void line(Font font, Out source, Config.Lyrics cfg, String s, Matrix4f m, float dy,
                              float alpha, int rgb, int glow) {
         if (alpha <= 0.02f) return;
         SkyText.Line l = SkyText.get(s, cfg.skyFont, cfg.skyGlowSize);
         float glowA = glow >= 0 ? alpha * cfg.skyGlowStrength / 100f : 0;
         if (l != null) {
-            SkyText.draw(source, l, m, dy, rgb, alpha, glow, glowA);
+            SkyText.draw(source.nodes(), source.poses(), l, m, dy, rgb, alpha, glow, glowA);
             return;
         }
         // Minecraft's own font (chosen, or for letters the smooth fonts don't have, like Chinese or Korean).
@@ -187,10 +183,17 @@ public final class SkyLyrics {
             for (int i = 0; i < 8; i++) {
                 double ang = i * Math.PI / 4;
                 Matrix4f gm = new Matrix4f(fm).translate((float) Math.cos(ang) * 0.6f * cfg.skyGlowSize, (float) Math.sin(ang) * 0.6f * cfg.skyGlowSize, 0);
-                font.drawInBatch(c, -w / 2f, -4.5f, (ga << 24) | glow, false, gm, source, Font.DisplayMode.NORMAL, 0, LightCoordsUtil.FULL_BRIGHT);
+                text(source, gm, c, -w / 2f, -4.5f, (ga << 24) | glow, Font.DisplayMode.NORMAL);
             }
         }
-        font.drawInBatch(c, -w / 2f, -4.5f, (Math.max(5, a / 4) << 24) | rgb, false, fm, source, Font.DisplayMode.SEE_THROUGH, 0, LightCoordsUtil.FULL_BRIGHT);
-        font.drawInBatch(c, -w / 2f, -4.5f, (a << 24) | rgb, false, fm, source, Font.DisplayMode.NORMAL, 0, LightCoordsUtil.FULL_BRIGHT);
+        text(source, fm, c, -w / 2f, -4.5f, (Math.max(5, a / 4) << 24) | rgb, Font.DisplayMode.SEE_THROUGH);
+        text(source, fm, c, -w / 2f, -4.5f, (a << 24) | rgb, Font.DisplayMode.NORMAL);
+    }
+
+    /** Minecraft-font words in the world, through the submit list (fallback for scripts the smooth fonts lack). */
+    private static void text(Out source, Matrix4f m, Component c, float x, float y, int colour, Font.DisplayMode mode) {
+        PoseStack ps = new PoseStack();
+        ps.mulPose(m);
+        source.nodes().submitText(ps, x, y, c.getVisualOrderText(), false, mode, LightCoordsUtil.FULL_BRIGHT, colour, 0, 0);
     }
 }

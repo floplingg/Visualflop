@@ -45,7 +45,7 @@ public final class Hud {
         newFrame();
         if (mc.gui.screen() instanceof LayoutScreen) return;   // the layout editor draws its own copy
         Font font = mc.font;
-        Backdrop.capture();
+        if (mc.level == null) Backdrop.reset();
         for (String id : Config.allWidgets()) {
             Config.Widget w = Config.get().widget(id);
             if (!w.enabled) continue;

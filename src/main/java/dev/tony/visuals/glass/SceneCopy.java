@@ -6,7 +6,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.renderpearl.api.textures.FilterMode;
 import com.mojang.renderpearl.api.textures.GpuSampler;
 import com.mojang.renderpearl.api.textures.GpuTexture;
-import com.mojang.renderpearl.api.textures.TextureFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.resources.Identifier;
@@ -35,8 +34,11 @@ public final class SceneCopy {
             this.sampler = RenderSystem.getSamplerCache().getClampToEdge(filter);
         }
 
-        void ensure(int w, int h) {
-            if (texture != null && !texture.isClosed() && texture.getWidth(0) == w && texture.getHeight(0) == h) return;
+        /** Same size and format as the frame it copies (copies need matching formats). */
+        void ensure(int w, int h, com.mojang.renderpearl.api.GpuFormat f) {
+            if (f != null) format = f;
+            if (texture != null && !texture.isClosed() && texture.getWidth(0) == w && texture.getHeight(0) == h
+                && texture.getFormat() == format) return;
             close();
             GpuDevice device = RenderSystem.getDevice();
             texture = device.createTexture(() -> label, GpuTexture.USAGE_COPY_DST | GpuTexture.USAGE_TEXTURE_BINDING, format, w, h, 1, 1);
@@ -56,10 +58,10 @@ public final class SceneCopy {
     public static void ensureRegistered() {
         if (registered) return;
         Minecraft mc = Minecraft.getInstance();
-        colour = new Copy("Flop Visuals scene colour", TextureFormat.RGBA8, FilterMode.LINEAR);
-        depth = new Copy("Flop Visuals scene depth", TextureFormat.DEPTH32, FilterMode.NEAREST);
-        colour.ensure(1, 1);
-        depth.ensure(1, 1);
+        colour = new Copy("Flop Visuals scene colour", com.mojang.renderpearl.api.GpuFormat.RGBA8_UNORM, FilterMode.LINEAR);
+        depth = new Copy("Flop Visuals scene depth", com.mojang.renderpearl.api.GpuFormat.D32_FLOAT, FilterMode.NEAREST);
+        colour.ensure(1, 1, null);
+        depth.ensure(1, 1, null);
         mc.getTextureManager().register(COLOUR, colour);
         mc.getTextureManager().register(DEPTH, depth);
         registered = true;
@@ -77,12 +79,12 @@ public final class SceneCopy {
         try {
             ensureRegistered();
             Minecraft mc = Minecraft.getInstance();
-            RenderTarget main = mc.getMainRenderTarget();
+            RenderTarget main = mc.gameRenderer.mainRenderTarget();
             GpuTexture c = main.getColorTexture(), d = main.getDepthTexture();
             if (c == null || d == null) return false;
             int w = c.getWidth(0), h = c.getHeight(0);
-            colour.ensure(w, h);
-            depth.ensure(w, h);
+            colour.ensure(w, h, c.getFormat());
+            depth.ensure(w, h, d.getFormat());
             var encoder = RenderSystem.getDevice().createCommandEncoder();
             encoder.copyTextureToTexture(c, colour.getTexture(), 0, 0, 0, 0, 0, w, h);
             encoder.copyTextureToTexture(d, depth.getTexture(), 0, 0, 0, 0, 0, w, h);

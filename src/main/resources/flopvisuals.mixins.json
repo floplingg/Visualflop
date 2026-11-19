@@ -7,7 +7,6 @@
     "FogRendererMixin",
     "ScreenMixin",
     "BlockStateMixin",
-    "LevelRendererMixin",
     "ChatComponentAccessor",
     "ChatScreenMixin"
   ],

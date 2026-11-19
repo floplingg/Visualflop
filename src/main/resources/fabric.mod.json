@@ -8,6 +8,7 @@
     "Tony"
   ],
   "license": "GPL-3.0",
+  "accessWidener": "flopvisuals.accesswidener",
   "icon": "assets/flopvisuals/icon.png",
   "environment": "client",
   "entrypoints": {

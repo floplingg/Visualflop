@@ -2,18 +2,16 @@ package dev.tony.visuals.fx;
 
 import com.mojang.renderpearl.api.pipeline.BlendFunction;
 import com.mojang.renderpearl.api.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DepthTestFunction;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.renderpearl.api.textures.FilterMode;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.renderpearl.api.vertex.VertexFormat;
 import dev.tony.visuals.Config;
+import dev.tony.visuals.render.Pipes;
+import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
@@ -41,16 +39,10 @@ final class SkyText {
     static final int EM = 112;
 
     private static RenderPipeline pipeline(String name, boolean seeThrough) {
-        return RenderPipelines.register(RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
-            .withLocation(Identifier.fromNamespaceAndPath("flopvisuals", "pipeline/" + name))
-            .withVertexShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/sky_text"))
-            .withFragmentShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/sky_text"))
-            .withSampler("Sampler0")
-            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
-            .withBlend(BlendFunction.TRANSLUCENT)
-            .withDepthWrite(false)
-            .withDepthTestFunction(seeThrough ? DepthTestFunction.NO_DEPTH_TEST : DepthTestFunction.LEQUAL_DEPTH_TEST)
-            .withCull(false)
+        return Pipes.register(Pipes.world(name, "sky_text", DefaultVertexFormat.POSITION_TEX_COLOR)
+            .withBindGroupLayout(net.minecraft.client.renderer.BindGroupLayouts.SAMPLER0)
+            .withColorTargetState(Pipes.blend(BlendFunction.TRANSLUCENT))
+            .withDepthStencilState(seeThrough ? Pipes.noDepth() : Pipes.depthTest(false))
             .build());
     }
 
@@ -348,10 +340,8 @@ final class SkyText {
             }
         };
         Minecraft.getInstance().getTextureManager().register(id, tex);
-        RenderType normal = RenderType.create("flopvisuals_sky_text", RenderSetup.builder(NORMAL)
-            .withTexture("Sampler0", id, () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR)).createRenderSetup());
-        RenderType through = RenderType.create("flopvisuals_sky_text_through", RenderSetup.builder(THROUGH)
-            .withTexture("Sampler0", id, () -> RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR)).createRenderSetup());
+        RenderType normal = Pipes.type("flopvisuals_sky_text", NORMAL, "Sampler0", id);
+        RenderType through = Pipes.type("flopvisuals_sky_text_through", THROUGH, "Sampler0", id);
         return new Line(id, w, h, pad, ascent, anyEmoji, normal, through);
     }
 
@@ -413,22 +403,23 @@ final class SkyText {
      * Draws the line centred on m's origin (m maps image pixels to world space, y down). Glow first, then the text,
      * then a faint copy that shows through walls.
      */
-    static void draw(MultiBufferSource source, Line l, Matrix4f m, float dy, int rgb, float alpha, int glowRgb, float glowAlpha) {
+    static void draw(SubmitNodeCollector out, PoseStack poses, Line l, Matrix4f m, float dy, int rgb, float alpha, int glowRgb, float glowAlpha) {
         float x0 = -l.w() / 2f, y0 = dy - l.pad() - l.ascent() * 0.5f, x1 = x0 + l.w(), y1 = y0 + l.h();
         float third = 1f / 3f;
-        VertexConsumer vc = source.getBuffer(l.normal());
-        if (glowRgb >= 0 && glowAlpha > 0.003f) quad(vc, m, x0, y0, x1, y1, third, 2 * third, glowRgb, glowAlpha);
-        quad(vc, m, x0, y0, x1, y1, 0f, third, rgb, alpha);
-        if (l.emoji()) quad(vc, m, x0, y0, x1, y1, 2 * third, 1f, 0xFFFFFF, alpha);
-        quad(source.getBuffer(l.through()), m, x0, y0, x1, y1, 0f, third, rgb, alpha * 0.22f);
+        out.submitCustomGeometry(poses, l.normal(), (pose, vc) -> {
+            if (glowRgb >= 0 && glowAlpha > 0.003f) quad(vc, pose, m, x0, y0, x1, y1, third, 2 * third, glowRgb, glowAlpha);
+            quad(vc, pose, m, x0, y0, x1, y1, 0f, third, rgb, alpha);
+            if (l.emoji()) quad(vc, pose, m, x0, y0, x1, y1, 2 * third, 1f, 0xFFFFFF, alpha);
+        });
+        out.submitCustomGeometry(poses, l.through(), (pose, vc) -> quad(vc, pose, m, x0, y0, x1, y1, 0f, third, rgb, alpha * 0.22f));
     }
 
-    private static void quad(VertexConsumer vc, Matrix4f m, float x0, float y0, float x1, float y1, float v0, float v1, int rgb, float a) {
+    private static void quad(VertexConsumer vc, PoseStack.Pose pose, Matrix4f m, float x0, float y0, float x1, float y1, float v0, float v1, int rgb, float a) {
         float r = ((rgb >> 16) & 255) / 255f, g = ((rgb >> 8) & 255) / 255f, b = (rgb & 255) / 255f;
         Vector3f p = new Vector3f();
-        m.transformPosition(x0, y0, 0, p); vc.addVertex(p.x, p.y, p.z).setUv(0, v0).setColor(r, g, b, a);
-        m.transformPosition(x0, y1, 0, p); vc.addVertex(p.x, p.y, p.z).setUv(0, v1).setColor(r, g, b, a);
-        m.transformPosition(x1, y1, 0, p); vc.addVertex(p.x, p.y, p.z).setUv(1, v1).setColor(r, g, b, a);
-        m.transformPosition(x1, y0, 0, p); vc.addVertex(p.x, p.y, p.z).setUv(1, v0).setColor(r, g, b, a);
+        m.transformPosition(x0, y0, 0, p); vc.addVertex(pose, p.x, p.y, p.z).setUv(0, v0).setColor(r, g, b, a);
+        m.transformPosition(x0, y1, 0, p); vc.addVertex(pose, p.x, p.y, p.z).setUv(0, v1).setColor(r, g, b, a);
+        m.transformPosition(x1, y1, 0, p); vc.addVertex(pose, p.x, p.y, p.z).setUv(1, v1).setColor(r, g, b, a);
+        m.transformPosition(x1, y0, 0, p); vc.addVertex(pose, p.x, p.y, p.z).setUv(1, v0).setColor(r, g, b, a);
     }
 }

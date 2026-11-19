@@ -1,24 +1,19 @@
 package dev.tony.visuals.fx;
 
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.renderpearl.api.pipeline.BlendFunction;
 import com.mojang.renderpearl.api.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DepthTestFunction;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import com.mojang.renderpearl.api.vertex.VertexFormat;
 import dev.tony.visuals.Config;
+import dev.tony.visuals.render.Pipes;
 import dev.tony.visuals.sky.SkyStyles;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
 /**
@@ -31,16 +26,10 @@ public final class AuraFx {
     // Shapes the shader knows (stored in the whole part of the U coordinate, two units per shape).
     private static final int ORB = 0, GLOW = 1, RING = 2, CROWN = 3, SUN = 4, HORN = 5, SPARKLE = 6;
 
-    public static final RenderPipeline PIPELINE = RenderPipelines.register(
-        RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
-            .withLocation(Identifier.fromNamespaceAndPath("flopvisuals", "pipeline/aura"))
-            .withVertexShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/aura"))
-            .withFragmentShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/aura"))
-            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR, VertexFormat.Mode.QUADS)
-            .withBlend(BlendFunction.LIGHTNING)
-            .withDepthWrite(false)
-            .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
-            .withCull(false)
+    public static final RenderPipeline PIPELINE = Pipes.register(
+        Pipes.world("aura", "aura", DefaultVertexFormat.POSITION_TEX_COLOR)
+            .withColorTargetState(Pipes.blend(BlendFunction.LIGHTNING))
+            .withDepthStencilState(Pipes.depthTest(false))
             .build());
 
     private static RenderType type;
@@ -49,16 +38,23 @@ public final class AuraFx {
     public static void init() {}
 
     private static RenderType type() {
-        if (type == null) type = RenderType.create("flopvisuals_aura", RenderSetup.builder(PIPELINE).createRenderSetup());
+        if (type == null) type = Pipes.type("flopvisuals_aura", PIPELINE);
         return type;
     }
 
-    public static void render(WorldRenderContext ctx) {
-        if (dev.tony.visuals.compat.Shaders.active()) return;
-        draw(ctx.consumers());
+    /** Submitted with the world's other geometry; drawn in the translucent pass. */
+    public static void render(LevelRenderContext ctx) {
+        if (!wanted()) return;
+        ctx.submitNodeCollector().submitCustomGeometry(ctx.poseStack(), type(), AuraFx::draw);
     }
 
-    public static void draw(MultiBufferSource source) {
+    private static boolean wanted() {
+        Minecraft mc = Minecraft.getInstance();
+        Config.Aura a = Config.get().aura;
+        return mc.player != null && mc.level != null && (a.orbs || a.halo || a.aura);
+    }
+
+    private static void draw(PoseStack.Pose pose, VertexConsumer vc) {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer p = mc.player;
         Config.Aura a = Config.get().aura;
@@ -68,10 +64,10 @@ public final class AuraFx {
         boolean firstPerson = !cam.isDetached();
         if (firstPerson && !(a.orbs && a.orbsFirstPerson)) return;
 
-        float pt = cam.getPartialTickTime();
+        float pt = mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);
         Vec3 pos = p.getPosition(pt);
         Vec3 c = cam.position();
-        Q q = new Q(source.getBuffer(type()), c, cam.leftVector(), cam.upVector());
+        Q q = new Q(vc, pose, c, cam.leftVector(), cam.upVector());
         int rgb = SkyStyles.colour(Config.SkyStyle.TOPOGRAPHIC, a.colour);
         float r = ((rgb >> 16) & 255) / 255f, g = ((rgb >> 8) & 255) / 255f, b = (rgb & 255) / 255f;
         float t = (System.nanoTime() - START) / 1e9f;
@@ -149,13 +145,12 @@ public final class AuraFx {
                 }
             }
         }
-        if (source instanceof MultiBufferSource.BufferSource bs) bs.endBatch(type());
     }
 
     /** Writes glowing quads relative to the camera. */
-    private record Q(VertexConsumer vc, Vec3 cam, Vector3fc left, Vector3fc up) {
+    private record Q(VertexConsumer vc, PoseStack.Pose pose, Vec3 cam, Vector3fc left, Vector3fc up) {
         void v(double x, double y, double z, float u, float vv, float r, float g, float b, float a) {
-            vc.addVertex((float) (x - cam.x), (float) (y - cam.y), (float) (z - cam.z))
+            vc.addVertex(pose, (float) (x - cam.x), (float) (y - cam.y), (float) (z - cam.z))
                 .setUv(u, vv)
                 .setColor(r, g, b, Math.max(0, Math.min(1, a)));
         }
