@@ -26,9 +26,9 @@ public final class SceneCopy {
     /** A texture the copy lands in; resized with the window. */
     static final class Copy extends AbstractTexture {
         private final String label;
-        private final TextureFormat format;
+        private com.mojang.renderpearl.api.GpuFormat format;
 
-        Copy(String label, TextureFormat format, FilterMode filter) {
+        Copy(String label, com.mojang.renderpearl.api.GpuFormat format, FilterMode filter) {
             this.label = label;
             this.format = format;
             this.sampler = RenderSystem.getSamplerCache().getClampToEdge(filter);

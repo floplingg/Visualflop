@@ -88,6 +88,13 @@ public final class SkyLyrics {
         draw(new Out(ctx.submitNodeCollector(), ctx.poseStack()));
     }
 
+    private static boolean warned;
+
+    /** Registers the text pipelines at startup, like the other effects. */
+    public static void init() {
+        SkyText.init();
+    }
+
     public static void draw(Out source) {
         try {
             drawLyrics(source);
