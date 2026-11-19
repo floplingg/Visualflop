@@ -20,6 +20,8 @@ jobs:
           echo "== game versions"; curl -fsSL https://meta.fabricmc.net/v2/versions/game | python3 -c "import json,sys; print([v['version'] for v in json.load(sys.stdin)[:6]])"
           echo "== mcef-modern 26.3"; curl -fsSL 'https://api.modrinth.com/v2/project/mcef-modern/version?game_versions=%5B%2226.3%22%5D' | python3 -c "import json,sys; [print(v['version_number'], v['date_published'][:10]) for v in json.load(sys.stdin)]"
       - name: Signatures
+        env:
+          FAPI: 0.166.2+26.3
         run: |
           url=$(curl -fsSL https://piston-meta.mojang.com/mc/game/version_manifest_v2.json | python3 -c "import json,sys; d=json.load(sys.stdin); print([v['url'] for v in d['versions'] if v['id']=='26.3'][0])")
           jar=$(curl -fsSL "$url" | python3 -c "import json,sys; print(json.load(sys.stdin)['downloads']['client']['url'])")
@@ -39,6 +41,17 @@ jobs:
               cls=$(unzip -l client.jar | awk '{print $4}' | grep "^${c#pkg:}/[^/]*\.class$" | sed 's/\.class$//; s#/#.#g')
               echo "== package ${c#pkg:}"; javap -public -cp "$CP" $cls 2>&1
               continue
+            fi
+            if [[ "$c" == jar:* ]]; then echo "== file ${c#jar:}"; unzip -p client.jar "${c#jar:}" 2>&1 | head -200; continue; fi
+            if [[ "$c" == code:* ]]; then echo "== code ${c#code:}"; javap -p -c -cp "$CP" "${c#code:}" 2>&1 | grep -E "invoke|getstatic|putstatic|ldc" | sed -E 's/^ *[0-9]+: //' | head -1500; continue; fi
+            if [[ "$c" == fapi:* ]]; then
+              if [ ! -d fapi ]; then
+                curl -fsSL -o fapi.jar "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/${FAPI}/fabric-api-${FAPI}.jar"
+                mkdir fapi && (cd fapi && unzip -q ../fapi.jar 'META-INF/jars/*' && for j in META-INF/jars/*.jar; do unzip -qo "$j" -d classes 2>/dev/null; done)
+              fi
+              q="${c#fapi:}"
+              if [[ "$q" == find:* ]]; then echo "== fapi find ${q#find:}"; (cd fapi/classes && find . -name "*.class" | grep -i "${q#find:}" | grep -v '\$' | head -40); continue; fi
+              echo "== fapi $q"; javap -public -cp "fapi/classes:$CP" "$q" 2>&1 | head -200; continue
             fi
             echo "== $c"; javap -public -cp "$CP" "$c" 2>&1 | head -400
           done < probe-classes.txt > api.txt
