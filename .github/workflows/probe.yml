@@ -57,7 +57,13 @@ jobs:
             fi
             echo "== $c"; javap -public -cp "$CP" "$c" 2>&1 | head -400
           done < probe-classes.txt > api.txt
+          # Full signature index (public + protected) of client, util and rendering classes, for local searching.
+          unzip -l client.jar | awk '{print $4}' | grep -E '^(net/minecraft/client|net/minecraft/util|com/mojang)/.*\.class$' | sed 's/\.class$//; s#/#.#g' > classes.txt
+          xargs -a classes.txt -n 400 javap -protected -cp "$CP" 2>/dev/null > sigs.txt || true
+          if [ -d fapi/classes ]; then (cd fapi/classes && find net/fabricmc/fabric/api -name '*.class' | sed 's/\.class$//; s#/#.#g') > fclasses.txt; xargs -a fclasses.txt -n 400 javap -protected -cp "fapi/classes:$CP" 2>/dev/null > fsigs.txt || true; fi
+          gzip -9 sigs.txt; [ -f fsigs.txt ] && gzip -9 fsigs.txt
+          ls -la sigs.txt.gz fsigs.txt.gz || true
           wc -l api.txt
           git config user.name ci && git config user.email ci@users.noreply.github.com
-          mkdir -p /tmp/out && cp api.txt /tmp/out/ && cd /tmp/out && git init -q -b probe-out && git add -A && git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm probe
+          mkdir -p /tmp/out && cp api.txt sigs.txt.gz /tmp/out/ && (cp fsigs.txt.gz /tmp/out/ || true) && cd /tmp/out && git init -q -b probe-out && git add -A && git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm probe
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" probe-out
