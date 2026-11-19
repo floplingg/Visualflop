@@ -3,6 +3,8 @@ on:
   push:
     branches: [mc-26.3]
     paths: ['probe-classes.txt', '.github/workflows/probe.yml']
+permissions:
+  contents: write
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -33,5 +35,14 @@ jobs:
             [ -z "$c" ] && continue
             case "$c" in \#*) continue;; esac
             if [[ "$c" == find:* ]]; then echo "== find ${c#find:}"; for j in client.jar lib_*.jar; do unzip -l "$j" 2>/dev/null | awk '{print $4}' | grep -i "${c#find:}" | grep -v '\$' | sed "s|^|$j: |" | head -12; done; continue; fi
-            echo "== $c"; javap -public -cp "$CP" "$c" 2>&1 | head -150
-          done < probe-classes.txt
+            if [[ "$c" == pkg:* ]]; then
+              cls=$(unzip -l client.jar | awk '{print $4}' | grep "^${c#pkg:}/[^/]*\.class$" | sed 's/\.class$//; s#/#.#g')
+              echo "== package ${c#pkg:}"; javap -public -cp "$CP" $cls 2>&1
+              continue
+            fi
+            echo "== $c"; javap -public -cp "$CP" "$c" 2>&1 | head -400
+          done < probe-classes.txt > api.txt
+          wc -l api.txt
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          mkdir -p /tmp/out && cp api.txt /tmp/out/ && cd /tmp/out && git init -q -b probe-out && git add -A && git commit -qm probe
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" probe-out
