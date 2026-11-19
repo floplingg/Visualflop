@@ -1,3 +1,4 @@
-code:com.mojang.blaze3d.vertex.DefaultVertexFormat
-jar:assets/minecraft/shaders/core/entity.vsh
-jar:assets/minecraft/shaders/core/rendertype_text.fsh
+fapi:find:gametest/v1/context/Test
+fapi:net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext
+fapi:net.fabricmc.fabric.api.client.gametest.v1.context.TestClientLevelContext
+fapi:net.fabricmc.fabric.api.client.gametest.v1.context.TestClientWorldContext
