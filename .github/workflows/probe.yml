@@ -46,6 +46,20 @@ jobs:
             if [[ "$c" == grepfield:* ]]; then echo "== grepfield ${c#grepfield:}"; for k in $(unzip -l client.jar | awk '{print $4}' | grep '^net/minecraft/client/renderer/.*\.class$\|^net/minecraft/util/.*\.class$' | sed 's/\.class$//; s#/#.#g'); do javap -public -cp "$CP" "$k" 2>/dev/null | grep -q "${c#grepfield:}" && echo "$k"; done | head -10; continue; fi
             if [[ "$c" == jar:* ]]; then echo "== file ${c#jar:}"; unzip -p client.jar "${c#jar:}" 2>&1 | head -200; continue; fi
             if [[ "$c" == code:* ]]; then echo "== code ${c#code:}"; javap -p -c -cp "$CP" "${c#code:}" 2>&1 | grep -E "invoke|getstatic|putstatic|ldc" | sed -E 's/^ *[0-9]+: //' | head -1500; continue; fi
+            if [[ "$c" == mcef:* ]]; then
+              if [ ! -d mcef ]; then
+                murl=$(curl -fsSL 'https://api.modrinth.com/v2/project/mcef-modern/version?game_versions=%5B%2226.3%22%5D' | python3 -c "import json,sys; print(json.load(sys.stdin)[0]['files'][0]['url'])")
+                curl -fsSL -o mcef.jar "$murl"; mkdir mcef && (cd mcef && unzip -q ../mcef.jar; for j in META-INF/jars/*.jar; do [ -f "$j" ] && unzip -qo "$j" 2>/dev/null; done; true)
+              fi
+              echo "== mcef ${c#mcef:}"; javap -public -cp "mcef:$CP" "${c#mcef:}" 2>&1 | head -120; continue
+            fi
+            if [[ "$c" == gt:* ]]; then
+              if [ ! -d gt ]; then
+                v=$(curl -fsSL https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-client-gametest-api-v1/maven-metadata.xml | grep -o "<version>[^<]*+[^<]*</version>" | sed 's/<[^>]*>//g' | tail -1)
+                echo "gametest $v"; curl -fsSL -o gt.jar "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-client-gametest-api-v1/$v/fabric-client-gametest-api-v1-$v.jar"; mkdir gt && (cd gt && unzip -q ../gt.jar)
+              fi
+              echo "== gt ${c#gt:}"; javap -public -cp "gt:$CP" "${c#gt:}" 2>&1 | head -80; continue
+            fi
             if [[ "$c" == fapi:* ]]; then
               if [ ! -d fapi ]; then
                 curl -fsSL -o fapi.jar "https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/${FAPI}/fabric-api-${FAPI}.jar"

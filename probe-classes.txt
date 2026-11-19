@@ -1,1 +1,4 @@
-fapi:find:gametest
+mcef:net.dimaskama.mcef.api.MCEFApi
+mcef:net.dimaskama.mcef.api.MCEFApi$Initialization
+mcef:net.dimaskama.mcef.api.MCEFBrowser
+gt:net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext
