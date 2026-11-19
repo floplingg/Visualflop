@@ -30,6 +30,6 @@ public final class GrassHider {
     /** Redraw the world after the setting changes. */
     public static void refresh() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.levelRenderer != null && mc.level != null) mc.levelRenderer.allChanged();
+        if (mc.levelRenderer != null && mc.level != null) mc.levelExtractor.allChanged();
     }
 }

@@ -1,1 +1,3 @@
-fapi:find:zzz
+fapi:aw
+priv:net.minecraft.client.renderer.rendertype.RenderType
+code:net.minecraft.client.renderer.rendertype.RenderTypes

@@ -270,7 +270,7 @@ public final class Payments {
         var chat = (ChatComponentAccessor) Minecraft.getInstance().gui.hud.getChat();
         List<GuiMessage> all = chat.flopvisuals$allMessages();
         int i = e.line == null ? -1 : all.indexOf(e.line);
-        GuiMessage next = new GuiMessage(e.line == null ? Minecraft.getInstance().gui.getGuiTicks() : e.line.addedTime(), c, null, null);
+        GuiMessage next = new GuiMessage(e.line == null ? Minecraft.getInstance().gui.hud.getGuiTicks() : e.line.addedTime(), c, null, net.minecraft.client.multiplayer.chat.GuiMessageSource.SYSTEM_CLIENT, null);
         if (i >= 0) all.set(i, next);
         else all.add(0, next);
         e.line = next;

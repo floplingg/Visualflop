@@ -294,7 +294,7 @@ public final class Hud {
         }
         int x = t.padding + strip(t), y = t.padding;
         for (ItemStack s : items) {
-            g.renderItem(s, x, y);
+            g.item(s, x, y);
             if (s.isDamageableItem()) {
                 int pct = Math.round(100f * (s.getMaxDamage() - s.getDamageValue()) / Math.max(1, s.getMaxDamage()));
                 String v = String.valueOf(pct);

@@ -285,7 +285,7 @@ public class MainScreen extends SheetScreen {
                 Wallpapers.load(name);
             }));
         }
-        l.add(new Sheet.Action("Open wallpapers folder", () -> "", () -> Util.getPlatform().openPath(Wallpapers.folder())).accent().chevron());
+        l.add(new Sheet.Action("Open wallpapers folder", () -> "", () -> com.mojang.blaze3d.Blaze3D.openPath(Wallpapers.folder())).accent().chevron());
         l.add(new Sheet.Action("Refresh list", () -> "", () -> {
             Wallpapers.reload();
             rebuild();
@@ -382,7 +382,7 @@ public class MainScreen extends SheetScreen {
         }
         l.add(new Sheet.Header("One-time setup"));
         l.add(new Sheet.Action("Open Spotify Developer Dashboard", () -> "", () ->
-            Util.getPlatform().openUri("https://developer.spotify.com/dashboard")).accent().chevron());
+            com.mojang.blaze3d.Blaze3D.openUri(java.net.URI.create("https://developer.spotify.com/dashboard")))).accent().chevron());
         l.add(new Sheet.Footer("1. Create an app. Redirect URI:"));
         l.add(new Sheet.Footer("   " + Spotify.REDIRECT));
         l.add(new Sheet.Footer("2. Tick Web API, save. Under User Management add your Spotify email. Copy the Client ID."));

@@ -52,6 +52,7 @@ jobs:
                 mkdir fapi && (cd fapi && unzip -q ../fapi.jar 'META-INF/jars/*' && for j in META-INF/jars/*.jar; do unzip -qo "$j" -d classes 2>/dev/null; done)
               fi
               q="${c#fapi:}"
+              if [[ "$q" == aw ]]; then echo "== fapi access wideners"; (cd fapi/classes && ls *.accesswidener *.classtweaker *.ct 2>/dev/null; for f in $(find . -maxdepth 1 -name '*.accesswidener' -o -maxdepth 1 -name '*.classtweaker'); do echo "-- $f"; grep -i "RenderType\|RenderPipelines\|RenderSetup\|GuiGraphicsExtractor\|Font \|LevelRenderer" "$f"; done); continue; fi
               if [[ "$q" == find:* ]]; then echo "== fapi find ${q#find:}"; (cd fapi/classes && find . -name "*.class" | grep -i "${q#find:}" | grep -v '\$' | head -40); continue; fi
               echo "== fapi $q"; javap -public -cp "fapi/classes:$CP" "$q" 2>&1 | head -200; continue
             fi
@@ -59,9 +60,9 @@ jobs:
           done < probe-classes.txt > api.txt
           # Full signature index (public + protected) of client, util and rendering classes, for local searching.
           unzip -l client.jar | awk '{print $4}' | grep -E '^(net/minecraft/client|net/minecraft/util|com/mojang)/.*\.class$' | sed 's/\.class$//; s#/#.#g' > classes.txt
-          xargs -a classes.txt -n 400 javap -protected -cp "$CP" 2>/dev/null > sigs.txt || true
-          if [ -d fapi/classes ]; then (cd fapi/classes && find net/fabricmc/fabric/api -name '*.class' | sed 's/\.class$//; s#/#.#g') > fclasses.txt; xargs -a fclasses.txt -n 400 javap -protected -cp "fapi/classes:$CP" 2>/dev/null > fsigs.txt || true; fi
-          gzip -9 sigs.txt; [ -f fsigs.txt ] && gzip -9 fsigs.txt
+          true || xargs -a classes.txt -n 400 javap -protected -cp "$CP" 2>/dev/null > sigs.txt || true
+          if false; then (cd fapi/classes && find net/fabricmc/fabric/api -name '*.class' | sed 's/\.class$//; s#/#.#g') > fclasses.txt; xargs -a fclasses.txt -n 400 javap -protected -cp "fapi/classes:$CP" 2>/dev/null > fsigs.txt || true; fi
+          touch sigs.txt.gz
           ls -la sigs.txt.gz fsigs.txt.gz || true
           wc -l api.txt
           git config user.name ci && git config user.email ci@users.noreply.github.com

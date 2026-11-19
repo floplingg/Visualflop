@@ -98,8 +98,8 @@ public class FlopParticle extends SingleQuadParticle {
     }
 
     @Override
-    protected int getLightColor(float partialTick) {
-        return glow ? 0xF000F0 : super.getLightColor(partialTick);
+    public int getLightCoords(float partialTick) {
+        return glow ? 0xF000F0 : super.getLightCoords(partialTick);
     }
 
     @Override

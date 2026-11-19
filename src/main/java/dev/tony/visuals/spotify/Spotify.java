@@ -360,7 +360,7 @@ public final class Spotify {
                 + "&code_challenge_method=S256&code_challenge=" + enc(challenge)
                 + "&scope=" + enc(SCOPES) + "&state=" + enc(state);
             status = "Waiting for browser…";
-            Util.getPlatform().openUri(url);
+            com.mojang.blaze3d.Blaze3D.openUri(java.net.URI.create(url));
         } catch (Throwable e) {
             status = "Error: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
         }

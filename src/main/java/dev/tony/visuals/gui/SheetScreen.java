@@ -223,7 +223,7 @@ public class SheetScreen extends Screen {
             super.extractBackground(g, mouseX, mouseY, partialTick);
             return;
         }
-        if (Config.get().menu.blurWorld) renderBlurredBackground(g);
+        if (Config.get().menu.blurWorld) extractBlurredBackground(g);
         float o = openE.value();
         g.fill(0, 0, width, height, ((int) (0x55 * o) << 24) | 0x05060C);
     }

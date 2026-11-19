@@ -50,9 +50,7 @@ public final class YouTubeWidget {
     }
 
     public static void blitView(GuiGraphicsExtractor g, GpuTextureView view, int x, int y, int w, int h) {
-        g.guiRenderState.submitGuiElement(new BlitRenderState(RenderPipelines.GUI_TEXTURED,
-            TextureSetup.singleTexture(view, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR)),
-            new Matrix3x2f(g.pose()), x, y, x + w, y + h, 0f, 1f, 0f, 1f, 0xFFFFFFFF, g.scissorStack.peek()));
+        g.blit(view, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR), x, y, x + w, y + h, 0f, 1f, 0f, 1f);
     }
 
     public static void draw(GuiGraphicsExtractor g, int w, int h) {
