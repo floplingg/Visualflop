@@ -52,7 +52,7 @@ jobs:
                 mkdir fapi && (cd fapi && unzip -q ../fapi.jar 'META-INF/jars/*' && for j in META-INF/jars/*.jar; do unzip -qo "$j" -d classes 2>/dev/null; done)
               fi
               q="${c#fapi:}"
-              if [[ "$q" == aw ]]; then echo "== fapi access wideners"; (cd fapi/classes && ls *.accesswidener *.classtweaker *.ct 2>/dev/null; for f in $(find . -maxdepth 1 -name '*.accesswidener' -o -maxdepth 1 -name '*.classtweaker'); do echo "-- $f"; grep -i "RenderType\|RenderPipelines\|RenderSetup\|GuiGraphicsExtractor\|Font \|LevelRenderer" "$f"; done); continue; fi
+              if [[ "$q" == aw ]]; then echo "== fapi access wideners"; (cd fapi/classes && find . -maxdepth 2 \( -name "*.accesswidener" -o -name "*.classtweaker" \) -print -exec grep -i "RenderType\|RenderPipelines\|RenderSetup\|LevelRenderer\|GuiGraphicsExtractor" {} \;) || true; continue; fi
               if [[ "$q" == find:* ]]; then echo "== fapi find ${q#find:}"; (cd fapi/classes && find . -name "*.class" | grep -i "${q#find:}" | grep -v '\$' | head -40); continue; fi
               echo "== fapi $q"; javap -public -cp "fapi/classes:$CP" "$q" 2>&1 | head -200; continue
             fi
