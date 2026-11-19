@@ -17,7 +17,7 @@ class ChatViewScreen extends net.minecraft.client.gui.screens.Screen {
     public void extractRenderState(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
         super.extractRenderState(g, mx, my, pt);
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        mc.gui.hud.getChat().extractRenderState(g, font, mc.gui.getGuiTicks(), mx, my, net.minecraft.client.gui.components.ChatComponent.DisplayMode.FOREGROUND, false);
+        mc.gui.hud.getChat().extractRenderState(g, font, mc.gui.hud.getGuiTicks(), mx, my, net.minecraft.client.gui.components.ChatComponent.DisplayMode.FOREGROUND, false);
     }
 }
 
@@ -279,7 +279,7 @@ public class ScreenshotTest implements FabricClientGameTest {
         Config.get().glass.enabled = false;
         try (TestSingleplayerContext world = context.worldBuilder()
                 .create()) {
-            world.getClientWorld().waitForChunksRender();
+            world.getClientLevel().waitForChunksRender();
             Config.get().sky.enabled = sky;
             Config.get().glass.enabled = glass;
             world.getServer().runCommand("time set noon");
