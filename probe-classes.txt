@@ -1,4 +1,3 @@
-mcef:net.dimaskama.mcef.api.MCEFApi
-mcef:net.dimaskama.mcef.api.MCEFApi$Initialization
-mcef:net.dimaskama.mcef.api.MCEFBrowser
-gt:net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext
+priv:net.minecraft.world.level.block.state.BlockBehaviour$BlockStateBase
+priv:net.minecraft.client.gui.components.ChatComponent
+priv:net.minecraft.client.gui.screens.ChatScreen
