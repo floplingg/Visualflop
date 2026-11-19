@@ -42,6 +42,8 @@ jobs:
               echo "== package ${c#pkg:}"; javap -public -cp "$CP" $cls 2>&1
               continue
             fi
+            if [[ "$c" == priv:* ]]; then echo "== private ${c#priv:}"; javap -p -cp "$CP" "${c#priv:}" 2>&1 | head -300; continue; fi
+            if [[ "$c" == grepfield:* ]]; then echo "== grepfield ${c#grepfield:}"; for k in $(unzip -l client.jar | awk '{print $4}' | grep '^net/minecraft/client/renderer/.*\.class$\|^net/minecraft/util/.*\.class$' | sed 's/\.class$//; s#/#.#g'); do javap -public -cp "$CP" "$k" 2>/dev/null | grep -q "${c#grepfield:}" && echo "$k"; done | head -10; continue; fi
             if [[ "$c" == jar:* ]]; then echo "== file ${c#jar:}"; unzip -p client.jar "${c#jar:}" 2>&1 | head -200; continue; fi
             if [[ "$c" == code:* ]]; then echo "== code ${c#code:}"; javap -p -c -cp "$CP" "${c#code:}" 2>&1 | grep -E "invoke|getstatic|putstatic|ldc" | sed -E 's/^ *[0-9]+: //' | head -1500; continue; fi
             if [[ "$c" == fapi:* ]]; then
