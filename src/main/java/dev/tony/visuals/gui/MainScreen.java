@@ -129,11 +129,11 @@ public class MainScreen extends SheetScreen {
     private List<Sheet.Item> hud() {
         List<Sheet.Item> l = new ArrayList<>();
         l.add(new Sheet.Header("Layout"));
-        l.add(new Sheet.Action("Edit HUD layout", () -> "", () -> minecraft.setScreen(new LayoutScreen(this))).accent().chevron());
+        l.add(new Sheet.Action("Edit HUD layout", () -> "", () -> minecraft.gui.setScreen(new LayoutScreen(this))).accent().chevron());
         l.add(new Sheet.Footer("Drag to move, scroll to resize, right-click to hide."));
         l.add(new Sheet.Header("Text"));
         for (Config.CustomText ct : c().texts) {
-            l.add(new Sheet.Action(ct.text.isEmpty() ? "(empty text)" : ct.text, () -> "Edit", () -> minecraft.setScreen(
+            l.add(new Sheet.Action(ct.text.isEmpty() ? "(empty text)" : ct.text, () -> "Edit", () -> minecraft.gui.setScreen(
                 new TextEditScreen(this, "Edit text", ct.text, v -> ct.text = v))).chevron());
             l.add(new Sheet.Colour("   Colour", () -> ct.colour, v -> ct.colour = v));
             l.add(new Sheet.Toggle("   Show", () -> c().widget("text:" + ct.id).enabled, v -> c().widget("text:" + ct.id).enabled = v));
@@ -146,7 +146,7 @@ public class MainScreen extends SheetScreen {
                 rebuild();
             }).destructive());
         }
-        l.add(new Sheet.Action("Add text", () -> "", () -> minecraft.setScreen(new TextEditScreen(this, "New text", "", v -> {
+        l.add(new Sheet.Action("Add text", () -> "", () -> minecraft.gui.setScreen(new TextEditScreen(this, "New text", "", v -> {
             if (v.isBlank()) return;
             Config.CustomText ct = new Config.CustomText();
             ct.text = v;
@@ -300,7 +300,7 @@ public class MainScreen extends SheetScreen {
         List<Sheet.Item> l = new ArrayList<>();
         l.add(new Sheet.Header("Now playing"));
         l.add(new Sheet.Toggle("Show on HUD", () -> c().widget("spotify").enabled, v -> c().widget("spotify").enabled = v));
-        l.add(new Sheet.Action("Move it on screen", () -> "", () -> minecraft.setScreen(new LayoutScreen(this))).chevron());
+        l.add(new Sheet.Action("Move it on screen", () -> "", () -> minecraft.gui.setScreen(new LayoutScreen(this))).chevron());
         l.add(new Sheet.Toggle("Album art", () -> sp.showArt, v -> sp.showArt = v));
         l.add(new Sheet.Toggle("Progress bar", () -> sp.showProgress, v -> sp.showProgress = v));
         l.add(new Sheet.Info("Status", Spotify::status));
@@ -398,7 +398,7 @@ public class MainScreen extends SheetScreen {
         Config.YouTube yt = c().youtube;
         List<Sheet.Item> l = new ArrayList<>();
         l.add(new Sheet.Header("Video"));
-        l.add(new Sheet.Action("Paste a link", () -> dev.tony.visuals.youtube.YouTube.videoId() == null ? "" : "Change", () -> minecraft.setScreen(
+        l.add(new Sheet.Action("Paste a link", () -> dev.tony.visuals.youtube.YouTube.videoId() == null ? "" : "Change", () -> minecraft.gui.setScreen(
             new TextEditScreen(this, "YouTube link (youtube.com/watch?v=…, youtu.be/…, shorts)", "", v -> {
                 if (dev.tony.visuals.youtube.YouTube.open(v)) c().widget("youtube").enabled = true;
             }))).accent().chevron());
@@ -451,7 +451,7 @@ public class MainScreen extends SheetScreen {
                 dev.tony.visuals.pay.Auction.start(item);
                 onClose();
             }).accent().chevron());
-            l.add(new Sheet.Action("   Rename", () -> "", () -> minecraft.setScreen(new TextEditScreen(this, "Item name", item, v -> {
+            l.add(new Sheet.Action("   Rename", () -> "", () -> minecraft.gui.setScreen(new TextEditScreen(this, "Item name", item, v -> {
                 int i = au.items.indexOf(item);
                 if (i >= 0 && !v.isBlank()) au.items.set(i, v.trim());
             }))));
@@ -461,7 +461,7 @@ public class MainScreen extends SheetScreen {
                 rebuild();
             }).destructive());
         }
-        l.add(new Sheet.Action("Add item", () -> "", () -> minecraft.setScreen(new TextEditScreen(this, "New item (e.g. Netherite Ingot)", "", v -> {
+        l.add(new Sheet.Action("Add item", () -> "", () -> minecraft.gui.setScreen(new TextEditScreen(this, "New item (e.g. Netherite Ingot)", "", v -> {
             if (!v.isBlank()) au.items.add(v.trim());
             Config.save();
         }))).accent());
@@ -498,12 +498,12 @@ public class MainScreen extends SheetScreen {
         }
         l.add(new Sheet.Header("Payments in chat"));
         l.add(new Sheet.Toggle("Bet buttons on payments", () -> gb.enabled, v -> gb.enabled = v));
-        l.add(new Sheet.Action("Minimum bet", () -> "$" + dev.tony.visuals.pay.Payments.money(gb.minimum), () -> minecraft.setScreen(
+        l.add(new Sheet.Action("Minimum bet", () -> "$" + dev.tony.visuals.pay.Payments.money(gb.minimum), () -> minecraft.gui.setScreen(
             new TextEditScreen(this, "Minimum bet (e.g. 1M, 500K)", dev.tony.visuals.pay.Payments.money(gb.minimum), v -> {
                 double m = dev.tony.visuals.pay.Payments.parse(v);
                 if (m >= 0) gb.minimum = m;
             }))).chevron());
-        l.add(new Sheet.Action("Maximum bet", () -> gb.maximum <= 0 ? "No max" : "$" + dev.tony.visuals.pay.Payments.money(gb.maximum), () -> minecraft.setScreen(
+        l.add(new Sheet.Action("Maximum bet", () -> gb.maximum <= 0 ? "No max" : "$" + dev.tony.visuals.pay.Payments.money(gb.maximum), () -> minecraft.gui.setScreen(
             new TextEditScreen(this, "Maximum bet (e.g. 500M; empty = no max)", gb.maximum <= 0 ? "" : dev.tony.visuals.pay.Payments.money(gb.maximum), v -> {
                 if (v.isBlank()) gb.maximum = 0;
                 else {
@@ -527,7 +527,7 @@ public class MainScreen extends SheetScreen {
                 l.add(new Sheet.Slider("   Ends in", 1f, 9f, 1f, () -> (float) tg.digit, v -> tg.digit = Math.round(v),
                     v -> Math.round(v) == gb.paperTag ? "." + Math.round(v) + " (used by Paper)"
                         : Math.round(v) == gb.bjTag ? "." + Math.round(v) + " (used by BJ)" : "." + Math.round(v)));
-                l.add(new Sheet.Action("   Rename", () -> "", () -> minecraft.setScreen(new TextEditScreen(this, "Game name", tg.name, v -> {
+                l.add(new Sheet.Action("   Rename", () -> "", () -> minecraft.gui.setScreen(new TextEditScreen(this, "Game name", tg.name, v -> {
                     if (!v.isBlank()) tg.name = v.trim();
                 }))));
                 l.add(new Sheet.Action("   Remove", () -> "", () -> {
@@ -536,7 +536,7 @@ public class MainScreen extends SheetScreen {
                     rebuild();
                 }).destructive());
             }
-            l.add(new Sheet.Action("Add a game", () -> "", () -> minecraft.setScreen(new TextEditScreen(this, "Game name (e.g. 50/50, Dice, Coinflip)", "", v -> {
+            l.add(new Sheet.Action("Add a game", () -> "", () -> minecraft.gui.setScreen(new TextEditScreen(this, "Game name (e.g. 50/50, Dice, Coinflip)", "", v -> {
                 if (v.isBlank()) return;
                 Config.GameTag tg = new Config.GameTag();
                 tg.name = v.trim();

@@ -185,7 +185,7 @@ public final class SpotifyWidget {
                 Spotify.control(BUTTONS[i]);
                 return false;   // handled: don't pass the click to chat
             });
-            ScreenEvents.afterRender(screen).register((s, g, mx, my, delta) -> {
+            ScreenEvents.afterExtract(screen).register((s, g, mx, my, delta) -> {
                 hovered = buttonAt(mx, my);
             });
             ScreenEvents.remove(screen).register(s -> hovered = -1);

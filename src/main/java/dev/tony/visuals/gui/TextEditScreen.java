@@ -38,7 +38,7 @@ public class TextEditScreen extends Screen {
 
     private void save() {
         done.accept(box.getValue());
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     @Override
@@ -61,6 +61,6 @@ public class TextEditScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 }

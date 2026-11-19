@@ -29,17 +29,17 @@ public class FlopVisuals implements ClientModInitializer {
     public void onInitializeClient() {
         Config.load();
         menuKey = KeyMappingHelper.registerKeyMapping(
-            new KeyMapping("key.flopvisuals.menu", InputConstants.Type.KEYSYM, InputConstants.KEY_V, CATEGORY));
+            new KeyMapping("key.flopvisuals.menu", InputConstants.Type.KEYBOARD, InputConstants.KEY_V, CATEGORY));
         playPauseKey = KeyMappingHelper.registerKeyMapping(
-            new KeyMapping("key.flopvisuals.playpause", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
+            new KeyMapping("key.flopvisuals.playpause", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
         nextKey = KeyMappingHelper.registerKeyMapping(
-            new KeyMapping("key.flopvisuals.next", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
+            new KeyMapping("key.flopvisuals.next", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
         previousKey = KeyMappingHelper.registerKeyMapping(
-            new KeyMapping("key.flopvisuals.previous", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
+            new KeyMapping("key.flopvisuals.previous", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
         ytPauseKey = KeyMappingHelper.registerKeyMapping(
-            new KeyMapping("key.flopvisuals.ytpause", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
+            new KeyMapping("key.flopvisuals.ytpause", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
         ytFullscreenKey = KeyMappingHelper.registerKeyMapping(
-            new KeyMapping("key.flopvisuals.ytfullscreen", InputConstants.Type.KEYSYM, InputConstants.UNKNOWN.getValue(), CATEGORY));
+            new KeyMapping("key.flopvisuals.ytfullscreen", InputConstants.Type.KEYBOARD, InputConstants.UNKNOWN.getValue(), CATEGORY));
         dev.tony.visuals.hud.SpotifyWidget.registerClicks();
         dev.tony.visuals.hud.YouTubeWidget.registerClicks();
         dev.tony.visuals.pay.Payments.init();
@@ -62,7 +62,7 @@ public class FlopVisuals implements ClientModInitializer {
 
     private void onTick(Minecraft mc) {
         while (menuKey.consumeClick()) {
-            if (mc.screen == null && mc.player != null) mc.setScreen(new MainScreen(null));
+            if (mc.gui.screen() == null && mc.player != null) mc.gui.setScreen(new MainScreen(null));
         }
 
         while (playPauseKey.consumeClick()) dev.tony.visuals.spotify.Spotify.control("toggle");

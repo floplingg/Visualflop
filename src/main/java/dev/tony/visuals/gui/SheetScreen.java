@@ -238,7 +238,7 @@ public class SheetScreen extends Screen {
         if (closing && open < 0.01f) {
             closing = false;
             Config.save();
-            minecraft.setScreen(parent);
+            minecraft.gui.setScreen(parent);
             return;
         }
         float pageT = pageE.to(1);
@@ -655,7 +655,7 @@ public class SheetScreen extends Screen {
                 }
             } else if (it instanceof Sheet.Colour c) {
                 click();
-                minecraft.setScreen(new ColourSheet(this, c.label, c.get, c.set));
+                minecraft.gui.setScreen(new ColourSheet(this, c.label, c.get, c.set));
             } else if (it instanceof Sheet.Action a) {
                 click();
                 a.run.run();

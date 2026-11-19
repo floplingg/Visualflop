@@ -131,7 +131,7 @@ public class WinsScreen extends Screen {
         if (pick >= 0 && inside(mx, my, b[0], b[1], b[2], b[3])) {
             ping();
             done.accept(pick);
-            minecraft.setScreen(parent);
+            minecraft.gui.setScreen(parent);
             return true;
         }
         return super.mouseClicked(event, doubleClick);
@@ -143,7 +143,7 @@ public class WinsScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     @Override

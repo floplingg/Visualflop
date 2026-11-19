@@ -214,7 +214,7 @@ public final class YouTubeWidget {
                 }
                 return false;
             });
-            ScreenEvents.afterRender(screen).register((s, g, mx, my, delta) -> hovered = at(mx, my));
+            ScreenEvents.afterExtract(screen).register((s, g, mx, my, delta) -> hovered = at(mx, my));
             ScreenEvents.remove(screen).register(s -> {
                 hovered = -1;
                 chatOpen = false;

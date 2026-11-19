@@ -19,8 +19,8 @@ public final class Stats {
     /** Called every frame: catches click presses (a press = key going from up to down). */
     public static void frame(Minecraft mc) {
         long now = System.currentTimeMillis();
-        boolean l = mc.screen == null && mc.options.keyAttack.isDown();
-        boolean r = mc.screen == null && mc.options.keyUse.isDown();
+        boolean l = mc.gui.screen() == null && mc.options.keyAttack.isDown();
+        boolean r = mc.gui.screen() == null && mc.options.keyUse.isDown();
         if (l && !leftWas) left.addLast(now);
         if (r && !rightWas) right.addLast(now);
         leftWas = l;

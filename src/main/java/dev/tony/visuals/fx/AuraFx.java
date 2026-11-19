@@ -64,7 +64,7 @@ public final class AuraFx {
         Config.Aura a = Config.get().aura;
         if (p == null || mc.level == null || p.isSpectator() || p.isInvisible() || p.isSleeping()) return;
         if (!a.orbs && !a.halo && !a.aura) return;
-        Camera cam = mc.gameRenderer.getMainCamera();
+        Camera cam = mc.gameRenderer.mainCamera();
         boolean firstPerson = !cam.isDetached();
         if (firstPerson && !(a.orbs && a.orbsFirstPerson)) return;
 

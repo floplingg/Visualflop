@@ -43,7 +43,7 @@ public final class GlassGround {
             .withFragmentShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_glass"))
             .withSampler("SceneColor")
             .withSampler("SceneDepth")
-            .withVertexFormat(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS)
+            .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.QUADS)
             .withBlend(BlendFunction.TRANSLUCENT)
             .withDepthWrite(false)
             .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
@@ -117,7 +117,7 @@ public final class GlassGround {
         }
         if (count == 0) return;
 
-        Vec3 cam = mc.gameRenderer.getMainCamera().position();
+        Vec3 cam = mc.gameRenderer.mainCamera().position();
         Vec3 pp = mc.player.position();
         centreX = pp.x;
         centreZ = pp.z;

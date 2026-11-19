@@ -40,10 +40,10 @@ public final class Hud {
 
     public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.options.hideGui) return;
+        if (mc.player == null || mc.gui.hud.isHidden()) return;
         Stats.frame(mc);
         newFrame();
-        if (mc.screen instanceof LayoutScreen) return;   // the layout editor draws its own copy
+        if (mc.gui.screen() instanceof LayoutScreen) return;   // the layout editor draws its own copy
         Font font = mc.font;
         Backdrop.capture();
         for (String id : Config.allWidgets()) {
@@ -244,7 +244,7 @@ public final class Hud {
                 String name = Stats.biome();
                 yield new String[]{"Biome", name.isEmpty() ? "Plains" : pretty(name)};
             }
-            case "day" -> new String[]{"Day", mc.level == null ? "1" : String.valueOf(mc.level.getDayTime() / 24000L + 1)};
+            case "day" -> new String[]{"Day", mc.level == null ? "1" : String.valueOf(mc.level.getLevelData().getGameTime() / 24000L + 1)};
             default -> new String[]{"", id};
         };
     }

@@ -4,7 +4,7 @@ import dev.tony.visuals.Config;
 import dev.tony.visuals.mixin.ChatComponentAccessor;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.GuiMessage;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
@@ -255,19 +255,19 @@ public final class Payments {
 
     private static GuiMessage add(Entry e, Component c) {
         Minecraft mc = Minecraft.getInstance();
-        mc.gui.getChat().addMessage(c);
-        List<GuiMessage> all = ((ChatComponentAccessor) mc.gui.getChat()).flopvisuals$allMessages();
+        mc.gui.hud.getChat().addClientSystemMessage(c);
+        List<GuiMessage> all = ((ChatComponentAccessor) mc.gui.hud.getChat()).flopvisuals$allMessages();
         return all.isEmpty() ? null : all.get(0);
     }
 
     private static void remove(Entry e) {
         if (e.line == null) return;
-        var chat = (ChatComponentAccessor) Minecraft.getInstance().gui.getChat();
+        var chat = (ChatComponentAccessor) Minecraft.getInstance().gui.hud.getChat();
         if (chat.flopvisuals$allMessages().remove(e.line)) chat.flopvisuals$refresh();
     }
 
     private static void replace(Entry e, Component c) {
-        var chat = (ChatComponentAccessor) Minecraft.getInstance().gui.getChat();
+        var chat = (ChatComponentAccessor) Minecraft.getInstance().gui.hud.getChat();
         List<GuiMessage> all = chat.flopvisuals$allMessages();
         int i = e.line == null ? -1 : all.indexOf(e.line);
         GuiMessage next = new GuiMessage(e.line == null ? Minecraft.getInstance().gui.getGuiTicks() : e.line.addedTime(), c, null, null);
@@ -295,7 +295,7 @@ public final class Payments {
             settle(e, 0);
         } else if (e.count > 1) {
             Minecraft mc = Minecraft.getInstance();
-            mc.setScreen(new WinsScreen(mc.screen, e.player, e.count, e.win * Config.get().gamble.payout, wins -> settle(e, wins)));
+            mc.gui.setScreen(new WinsScreen(mc.gui.screen(), e.player, e.count, e.win * Config.get().gamble.payout, wins -> settle(e, wins)));
         } else {
             settle(e, 1);
         }

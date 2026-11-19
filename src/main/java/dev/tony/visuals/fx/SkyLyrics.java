@@ -9,7 +9,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.network.chat.Component;
 import org.joml.Matrix4f;
@@ -106,7 +106,7 @@ public final class SkyLyrics {
     private static void drawLyrics(MultiBufferSource source) {
         Config.Lyrics cfg = Config.get().lyrics;
         Minecraft mc = Minecraft.getInstance();
-        if (!cfg.sky || mc.player == null || mc.options.hideGui) {
+        if (!cfg.sky || mc.player == null || mc.gui.hud.isHidden()) {
             shown = Float.NaN;
             return;
         }
@@ -124,7 +124,7 @@ public final class SkyLyrics {
         }
         String next = idx + 1 < lines.size() ? lines.get(idx + 1).text().trim() : "";
 
-        Camera cam = mc.gameRenderer.getMainCamera();
+        Camera cam = mc.gameRenderer.mainCamera();
         float yaw = follow(cam.yRot());
         double rad = Math.toRadians(yaw);
         float dist = cfg.skyDistance;
@@ -187,10 +187,10 @@ public final class SkyLyrics {
             for (int i = 0; i < 8; i++) {
                 double ang = i * Math.PI / 4;
                 Matrix4f gm = new Matrix4f(fm).translate((float) Math.cos(ang) * 0.6f * cfg.skyGlowSize, (float) Math.sin(ang) * 0.6f * cfg.skyGlowSize, 0);
-                font.drawInBatch(c, -w / 2f, -4.5f, (ga << 24) | glow, false, gm, source, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT);
+                font.drawInBatch(c, -w / 2f, -4.5f, (ga << 24) | glow, false, gm, source, Font.DisplayMode.NORMAL, 0, LightCoordsUtil.FULL_BRIGHT);
             }
         }
-        font.drawInBatch(c, -w / 2f, -4.5f, (Math.max(5, a / 4) << 24) | rgb, false, fm, source, Font.DisplayMode.SEE_THROUGH, 0, LightTexture.FULL_BRIGHT);
-        font.drawInBatch(c, -w / 2f, -4.5f, (a << 24) | rgb, false, fm, source, Font.DisplayMode.NORMAL, 0, LightTexture.FULL_BRIGHT);
+        font.drawInBatch(c, -w / 2f, -4.5f, (Math.max(5, a / 4) << 24) | rgb, false, fm, source, Font.DisplayMode.SEE_THROUGH, 0, LightCoordsUtil.FULL_BRIGHT);
+        font.drawInBatch(c, -w / 2f, -4.5f, (a << 24) | rgb, false, fm, source, Font.DisplayMode.NORMAL, 0, LightCoordsUtil.FULL_BRIGHT);
     }
 }

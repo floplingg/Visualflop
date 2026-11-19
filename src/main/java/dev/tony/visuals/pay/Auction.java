@@ -117,7 +117,7 @@ public final class Auction {
 
     private static void local(MutableComponent c) {
         Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> mc.gui.getChat().addMessage(Component.literal("[Auction] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(c)));
+        mc.execute(() -> mc.gui.hud.getChat().addClientSystemMessage(Component.literal("[Auction] ").withStyle(ChatFormatting.LIGHT_PURPLE).append(c)));
     }
 
     private static void say(String s) {

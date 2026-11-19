@@ -223,7 +223,7 @@ public class LayoutScreen extends Screen {
     @Override
     public void onClose() {
         Config.save();
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     @Override

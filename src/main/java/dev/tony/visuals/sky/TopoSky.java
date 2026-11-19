@@ -36,7 +36,7 @@ public final class TopoSky {
             .withLocation(Identifier.fromNamespaceAndPath("flopvisuals", "pipeline/topo_sky"))
             .withVertexShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_sky"))
             .withFragmentShader(Identifier.fromNamespaceAndPath("flopvisuals", "core/topo_sky"))
-            .withVertexFormat(DefaultVertexFormat.NEW_ENTITY, VertexFormat.Mode.QUADS)
+            .withVertexFormat(DefaultVertexFormat.ENTITY, VertexFormat.Mode.QUADS)
             .withBlend(BlendFunction.TRANSLUCENT)
             .withDepthWrite(false)
             .withDepthTestFunction(DepthTestFunction.LEQUAL_DEPTH_TEST)
@@ -76,7 +76,7 @@ public final class TopoSky {
         float radius = Math.max(64f, mc.gameRenderer.getDepthFar() * 0.5f);
 
         // Camera position for the world-anchored ceiling: whole blocks (wrapped) + 7-bit fractions + y in 1/8 blocks.
-        net.minecraft.world.phys.Vec3 cam = mc.gameRenderer.getMainCamera().position();
+        net.minecraft.world.phys.Vec3 cam = mc.gameRenderer.mainCamera().position();
         int cx = Math.floorMod((int) Math.floor(cam.x), 16384), cz = Math.floorMod((int) Math.floor(cam.z), 16384);
         int fx = Math.min(127, (int) Math.round((cam.x - Math.floor(cam.x)) * 127));
         int fz = Math.min(127, (int) Math.round((cam.z - Math.floor(cam.z)) * 127));

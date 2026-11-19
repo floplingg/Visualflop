@@ -17,7 +17,7 @@ class ChatViewScreen extends net.minecraft.client.gui.screens.Screen {
     public void render(net.minecraft.client.gui.GuiGraphicsExtractor g, int mx, int my, float pt) {
         super.extractRenderState(g, mx, my, pt);
         net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-        mc.gui.getChat().render(g, font, mc.gui.getGuiTicks(), mx, my, true, false);
+        mc.gui.hud.getChat().render(g, font, mc.gui.getGuiTicks(), mx, my, true, false);
     }
 }
 
@@ -193,12 +193,12 @@ public class ScreenshotTest implements FabricClientGameTest {
             for (String m : msgs) {
                 boolean took = dev.tony.visuals.pay.Payments.handle(net.minecraft.network.chat.Component.literal(m));
                 org.slf4j.LoggerFactory.getLogger("flopvisuals-test").info("payment '{}' handled={}", m, took);
-                if (!took) mc.gui.getChat().addMessage(net.minecraft.network.chat.Component.literal(m));
+                if (!took) mc.gui.hud.getChat().addClientSystemMessage(net.minecraft.network.chat.Component.literal(m));
             }
             dev.tony.visuals.pay.Payments.click(net.minecraft.resources.Identifier.fromNamespaceAndPath("flopvisuals", "pay/4/win"));
             dev.tony.visuals.pay.Payments.click(net.minecraft.resources.Identifier.fromNamespaceAndPath("flopvisuals", "pay/1/win"));
             dev.tony.visuals.pay.Payments.click(net.minecraft.resources.Identifier.fromNamespaceAndPath("flopvisuals", "pay/2/lose"));
-            for (var line : ((dev.tony.visuals.mixin.ChatComponentAccessor) mc.gui.getChat()).flopvisuals$allMessages()) {
+            for (var line : ((dev.tony.visuals.mixin.ChatComponentAccessor) mc.gui.hud.getChat()).flopvisuals$allMessages()) {
                 org.slf4j.LoggerFactory.getLogger("flopvisuals-test").info("chat: {}", line.content().getString());
             }
         });
@@ -225,7 +225,7 @@ public class ScreenshotTest implements FabricClientGameTest {
         context.takeScreenshot("16-money-and-auction");
         context.waitTicks(120);
         context.runOnClient(mc -> {
-            for (var line : ((dev.tony.visuals.mixin.ChatComponentAccessor) mc.gui.getChat()).flopvisuals$allMessages()) {
+            for (var line : ((dev.tony.visuals.mixin.ChatComponentAccessor) mc.gui.hud.getChat()).flopvisuals$allMessages()) {
                 org.slf4j.LoggerFactory.getLogger("flopvisuals-test").info("chat: {}", line.content().getString());
             }
         });
