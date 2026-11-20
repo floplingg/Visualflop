@@ -1,3 +1,0 @@
-priv:net.minecraft.world.level.block.state.BlockBehaviour$BlockStateBase
-priv:net.minecraft.client.gui.components.ChatComponent
-priv:net.minecraft.client.gui.screens.ChatScreen

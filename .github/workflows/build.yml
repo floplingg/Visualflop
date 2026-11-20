@@ -36,10 +36,11 @@ jobs:
           name: flop-visuals-${{ steps.v.outputs.version }}
           path: build/libs/flop-visuals-*.jar
       - name: Publish release
-        if: github.ref == 'refs/heads/main'
+        # main releases the 1.21.11 build; the mc-26.3 branch releases only when the commit message says [release].
+        if: github.ref == 'refs/heads/main' || (github.ref == 'refs/heads/mc-26.3' && contains(github.event.head_commit.message, '[release]'))
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.v.outputs.version }}
           name: Flop Visuals ${{ steps.v.outputs.version }}
-          make_latest: true
+          make_latest: ${{ github.ref == 'refs/heads/main' }}
           files: build/libs/flop-visuals-${{ steps.v.outputs.version }}.jar
