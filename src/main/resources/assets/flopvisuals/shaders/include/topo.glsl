@@ -1,4 +1,3 @@
-#version 330
 
 // Shared Flop Visuals topographic field: domain-warped value noise and anti-aliased contour lines.
 
