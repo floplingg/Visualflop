@@ -69,7 +69,7 @@ public final class GlassGround {
         return type;
     }
 
-    /** Copy the frame once solid blocks and mobs are drawn, so the glass (drawn in the translucent pass) can reflect them. */
+    /** Copy the finished frame; the next frame's glass reflects it. */
     public static void capture() {
         if (active()) SceneCopy.capture();
     }

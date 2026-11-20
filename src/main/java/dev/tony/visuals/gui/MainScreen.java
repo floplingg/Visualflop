@@ -423,7 +423,7 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Info("MCEF Modern", () -> dev.tony.visuals.youtube.YouTube.available() ? "Installed" : "Not installed"));
         l.add(new Sheet.Footer(dev.tony.visuals.youtube.YouTube.available()
             ? "Videos play in YouTube's own player inside the game, with sound. The first video downloads the player once (about 100 MB). Open chat (T) to click pause and fullscreen on the card, or set keys in Controls."
-            : "To play videos, also install the free MCEF Modern mod (Modrinth, for 1.21.11). Without it the card shows the thumbnail, title and channel."));
+            : "To play videos, also install the free MCEF Modern mod (Modrinth, for 26.3). Without it the card shows the thumbnail, title and channel."));
         return l;
     }
 

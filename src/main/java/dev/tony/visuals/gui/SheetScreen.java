@@ -385,7 +385,7 @@ public class SheetScreen extends Screen {
         Shapes.circle(g, lx + ls / 2, ly + ls / 2, 3.2f, Kit.ACCENT);
         if (labels) {
             Kit.draw(g, "Flop Visuals", lx + ls + 7, ly + 1, 1, text(), Kit.HEAVY);
-            Kit.text(g, "Fabric 1.21.11", lx + ls + 7, ly + 11, muted(), false);
+            Kit.text(g, "Fabric " + net.fabricmc.loader.api.FabricLoader.getInstance().getModContainer("minecraft").map(m -> m.getMetadata().getVersion().getFriendlyString()).orElse(""), lx + ls + 7, ly + 11, muted(), false);
         }
 
         float[] sl = sideLayout();

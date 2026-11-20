@@ -59,8 +59,12 @@ public class FlopVisuals implements ClientModInitializer {
             dev.tony.visuals.fx.SkyLyrics.render(ctx);
         });
         // Frame copies: for the glass reflections (after solid blocks and mobs) and the HUD blur (whole world).
-        LevelRenderEvents.AFTER_SOLID_FEATURES.register(ctx -> GlassGround.capture());
-        LevelRenderEvents.END_MAIN.register(ctx -> dev.tony.visuals.hud.Backdrop.capture());
+        // 26.3 draws the whole world in one render pass, and textures can't be copied while it's open, so the glass
+        // reflects the previous frame (copied once the pass is closed). One frame behind is invisible in practice.
+        LevelRenderEvents.END_MAIN.register(ctx -> {
+            GlassGround.capture();
+            dev.tony.visuals.hud.Backdrop.capture();
+        });
         ClientTickEvents.END_CLIENT_TICK.register(this::onTick);
         HudElementRegistry.addLast(Identifier.parse("flopvisuals:hud"), Hud::render);
     }
