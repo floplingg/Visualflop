@@ -135,11 +135,29 @@ final class YouTubeChat {
             channel = "https://www.youtube.com/@" + s.replaceAll("^@", "");
         }
         String html = page(channel + "/live");
-        // A channel that's live redirects /live to its stream; the canonical link names the video.
+        // A channel with one stream redirects /live to it; the canonical link names the video.
         Matcher c = Pattern.compile("<link rel=\"canonical\" href=\"https://www\\.youtube\\.com/watch\\?v=([A-Za-z0-9_-]{11})\"").matcher(html);
-        if (!c.find()) return null;
-        if (!html.contains("\"isLive\":true") && !html.contains("\"isLiveNow\":true")) return null;
-        return c.group(1);
+        if (c.find()) return html.contains("\"isLive\":true") || html.contains("\"isLiveNow\":true") ? c.group(1) : null;
+        // A channel running several streams shows its page instead: take the first video wearing a LIVE badge.
+        String id = firstLive(html);
+        if (id == null) id = firstLive(page(channel + "/streams"));
+        return id;
+    }
+
+    /** The video nearest before the first "LIVE" thumbnail badge on a channel page. */
+    private static String firstLive(String html) {
+        Pattern vid = Pattern.compile("\"videoId\":\"([A-Za-z0-9_-]{11})\"");
+        int from = 0;
+        while (true) {
+            int at = html.indexOf("\"style\":\"LIVE\"", from);
+            if (at < 0) return null;
+            String before = html.substring(Math.max(0, at - 6000), at);
+            Matcher m = vid.matcher(before);
+            String last = null;
+            while (m.find()) last = m.group(1);
+            if (last != null) return last;
+            from = at + 1;
+        }
     }
 
     /** Loads the pop-out chat once for the API key, client version and the first continuation. */
