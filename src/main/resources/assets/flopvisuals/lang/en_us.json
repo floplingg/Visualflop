@@ -5,5 +5,9 @@
   "key.flopvisuals.previous": "Spotify: previous song",
   "key.category.flopvisuals.main": "Flop Visuals",
   "key.flopvisuals.ytpause": "YouTube: play / pause",
-  "key.flopvisuals.ytfullscreen": "YouTube: fullscreen"
+  "key.flopvisuals.ytfullscreen": "YouTube: fullscreen",
+  "key.flopvisuals.streamermode": "Streamer mode on / off",
+  "key.flopvisuals.brb": "BRB screen on / off",
+  "key.flopvisuals.marker": "Save a stream marker",
+  "key.flopvisuals.live": "LIVE timer start / stop"
 }

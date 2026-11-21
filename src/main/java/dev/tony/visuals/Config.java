@@ -143,6 +143,52 @@ public final class Config {
 
     public YouTube youtube = new YouTube();
 
+    /** Streamer tools: stream chat on screen, alerts, LIVE chip, streamer mode, BRB screen, clip markers. */
+    public static final class Streamer {
+        /** Twitch channel name (no login needed: chat is read anonymously). */
+        public String twitch = "";
+        /** YouTube channel (@handle, channel link) or a live video link. */
+        public String youtube = "";
+        /** Also show the server's chat in the stream chat card. */
+        public boolean gameChat = false;
+        public int chatLines = 8;
+        public int chatWidth = 230;
+        /** Messages fade out after this many seconds (0 = never). */
+        public int fadeSeconds = 45;
+        public boolean platformBadges = true;
+        public boolean nameColours = true;
+        /** Hide !commands and messages from bots like Nightbot and Streamlabs. */
+        public boolean hideCommands = true;
+
+        public boolean alerts = true;
+        public boolean alertSound = true;
+        public boolean alertSubs = true;
+        public boolean alertBits = true;
+        public boolean alertRaids = true;
+        public boolean alertSuperChats = true;
+
+        /** Words that make a chat message light up and ping (comma separated). Your own name is always one. */
+        public String mentions = "";
+        public boolean mentionSound = true;
+
+        /** Streamer mode: hide private things from viewers. */
+        public boolean privacy = false;
+        public boolean hideCoords = true;
+        public boolean hideWhispers = true;
+        public boolean hideMoney = true;
+
+        public String brbTitle = "Be right back";
+        public String brbSubtitle = "Grab a snack, I'll be back soon";
+        public int brbMinutes = 5;
+        public boolean brbChat = true;
+
+        /** When the LIVE timer started (0 = not live). */
+        public long liveSince = 0;
+        public boolean viewerCount = true;
+    }
+
+    public Streamer streamer = new Streamer();
+
     public enum MenuPosition { CENTER, LEFT, RIGHT }
 
     /** How the Flop Visuals window itself looks. */
@@ -285,6 +331,7 @@ public final class Config {
 
     public static final String[] WIDGETS = {
         "keystrokes", "fps", "coords", "direction", "speed", "ping", "cps", "clock", "biome", "armor", "day", "spotify", "lyrics", "profit", "moneygraph", "youtube",
+        "streamchat", "live",
     };
 
     /** Your own text labels on the HUD. Each one is a widget with the id "text:<id>". */
@@ -334,6 +381,8 @@ public final class Config {
             case "profit" -> "Money gained / lost";
             case "moneygraph" -> "Money graph";
             case "youtube" -> "YouTube";
+            case "streamchat" -> "Stream chat";
+            case "live" -> "LIVE timer";
             default -> id;
         };
     }
@@ -356,6 +405,8 @@ public final class Config {
         putDefault("profit", false, 0.005f, 0.26f);
         putDefault("moneygraph", false, 0.005f, 0.33f);
         putDefault("youtube", false, 0.995f, 0.05f);
+        putDefault("streamchat", false, 0.995f, 0.5f);
+        putDefault("live", false, 0.5f, 0.005f);
     }
 
     private void putDefault(String id, boolean on, float x, float y) {
@@ -435,6 +486,16 @@ public final class Config {
         for (Session ss : gamble.sessions) if (ss.history == null) ss.history = new ArrayList<>();
         if (auction == null) auction = new Auction();
         if (youtube == null) youtube = new YouTube();
+        if (streamer == null) streamer = new Streamer();
+        if (streamer.twitch == null) streamer.twitch = "";
+        if (streamer.youtube == null) streamer.youtube = "";
+        if (streamer.mentions == null) streamer.mentions = "";
+        if (streamer.brbTitle == null) streamer.brbTitle = "Be right back";
+        if (streamer.brbSubtitle == null) streamer.brbSubtitle = "";
+        streamer.chatLines = Theme.c(streamer.chatLines, 3, 16);
+        streamer.chatWidth = Theme.c(streamer.chatWidth, 150, 360);
+        streamer.fadeSeconds = Theme.c(streamer.fadeSeconds, 0, 300);
+        streamer.brbMinutes = Theme.c(streamer.brbMinutes, 0, 60);
         youtube.volume = Math.max(0, Math.min(100, youtube.volume));
         if (youtube.quality == null) youtube.quality = VideoQuality.BEST;
         if (lyrics.skyFont == null) lyrics.skyFont = SkyFont.HEAVY;

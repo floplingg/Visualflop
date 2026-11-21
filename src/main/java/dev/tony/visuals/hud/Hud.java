@@ -40,7 +40,12 @@ public final class Hud {
 
     public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.gui.hud.isHidden()) return;
+        if (mc.player == null) return;
+        if (mc.gui.hud.isHidden()) {
+            // F1 hides the HUD, but a BRB screen still has to cover the game.
+            StreamWidgets.drawBrb(g, g.guiWidth(), g.guiHeight());
+            return;
+        }
         Stats.frame(mc);
         newFrame();
         if (mc.gui.screen() instanceof LayoutScreen) return;   // the layout editor draws its own copy
@@ -55,6 +60,9 @@ public final class Hud {
         }
         YouTubeWidget.drawFullscreen(g, g.guiWidth(), g.guiHeight());
         MoneyWidgets.drawAuctionOverlay(g, g.guiWidth(), g.guiHeight());
+        StreamWidgets.drawAlerts(g, g.guiWidth(), g.guiHeight());
+        StreamWidgets.drawBrb(g, g.guiWidth(), g.guiHeight());
+        StreamWidgets.drawToast(g, g.guiWidth(), g.guiHeight());
     }
 
     // ------------------------------------------------------------ layout
@@ -68,6 +76,8 @@ public final class Hud {
         if (id.equals("profit")) return MoneyWidgets.profitSize();
         if (id.equals("moneygraph")) return MoneyWidgets.graphSize();
         if (id.equals("youtube")) return YouTubeWidget.size();
+        if (id.equals("streamchat")) return StreamWidgets.chatSize();
+        if (id.equals("live")) return StreamWidgets.liveSize();
         if (id.startsWith("text:")) {
             Config.CustomText ct = Config.get().text(id);
             String s = ct == null ? "" : fill(ct.text);
@@ -108,6 +118,8 @@ public final class Hud {
             case "profit" -> MoneyWidgets.drawProfit(g, p.rawW(), p.rawH());
             case "moneygraph" -> MoneyWidgets.drawGraph(g, p.rawW(), p.rawH());
             case "youtube" -> YouTubeWidget.draw(g, p.rawW(), p.rawH());
+            case "streamchat" -> StreamWidgets.drawChat(g, p.rawW(), p.rawH());
+            case "live" -> StreamWidgets.drawLive(g, p.rawW(), p.rawH());
             default -> {
                 if (id.startsWith("text:")) drawCustom(g, id, p.rawW(), p.rawH());
                 else drawText(g, font, id, p.rawW(), p.rawH());
@@ -218,6 +230,7 @@ public final class Hud {
         return switch (id) {
             case "fps" -> new String[]{"FPS", String.valueOf(mc.getFps())};
             case "coords" -> {
+                if (dev.tony.visuals.stream.Streamer.hideCoords()) yield new String[]{"XYZ", "Hidden"};
                 if (p == null) yield new String[]{"XYZ", "0, 64, 0"};
                 BlockPos b = p.blockPosition();
                 String v = b.getX() + ", " + b.getY() + ", " + b.getZ();

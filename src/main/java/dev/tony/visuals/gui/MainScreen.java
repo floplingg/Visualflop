@@ -30,6 +30,7 @@ public class MainScreen extends SheetScreen {
         addPage("Wallpaper", "wallpaper", 0xFF9F0A, this::wallpaper);
         addPage("Spotify", "music", 0x1DB954, this::spotify);
         addPage("YouTube", "youtube", 0xFF3B3B, this::youtube);
+        addPage("Streamer", "stream", 0x9146FF, this::streamer);
         addPage("Gamble", "pay", 0xFFD34D, this::gamble);
         addPage("Auction", "gavel", 0xFF8A3D, this::auction);
         page = lastPage;
@@ -60,6 +61,7 @@ public class MainScreen extends SheetScreen {
         "Set your own backgrounds for the title screen and other menus.",
         "A now-playing card with album art and progress.",
         "Paste a YouTube link and watch it on your HUD or fullscreen.",
+        "Stream chat on screen, alerts, a LIVE timer, streamer mode, a BRB screen and clip markers.",
         "DonutSMP bets: mark payments as won or lost right in chat, and track your profit.",
         "DonutSMP auctions: highest total payment before the countdown ends wins.",
     };
@@ -424,6 +426,116 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Footer(dev.tony.visuals.youtube.YouTube.available()
             ? "Videos play in YouTube's own player inside the game, with sound. The first video downloads the player once (about 100 MB). Open chat (T) to click pause and fullscreen on the card, or set keys in Controls."
             : "To play videos, also install the free MCEF Modern mod (Modrinth, for 26.3). Without it the card shows the thumbnail, title and channel."));
+        return l;
+    }
+
+    private List<Sheet.Item> streamer() {
+        Config.Streamer st = c().streamer;
+        List<Sheet.Item> l = new ArrayList<>();
+        l.add(new Sheet.Header("Stream chat"));
+        l.add(new Sheet.Action("Twitch channel", () -> st.twitch.isBlank() ? "Set" : st.twitch, () -> minecraft.setScreen(
+            new TextEditScreen(this, "Twitch channel name (or twitch.tv link); empty = off", st.twitch, v -> {
+                st.twitch = v.trim();
+                if (!st.twitch.isEmpty()) c().widget("streamchat").enabled = true;
+                Config.save();
+                dev.tony.visuals.stream.StreamChat.connect();
+            }))).chevron());
+        if (!st.twitch.isBlank()) l.add(new Sheet.Info("   Status", dev.tony.visuals.stream.StreamChat::twitchStatus));
+        l.add(new Sheet.Action("YouTube channel", () -> st.youtube.isBlank() ? "Set" : Kit.fit(st.youtube, 120, false), () -> minecraft.setScreen(
+            new TextEditScreen(this, "YouTube @handle, channel link or live video link; empty = off", st.youtube, v -> {
+                st.youtube = v.trim();
+                if (!st.youtube.isEmpty()) c().widget("streamchat").enabled = true;
+                Config.save();
+                dev.tony.visuals.stream.StreamChat.connect();
+            }))).chevron());
+        if (!st.youtube.isBlank()) l.add(new Sheet.Info("   Status", dev.tony.visuals.stream.StreamChat::youtubeStatus));
+        l.add(new Sheet.Toggle("Show chat on HUD", () -> c().widget("streamchat").enabled, v -> c().widget("streamchat").enabled = v));
+        l.add(new Sheet.Toggle("Include server chat", () -> st.gameChat, v -> st.gameChat = v));
+        l.add(new Sheet.Action("Move it on screen", () -> "", () -> minecraft.setScreen(new LayoutScreen(this))).chevron());
+        l.add(Sheet.Slider.ints("Lines", 3, 16, () -> st.chatLines, v -> st.chatLines = v, ""));
+        l.add(Sheet.Slider.ints("Width", 150, 360, () -> st.chatWidth, v -> st.chatWidth = v, ""));
+        l.add(new Sheet.Slider("Fade old messages", 0f, 300f, 5f, () -> (float) st.fadeSeconds, v -> st.fadeSeconds = Math.round(v),
+            v -> Math.round(v) == 0 ? "Never" : Math.round(v) + "s"));
+        l.add(new Sheet.Toggle("Platform dots", () -> st.platformBadges, v -> st.platformBadges = v));
+        l.add(new Sheet.Toggle("Name colours", () -> st.nameColours, v -> st.nameColours = v));
+        l.add(new Sheet.Toggle("Hide !commands and bots", () -> st.hideCommands, v -> st.hideCommands = v));
+        l.add(new Sheet.Action("Clear chat", () -> "", dev.tony.visuals.stream.StreamChat::clear).destructive());
+        l.add(new Sheet.Footer("Read-only and no login: Flop Visuals reads your public chat like a viewer would. Twitch and YouTube can run at the same time; the dots show which are connected (purple Twitch, red YouTube, green server)."));
+
+        l.add(new Sheet.Header("Alerts"));
+        l.add(new Sheet.Toggle("Alerts", () -> st.alerts, v -> st.alerts = v));
+        l.add(new Sheet.Toggle("Sound", () -> st.alertSound, v -> st.alertSound = v));
+        l.add(new Sheet.Toggle("Subs, gifts and members", () -> st.alertSubs, v -> st.alertSubs = v));
+        l.add(new Sheet.Toggle("Bits", () -> st.alertBits, v -> st.alertBits = v));
+        l.add(new Sheet.Toggle("Raids", () -> st.alertRaids, v -> st.alertRaids = v));
+        l.add(new Sheet.Toggle("Super Chats and Stickers", () -> st.alertSuperChats, v -> st.alertSuperChats = v));
+        l.add(new Sheet.Action("Send a test alert", () -> "", () -> {
+            String me = minecraft.getUser().getName();
+            dev.tony.visuals.stream.StreamChat.alert(new dev.tony.visuals.stream.StreamChat.Alert(dev.tony.visuals.stream.StreamChat.AlertKind.TEST,
+                dev.tony.visuals.stream.StreamChat.Platform.TWITCH, me, "subscribed for 12 months", "this is what your viewers' alerts look like"));
+            onClose();
+        }).accent());
+        l.add(new Sheet.Footer("Pops up at the top of your screen (so it's in your recording too) when someone subs, gifts, cheers, raids or sends a Super Chat."));
+
+        l.add(new Sheet.Header("Mentions"));
+        l.add(new Sheet.Action("Words to watch", () -> st.mentions.isBlank() ? "Add" : Kit.fit(st.mentions, 120, false), () -> minecraft.setScreen(
+            new TextEditScreen(this, "Words that light up a message, comma separated (e.g. tony, giveaway, question)", st.mentions, v -> st.mentions = v.trim()))).chevron());
+        l.add(new Sheet.Toggle("Ping sound", () -> st.mentionSound, v -> st.mentionSound = v));
+        l.add(new Sheet.Footer("Messages with your Minecraft name or one of these words get an accent stripe and a soft bell, so you never miss a question."));
+
+        l.add(new Sheet.Header("LIVE timer"));
+        l.add(new Sheet.Toggle("Show on HUD", () -> c().widget("live").enabled, v -> c().widget("live").enabled = v));
+        boolean live = dev.tony.visuals.stream.Streamer.live();
+        Sheet.Action go = new Sheet.Action(live ? "Stop the timer" : "Start the timer", () -> "", () -> {
+            dev.tony.visuals.stream.Streamer.toggleLive();
+            rebuild();
+        });
+        l.add(live ? go.destructive() : go.accent());
+        l.add(new Sheet.Info("Live for", () -> dev.tony.visuals.stream.Streamer.live() ? dev.tony.visuals.stream.Streamer.uptime() : "Not live"));
+        l.add(new Sheet.Toggle("Viewer count", () -> st.viewerCount, v -> st.viewerCount = v));
+        l.add(new Sheet.Footer("With a Twitch channel set, the timer starts by itself when you go live and shows Twitch's real stream time."));
+
+        l.add(new Sheet.Header("Streamer mode"));
+        l.add(new Sheet.Toggle("Streamer mode", () -> st.privacy, v -> st.privacy = v));
+        l.add(new Sheet.Toggle("   Hide coordinates", () -> st.hideCoords, v -> st.hideCoords = v));
+        l.add(new Sheet.Toggle("   Hide private messages", () -> st.hideWhispers, v -> st.hideWhispers = v));
+        l.add(new Sheet.Toggle("   Hide money amounts", () -> st.hideMoney, v -> st.hideMoney = v));
+        l.add(new Sheet.Footer("Keeps your base location, DMs and balance off stream. The F3 screen still shows coordinates, so keep it closed while live."));
+
+        l.add(new Sheet.Header("BRB screen"));
+        l.add(new Sheet.Action(dev.tony.visuals.stream.Streamer.brb() ? "Hide the BRB screen" : "Show the BRB screen", () -> "", () -> {
+            dev.tony.visuals.stream.Streamer.toggleBrb();
+            onClose();
+        }).accent());
+        l.add(new Sheet.Action("Title", () -> Kit.fit(st.brbTitle, 120, false), () -> minecraft.setScreen(
+            new TextEditScreen(this, "BRB title (e.g. Be right back, Starting soon)", st.brbTitle, v -> st.brbTitle = v.trim()))).chevron());
+        l.add(new Sheet.Action("Subtitle", () -> st.brbSubtitle.isBlank() ? "None" : Kit.fit(st.brbSubtitle, 120, false), () -> minecraft.setScreen(
+            new TextEditScreen(this, "BRB subtitle (empty = none)", st.brbSubtitle, v -> st.brbSubtitle = v.trim()))).chevron());
+        l.add(new Sheet.Slider("Countdown", 0f, 60f, 1f, () -> (float) st.brbMinutes, v -> st.brbMinutes = Math.round(v),
+            v -> Math.round(v) == 0 ? "None" : Math.round(v) + " min"));
+        l.add(new Sheet.Toggle("Show chat on it", () -> st.brbChat, v -> st.brbChat = v));
+        l.add(new Sheet.Footer("Covers the game with a frosted screen, a countdown, the song you're playing and live chat. Set a key for it in Controls so you can flip it on mid-game."));
+
+        l.add(new Sheet.Header("Clip markers"));
+        l.add(new Sheet.Action("Save a marker now", () -> "", dev.tony.visuals.stream.Streamer::marker).accent());
+        l.add(new Sheet.Info("This stream", () -> dev.tony.visuals.stream.Streamer.markersThisStream() + " markers"));
+        l.add(new Sheet.Action("Open the markers file", () -> "", () -> {
+            try {
+                java.nio.file.Files.createDirectories(Config.DIR);
+                java.nio.file.Path f = dev.tony.visuals.stream.Streamer.markerFile();
+                if (!java.nio.file.Files.exists(f)) java.nio.file.Files.writeString(f, "Flop Visuals stream markers. Each line is a moment you marked while streaming.\n\n");
+                com.mojang.blaze3d.Blaze3D.openPath(f);
+            } catch (Exception ignored) {
+            }
+        }).chevron());
+        l.add(new Sheet.Footer("Hit the marker key when something clip-worthy happens. The stream time is saved to a text file so you can jump straight to it when editing."));
+
+        l.add(new Sheet.Header("Keys"));
+        l.add(new Sheet.Info("Streamer mode", () -> FlopVisuals.streamerModeKey.getTranslatedKeyMessage().getString()));
+        l.add(new Sheet.Info("BRB screen", () -> FlopVisuals.brbKey.getTranslatedKeyMessage().getString()));
+        l.add(new Sheet.Info("Stream marker", () -> FlopVisuals.markerKey.getTranslatedKeyMessage().getString()));
+        l.add(new Sheet.Info("LIVE timer", () -> FlopVisuals.liveKey.getTranslatedKeyMessage().getString()));
+        l.add(new Sheet.Footer("Set them in Options › Controls › Key Binds › Flop Visuals."));
         return l;
     }
 

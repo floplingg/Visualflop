@@ -98,6 +98,7 @@ public class SheetScreen extends Screen {
             case "pay" -> "pay";
             case "gavel" -> "gavel";
             case "youtube" -> "youtube";
+            case "stream" -> "stream";
             default -> "hud";
         };
     }
