@@ -405,7 +405,7 @@ public final class Config {
         putDefault("profit", false, 0.005f, 0.26f);
         putDefault("moneygraph", false, 0.005f, 0.33f);
         putDefault("youtube", false, 0.995f, 0.05f);
-        putDefault("streamchat", false, 0.005f, 0.62f);
+        putDefault("streamchat", false, 0.995f, 0.5f);
         putDefault("live", false, 0.5f, 0.005f);
     }
 

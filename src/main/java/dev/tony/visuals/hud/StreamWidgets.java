@@ -325,7 +325,7 @@ public final class StreamWidgets {
         float w = 250, h = 66;
         float scale = Math.min(1.25f, Math.max(0.8f, sw / 520f));
         g.pose().pushMatrix();
-        g.pose().translate(sw / 2f, 12 - slide * 30 + (1 - out) * -8);
+        g.pose().translate(sw / 2f, 30 - slide * 30 + (1 - out) * -8);   // just under the LIVE chip
         g.pose().scale(scale, scale);
         g.pose().translate(-w / 2, 0);
         drawAlert(g, showing, w, h, o, age, Math.max(0, 1 - age / total));
@@ -392,7 +392,7 @@ public final class StreamWidgets {
         String title = Streamer.toastTitle(), text = Streamer.toastText();
         float w = Math.max(Kit.width(title, Kit.HEAVY, 1), Kit.width(text, Kit.REGULAR, 0.75f)) + 28;
         float h = text.isEmpty() ? 22 : 30;
-        float x = sw / 2f - w / 2, y = sh * 0.2f + (1 - o) * 6;
+        float x = sw / 2f - w / 2, y = sh - 64 - h + (1 - o) * 6;   // above the hotbar
         Kit.shadow(g, x, y, w, h, h / 2, 0.9f * o);
         Shapes.round(g, x, y, w, h, h / 2, fade(0xE00D0F1C, o));
         Shapes.ring(g, x, y, w, h, h / 2, 0.5f, fade(0x30FFFFFF, o));
@@ -418,7 +418,7 @@ public final class StreamWidgets {
             float gx = sw * (0.25f + 0.5f * (0.5f + 0.5f * (float) Math.sin(time * 0.13 + i * 2.1)));
             float gy = sh * (0.3f + 0.4f * (0.5f + 0.5f * (float) Math.cos(time * 0.11 + i * 1.7)));
             float r = sh * (0.35f + 0.08f * i);
-            for (int k = 8; k >= 1; k--) Shapes.circle(g, gx, gy, r * k / 8f, fade((5 << 24) | acc, o));
+            for (int k = 24; k >= 1; k--) Shapes.circle(g, gx, gy, r * k / 24f, fade((2 << 24) | acc, o));
         }
 
         // Title, subtitle, countdown.

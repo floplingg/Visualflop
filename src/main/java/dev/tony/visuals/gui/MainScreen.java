@@ -440,7 +440,7 @@ public class MainScreen extends SheetScreen {
                 Config.save();
                 dev.tony.visuals.stream.StreamChat.connect();
             }))).chevron());
-        l.add(new Sheet.Info("   Twitch", dev.tony.visuals.stream.StreamChat::twitchStatus));
+        if (!st.twitch.isBlank()) l.add(new Sheet.Info("   Status", dev.tony.visuals.stream.StreamChat::twitchStatus));
         l.add(new Sheet.Action("YouTube channel", () -> st.youtube.isBlank() ? "Set" : Kit.fit(st.youtube, 120, false), () -> minecraft.setScreen(
             new TextEditScreen(this, "YouTube @handle, channel link or live video link; empty = off", st.youtube, v -> {
                 st.youtube = v.trim();
@@ -448,7 +448,7 @@ public class MainScreen extends SheetScreen {
                 Config.save();
                 dev.tony.visuals.stream.StreamChat.connect();
             }))).chevron());
-        l.add(new Sheet.Info("   YouTube", dev.tony.visuals.stream.StreamChat::youtubeStatus));
+        if (!st.youtube.isBlank()) l.add(new Sheet.Info("   Status", dev.tony.visuals.stream.StreamChat::youtubeStatus));
         l.add(new Sheet.Toggle("Show chat on HUD", () -> c().widget("streamchat").enabled, v -> c().widget("streamchat").enabled = v));
         l.add(new Sheet.Toggle("Include server chat", () -> st.gameChat, v -> st.gameChat = v));
         l.add(new Sheet.Action("Move it on screen", () -> "", () -> minecraft.setScreen(new LayoutScreen(this))).chevron());
