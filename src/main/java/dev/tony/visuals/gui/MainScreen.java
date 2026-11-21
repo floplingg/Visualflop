@@ -433,7 +433,7 @@ public class MainScreen extends SheetScreen {
         Config.Streamer st = c().streamer;
         List<Sheet.Item> l = new ArrayList<>();
         l.add(new Sheet.Header("Stream chat"));
-        l.add(new Sheet.Action("Twitch channel", () -> st.twitch.isBlank() ? "Set" : st.twitch, () -> minecraft.setScreen(
+        l.add(new Sheet.Action("Twitch channel", () -> st.twitch.isBlank() ? "Set" : st.twitch, () -> minecraft.gui.setScreen(
             new TextEditScreen(this, "Twitch channel name (or twitch.tv link); empty = off", st.twitch, v -> {
                 st.twitch = v.trim();
                 if (!st.twitch.isEmpty()) c().widget("streamchat").enabled = true;
@@ -441,7 +441,7 @@ public class MainScreen extends SheetScreen {
                 dev.tony.visuals.stream.StreamChat.connect();
             }))).chevron());
         if (!st.twitch.isBlank()) l.add(new Sheet.Info("   Status", dev.tony.visuals.stream.StreamChat::twitchStatus));
-        l.add(new Sheet.Action("YouTube channel", () -> st.youtube.isBlank() ? "Set" : Kit.fit(st.youtube, 120, false), () -> minecraft.setScreen(
+        l.add(new Sheet.Action("YouTube channel", () -> st.youtube.isBlank() ? "Set" : Kit.fit(st.youtube, 120, false), () -> minecraft.gui.setScreen(
             new TextEditScreen(this, "YouTube @handle, channel link or live video link; empty = off", st.youtube, v -> {
                 st.youtube = v.trim();
                 if (!st.youtube.isEmpty()) c().widget("streamchat").enabled = true;
@@ -451,7 +451,7 @@ public class MainScreen extends SheetScreen {
         if (!st.youtube.isBlank()) l.add(new Sheet.Info("   Status", dev.tony.visuals.stream.StreamChat::youtubeStatus));
         l.add(new Sheet.Toggle("Show chat on HUD", () -> c().widget("streamchat").enabled, v -> c().widget("streamchat").enabled = v));
         l.add(new Sheet.Toggle("Include server chat", () -> st.gameChat, v -> st.gameChat = v));
-        l.add(new Sheet.Action("Move it on screen", () -> "", () -> minecraft.setScreen(new LayoutScreen(this))).chevron());
+        l.add(new Sheet.Action("Move it on screen", () -> "", () -> minecraft.gui.setScreen(new LayoutScreen(this))).chevron());
         l.add(Sheet.Slider.ints("Lines", 3, 16, () -> st.chatLines, v -> st.chatLines = v, ""));
         l.add(Sheet.Slider.ints("Width", 150, 360, () -> st.chatWidth, v -> st.chatWidth = v, ""));
         l.add(new Sheet.Slider("Fade old messages", 0f, 300f, 5f, () -> (float) st.fadeSeconds, v -> st.fadeSeconds = Math.round(v),
@@ -478,7 +478,7 @@ public class MainScreen extends SheetScreen {
         l.add(new Sheet.Footer("Pops up at the top of your screen (so it's in your recording too) when someone subs, gifts, cheers, raids or sends a Super Chat."));
 
         l.add(new Sheet.Header("Mentions"));
-        l.add(new Sheet.Action("Words to watch", () -> st.mentions.isBlank() ? "Add" : Kit.fit(st.mentions, 120, false), () -> minecraft.setScreen(
+        l.add(new Sheet.Action("Words to watch", () -> st.mentions.isBlank() ? "Add" : Kit.fit(st.mentions, 120, false), () -> minecraft.gui.setScreen(
             new TextEditScreen(this, "Words that light up a message, comma separated (e.g. tony, giveaway, question)", st.mentions, v -> st.mentions = v.trim()))).chevron());
         l.add(new Sheet.Toggle("Ping sound", () -> st.mentionSound, v -> st.mentionSound = v));
         l.add(new Sheet.Footer("Messages with your Minecraft name or one of these words get an accent stripe and a soft bell, so you never miss a question."));
@@ -507,9 +507,9 @@ public class MainScreen extends SheetScreen {
             dev.tony.visuals.stream.Streamer.toggleBrb();
             onClose();
         }).accent());
-        l.add(new Sheet.Action("Title", () -> Kit.fit(st.brbTitle, 120, false), () -> minecraft.setScreen(
+        l.add(new Sheet.Action("Title", () -> Kit.fit(st.brbTitle, 120, false), () -> minecraft.gui.setScreen(
             new TextEditScreen(this, "BRB title (e.g. Be right back, Starting soon)", st.brbTitle, v -> st.brbTitle = v.trim()))).chevron());
-        l.add(new Sheet.Action("Subtitle", () -> st.brbSubtitle.isBlank() ? "None" : Kit.fit(st.brbSubtitle, 120, false), () -> minecraft.setScreen(
+        l.add(new Sheet.Action("Subtitle", () -> st.brbSubtitle.isBlank() ? "None" : Kit.fit(st.brbSubtitle, 120, false), () -> minecraft.gui.setScreen(
             new TextEditScreen(this, "BRB subtitle (empty = none)", st.brbSubtitle, v -> st.brbSubtitle = v.trim()))).chevron());
         l.add(new Sheet.Slider("Countdown", 0f, 60f, 1f, () -> (float) st.brbMinutes, v -> st.brbMinutes = Math.round(v),
             v -> Math.round(v) == 0 ? "None" : Math.round(v) + " min"));
