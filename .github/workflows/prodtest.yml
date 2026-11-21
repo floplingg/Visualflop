@@ -21,7 +21,7 @@ jobs:
           sudo apt-get install -yq xdotool imagemagick >/dev/null
           Xvfb :99 -screen 0 1280x720x24 +extension GLX +render -noreset & sleep 2
           export DISPLAY=:99
-          (timeout 300 portablemc --main-dir "$PWD/mc" start fabric:26.3 -u Tester > game.out 2>&1 &)
+          (timeout 420 portablemc --main-dir "$PWD/mc" start fabric:26.3 -u Tester > game.out 2>&1 &)
           for i in $(seq 1 30); do sleep 5; grep -q "Created: 512x512x0 minecraft:textures/atlas/shulker" game.out && break; done
           sleep 25
           import -window root shot1.png
@@ -31,6 +31,14 @@ jobs:
           import -window root shot3.png
           xdotool key v || true; sleep 4
           import -window root shot4.png
+          xdotool mousemove 638 355 click 1 || true; sleep 5
+          import -window root shot5.png
+          xdotool mousemove 560 582 click 1 || true; sleep 50
+          import -window root shot6.png
+          xdotool key v || true; sleep 4
+          import -window root shot7.png
+          xdotool key Escape || true; sleep 2; xdotool key Escape || true; sleep 2
+          import -window root shot8.png
           (grep -iE "flop|Exception" game.out | grep -v "flite\|OpenAL\|ALSA" | head -30) || true
       - if: always()
         run: |
