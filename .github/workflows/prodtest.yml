@@ -16,6 +16,15 @@ jobs:
           echo "fabric api: $FAPI"; curl -fsSL -o mc/mods/fabric-api.jar "$FAPI"
           curl -fsSL -o "mc/mods/flop-visuals.jar" "https://github.com/floplingg/Visualflop/releases/download/v0.16.0%2B26.3/flop-visuals-0.16.0%2B26.3.jar"
           ls -la mc/mods
-          (timeout 240 xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX +render -noreset" portablemc --main-dir "$PWD/mc" start fabric:26.3 -u Tester --help 2>&1 | head -40; timeout 240 xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX +render -noreset" portablemc --main-dir "$PWD/mc" start fabric:26.3 -u Tester 2>&1 | tail -80) || true
-          echo "======== LOG"
-          ls mc; find mc -name latest.log; grep -E "Loading [0-9]+ mods|flop|Flop|ERROR|Exception|Mixin|mixin" $(find mc -name latest.log | head -1) | head -80 || true
+          sudo apt-get install -yq xdotool imagemagick >/dev/null
+          Xvfb :99 -screen 0 1280x720x24 +extension GLX +render -noreset & sleep 2
+          export DISPLAY=:99
+          (timeout 300 portablemc --main-dir "$PWD/mc" start fabric:26.3 -u Tester > game.out 2>&1 &)
+          for i in $(seq 1 30); do sleep 5; grep -q "Created: 512x512x0 minecraft:textures/atlas/shulker" game.out && break; done
+          sleep 25
+          import -window root shot1.png
+          W=$(xdotool search --name "Minecraft" | head -1); echo "window $W"; xdotool windowactivate --sync $W 2>/dev/null; xdotool key --window $W v; sleep 4
+          import -window root shot2.png
+          grep -iE "flop|Exception" game.out | grep -v "flite\|OpenAL\|ALSA" | head -30
+      - uses: actions/upload-artifact@v4
+        with: { name: shots, path: "shot*.png" }
