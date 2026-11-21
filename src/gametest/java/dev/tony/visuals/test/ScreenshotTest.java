@@ -353,6 +353,24 @@ public class ScreenshotTest implements FabricClientGameTest {
             context.waitTicks(30);
             context.takeScreenshot("43-brb");
             context.runOnClient(mc -> dev.tony.visuals.stream.Streamer.toggleBrb());
+
+            // Real connections: Twitch IRC (any channel connects, live or not) and a 24/7 YouTube live stream.
+            context.runOnClient(mc -> {
+                dev.tony.visuals.stream.Streamer.togglePrivacy();
+                dev.tony.visuals.stream.StreamChat.clear();
+                Config.Streamer st = Config.get().streamer;
+                st.gameChat = false;
+                st.twitch = "twitch";
+                st.youtube = "@LofiGirl";
+                dev.tony.visuals.stream.StreamChat.connect();
+            });
+            for (int i = 0; i < 6; i++) {
+                context.waitTicks(100);
+                context.runOnClient(mc -> org.slf4j.LoggerFactory.getLogger("flop-test").info("STREAMCHAT twitch=[{}] youtube=[{}] messages={} viewers={}",
+                    dev.tony.visuals.stream.StreamChat.twitchStatus(), dev.tony.visuals.stream.StreamChat.youtubeStatus(),
+                    dev.tony.visuals.stream.StreamChat.recent(200).size(), dev.tony.visuals.stream.StreamChat.viewers()));
+            }
+            context.takeScreenshot("44-real-chat");
         }
     }
 }
