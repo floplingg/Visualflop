@@ -27,6 +27,10 @@ jobs:
           import -window root shot1.png
           W=$(xdotool search --onlyvisible --name ".+" 2>/dev/null | tail -1 || true); echo "window $W $(xdotool getwindowname $W 2>/dev/null || true)"; xdotool mousemove 640 360 click 1 || true; sleep 1; xdotool key v || true; sleep 4
           import -window root shot2.png
+          xdotool mousemove 638 567 click 1 || true; sleep 4
+          import -window root shot3.png
+          xdotool key v || true; sleep 4
+          import -window root shot4.png
           (grep -iE "flop|Exception" game.out | grep -v "flite\|OpenAL\|ALSA" | head -30) || true
       - if: always()
         run: |
