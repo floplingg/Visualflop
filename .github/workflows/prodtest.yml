@@ -23,8 +23,9 @@ jobs:
           for i in $(seq 1 30); do sleep 5; grep -q "Created: 512x512x0 minecraft:textures/atlas/shulker" game.out && break; done
           sleep 25
           import -window root shot1.png
-          W=$(xdotool search --name "Minecraft" | head -1); echo "window $W"; xdotool windowactivate --sync $W 2>/dev/null; xdotool key --window $W v; sleep 4
+          W=$(xdotool search --onlyvisible --name ".+" 2>/dev/null | tail -1 || true); echo "window $W $(xdotool getwindowname $W 2>/dev/null || true)"; xdotool mousemove 640 360 click 1 || true; sleep 1; xdotool key v || true; sleep 4
           import -window root shot2.png
-          grep -iE "flop|Exception" game.out | grep -v "flite\|OpenAL\|ALSA" | head -30
-      - uses: actions/upload-artifact@v4
+          (grep -iE "flop|Exception" game.out | grep -v "flite\|OpenAL\|ALSA" | head -30) || true
+      - if: always()
+        uses: actions/upload-artifact@v4
         with: { name: shots, path: "shot*.png" }
