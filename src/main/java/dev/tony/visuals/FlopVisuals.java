@@ -23,7 +23,8 @@ import org.lwjgl.glfw.GLFW;
 public class FlopVisuals implements ClientModInitializer {
     public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("flopvisuals", "main"));
     /** Shows up in Options > Controls > Key Binds under "Flop Visuals". */
-    public static KeyMapping menuKey, playPauseKey, nextKey, previousKey, ytPauseKey, ytFullscreenKey;
+    public static KeyMapping menuKey, playPauseKey, nextKey, previousKey, ytPauseKey, ytFullscreenKey,
+        streamerModeKey, brbKey, markerKey, liveKey;
 
     @Override
     public void onInitializeClient() {
@@ -40,6 +41,15 @@ public class FlopVisuals implements ClientModInitializer {
             new KeyMapping("key.flopvisuals.ytpause", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
         ytFullscreenKey = KeyBindingHelper.registerKeyBinding(
             new KeyMapping("key.flopvisuals.ytfullscreen", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+        streamerModeKey = KeyBindingHelper.registerKeyBinding(
+            new KeyMapping("key.flopvisuals.streamermode", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+        brbKey = KeyBindingHelper.registerKeyBinding(
+            new KeyMapping("key.flopvisuals.brb", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+        markerKey = KeyBindingHelper.registerKeyBinding(
+            new KeyMapping("key.flopvisuals.marker", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+        liveKey = KeyBindingHelper.registerKeyBinding(
+            new KeyMapping("key.flopvisuals.live", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_UNKNOWN, CATEGORY));
+        dev.tony.visuals.stream.Streamer.init();
         dev.tony.visuals.hud.SpotifyWidget.registerClicks();
         dev.tony.visuals.hud.YouTubeWidget.registerClicks();
         dev.tony.visuals.pay.Payments.init();
@@ -76,6 +86,10 @@ public class FlopVisuals implements ClientModInitializer {
             dev.tony.visuals.youtube.YouTube.toggleFullscreen();
             dev.tony.visuals.hud.YouTubeWidget.poke();
         }
+        while (streamerModeKey.consumeClick()) dev.tony.visuals.stream.Streamer.togglePrivacy();
+        while (brbKey.consumeClick()) dev.tony.visuals.stream.Streamer.toggleBrb();
+        while (markerKey.consumeClick()) dev.tony.visuals.stream.Streamer.marker();
+        while (liveKey.consumeClick()) dev.tony.visuals.stream.Streamer.toggleLive();
         dev.tony.visuals.youtube.YouTube.tick();
 
         Stats.tick(mc);

@@ -233,10 +233,13 @@ public class ScreenshotTest implements FabricClientGameTest {
         context.setScreen(ChatViewScreen::new);
         context.waitTicks(10);
         context.takeScreenshot("18-auction-chat");
-        context.setScreen(() -> new MainScreen(null, 11));
+        context.setScreen(() -> new MainScreen(null, 12));
         context.waitTicks(20);
         context.takeScreenshot("19-menu-gamble");
-        context.setScreen(() -> new MainScreen(null, 12));
+        context.setScreen(() -> new MainScreen(null, 11));
+        context.waitTicks(20);
+        context.takeScreenshot("19-menu-streamer");
+        context.setScreen(() -> new MainScreen(null, 13));
         context.waitTicks(20);
         context.takeScreenshot("19-menu-auction");
         // YouTube: card with thumbnail + title (no MCEF in the test), then its page.
@@ -309,6 +312,47 @@ public class ScreenshotTest implements FabricClientGameTest {
             context.runOnClient(mc -> Config.get().sky.style = Config.SkyStyle.GALAXY);
             context.waitTicks(10);
             context.takeScreenshot("32-glass-galaxy");
+
+            // Streamer: chat card + LIVE chip + an alert, then streamer mode, then the BRB screen.
+            context.runOnClient(mc -> {
+                mc.options.setCameraType(CameraType.FIRST_PERSON);
+                Config.get().sky.style = Config.SkyStyle.TOPOGRAPHIC;
+                Config.Streamer st = Config.get().streamer;
+                st.mentions = "giveaway";
+                Config.get().widget("streamchat").enabled = true;
+                Config.get().widget("live").enabled = true;
+                Config.get().widget("profit").enabled = true;
+                st.liveSince = System.currentTimeMillis() - 5_412_000L;
+                dev.tony.visuals.stream.StreamChat.add(dev.tony.visuals.stream.StreamChat.Platform.TWITCH, "Nightbot", 0, "Follow on TikTok!", dev.tony.visuals.stream.StreamChat.Role.NONE);
+                dev.tony.visuals.stream.StreamChat.add(dev.tony.visuals.stream.StreamChat.Platform.TWITCH, "xXCraftyXx", 0x1E90FF, "that glass floor is insane", dev.tony.visuals.stream.StreamChat.Role.SUB);
+                dev.tony.visuals.stream.StreamChat.add(dev.tony.visuals.stream.StreamChat.Platform.YOUTUBE, "Mina Park", 0, "안녕하세요! 🔥🔥", dev.tony.visuals.stream.StreamChat.Role.NONE);
+                dev.tony.visuals.stream.StreamChat.add(dev.tony.visuals.stream.StreamChat.Platform.TWITCH, "modcat", 0x00FF7F, "remember to stay hydrated chat", dev.tony.visuals.stream.StreamChat.Role.MOD);
+                dev.tony.visuals.stream.StreamChat.add(dev.tony.visuals.stream.StreamChat.Platform.YOUTUBE, "Leo", 0, "when is the next giveaway??", dev.tony.visuals.stream.StreamChat.Role.NONE);
+                dev.tony.visuals.stream.StreamChat.add(dev.tony.visuals.stream.StreamChat.Platform.TWITCH, "night_owl_42", 0x8A2BE2, "this is a really long message to check that the stream chat card wraps text onto the next line nicely", dev.tony.visuals.stream.StreamChat.Role.VIP);
+                dev.tony.visuals.stream.StreamChat.add(dev.tony.visuals.stream.StreamChat.Platform.GAME, "", 0, "<Steve> gg", dev.tony.visuals.stream.StreamChat.Role.NONE);
+                dev.tony.visuals.stream.StreamChat.alert(new dev.tony.visuals.stream.StreamChat.Alert(dev.tony.visuals.stream.StreamChat.AlertKind.RAID,
+                    dev.tony.visuals.stream.StreamChat.Platform.TWITCH, "BigStreamer", "is raiding with 245 viewers", ""));
+            });
+            context.waitTicks(30);
+            context.takeScreenshot("40-stream-chat-raid");
+            context.runOnClient(mc -> dev.tony.visuals.stream.StreamChat.alert(new dev.tony.visuals.stream.StreamChat.Alert(
+                dev.tony.visuals.stream.StreamChat.AlertKind.SUPERCHAT, dev.tony.visuals.stream.StreamChat.Platform.YOUTUBE, "Mina Park", "sent a $20.00 Super Chat", "love the sky lyrics!")));
+            context.waitTicks(150);
+            context.takeScreenshot("41-stream-superchat");
+            context.runOnClient(mc -> {
+                dev.tony.visuals.stream.Streamer.togglePrivacy();
+                mc.gui.getChat().addMessage(dev.tony.visuals.stream.Streamer.filter(net.minecraft.network.chat.Component.literal("[Notch -> me] my base is at 1200 64 -300")));
+                dev.tony.visuals.pay.Payments.handle(net.minecraft.network.chat.Component.literal("Leo paid you $2.5M."));
+            });
+            context.waitTicks(10);
+            context.takeScreenshot("42-streamer-mode");
+            context.runOnClient(mc -> {
+                Config.get().streamer.brbMinutes = 5;
+                dev.tony.visuals.stream.Streamer.toggleBrb();
+            });
+            context.waitTicks(30);
+            context.takeScreenshot("43-brb");
+            context.runOnClient(mc -> dev.tony.visuals.stream.Streamer.toggleBrb());
         }
     }
 }

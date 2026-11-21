@@ -29,6 +29,11 @@ public final class MoneyWidgets {
 
     // ------------------------------------------------------------ +102.63M
 
+    /** The amount, or dots while streamer mode hides money. */
+    private static String shown(double v) {
+        return dev.tony.visuals.stream.Streamer.hideMoney() ? "$•••••" : Tracker.label(v);
+    }
+
     private static final float LABEL = 0.72f;
 
     private static String label() {
@@ -37,7 +42,7 @@ public final class MoneyWidgets {
 
     public static int[] profitSize() {
         Theme t = Config.theme();
-        float w = 9 + Kit.trackedWidth(label(), LABEL) + 6 + Kit.width(Tracker.label(Tracker.profit()), Kit.MONO, 1);
+        float w = 9 + Kit.trackedWidth(label(), LABEL) + 6 + Kit.width(shown(Tracker.profit()), Kit.MONO, 1);
         return new int[]{(int) Math.ceil(w + 2 * Hud.padH(t)), 8 + 2 * Hud.padV(t)};
     }
 
@@ -58,7 +63,7 @@ public final class MoneyWidgets {
         x += 9;
         Kit.tracked(g, label(), x, Hud.padV(t) + 2.2f, LABEL, t.labelColour());
         x += Kit.trackedWidth(label(), LABEL) + 6;
-        Kit.draw(g, Tracker.label(p), x, Hud.padV(t), 1, col, Kit.MONO);
+        Kit.draw(g, shown(p), x, Hud.padV(t), 1, col, Kit.MONO);
     }
 
     // ------------------------------------------------------------ graph
@@ -80,7 +85,7 @@ public final class MoneyWidgets {
             String d = Tracker.duration(s);
             Kit.draw(g, d, w - 9 - Kit.width(d, Kit.MONO, 0.7f), 8, 0.7f, DIM, Kit.MONO);
         }
-        Kit.draw(g, Tracker.label(p), 9, 17, 1.35f, col, Kit.MONO);
+        Kit.draw(g, shown(p), 9, 17, 1.35f, col, Kit.MONO);
 
         List<Double> hist = Tracker.history();
         float gx = 9, gy = 33, gw = w - 18, gh = h - 33 - 9;
