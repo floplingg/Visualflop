@@ -1,0 +1,21 @@
+name: ytprobe
+on:
+  push:
+    paths: [".github/workflows/ytprobe.yml"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+          curl -sL -A "$UA" -H 'Accept-Language: en-US,en;q=0.9' -H 'Cookie: CONSENT=YES+cb; SOCS=CAI' -o live.html -w '%{http_code} %{url_effective}\n' https://www.youtube.com/@LofiGirl/live
+          wc -c live.html
+          grep -o '<link rel="canonical"[^>]*>' live.html | head -3
+          for k in '"isLive":true' '"isLiveNow":true' '"isLiveContent":true' 'liveStreamability' '"style":"LIVE"' 'consent.youtube' '"videoId":"'; do echo "$k: $(grep -o "$k" live.html | wc -l)"; done
+          grep -o '"videoId":"[^"]*"' live.html | sort | uniq -c | sort -rn | head -5
+          grep -o '<meta itemprop="isLiveBroadcast"[^>]*>' live.html | head -2
+          V=$(grep -o '<link rel="canonical" href="https://www.youtube.com/watch?v=[^"]*"' live.html | head -1 | sed 's/.*v=//; s/"//')
+          echo "video=$V"
+          curl -sL -A "$UA" -H 'Cookie: CONSENT=YES+cb; SOCS=CAI' -o chat.html -w '%{http_code}\n' "https://www.youtube.com/live_chat?is_popout=1&v=$V"
+          wc -c chat.html
+          for k in INNERTUBE_API_KEY INNERTUBE_CLIENT_VERSION liveChatRenderer '"continuation":"'; do echo "$k: $(grep -o "$k" chat.html | wc -l)"; done
