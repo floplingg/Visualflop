@@ -1,0 +1,21 @@
+name: prodtest
+on:
+  push:
+    branches: [prodtest]
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 25 }
+      - run: |
+          sudo apt-get update -q && sudo apt-get install -yq xvfb libgl1-mesa-dri mesa-vulkan-drivers libvulkan1 >/dev/null
+          pip install -q portablemc
+          mkdir -p mc/mods
+          FAPI=$(curl -fsSL 'https://api.modrinth.com/v2/project/fabric-api/version?game_versions=%5B%2226.3%22%5D&loaders=%5B%22fabric%22%5D' | python3 -c "import json,sys; v=json.load(sys.stdin)[0]; print(v['files'][0]['url'])")
+          echo "fabric api: $FAPI"; curl -fsSL -o mc/mods/fabric-api.jar "$FAPI"
+          curl -fsSL -o "mc/mods/flop-visuals.jar" "https://github.com/floplingg/Visualflop/releases/download/v0.16.0%2B26.3/flop-visuals-0.16.0%2B26.3.jar"
+          ls -la mc/mods
+          (timeout 240 xvfb-run -a -s "-screen 0 1280x720x24 +extension GLX +render -noreset" portablemc --main-dir "$PWD/mc" --work-dir "$PWD/mc" start fabric:26.3 -u Tester 2>&1 | tail -80) || true
+          echo "======== LOG"
+          grep -E "Loading [0-9]+ mods|flop|Flop|ERROR|Exception|Mixin|mixin" mc/logs/latest.log | head -80 || true
