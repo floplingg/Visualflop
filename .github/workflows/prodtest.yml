@@ -2,6 +2,8 @@ name: prodtest
 on:
   push:
     branches: [prodtest]
+permissions:
+  contents: write
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -27,5 +29,6 @@ jobs:
           import -window root shot2.png
           (grep -iE "flop|Exception" game.out | grep -v "flite\|OpenAL\|ALSA" | head -30) || true
       - if: always()
-        uses: actions/upload-artifact@v4
-        with: { name: shots, path: "shot*.png" }
+        run: |
+          mkdir out && cp shot*.png game.out out/ 2>/dev/null; cd out && git init -q && git add -A && git -c user.name=ci -c user.email=ci@x commit -qm shots
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" HEAD:prod-shots
